@@ -1,0 +1,12 @@
+cc_test(
+    name = "test_calibration",
+    size = "small",
+    srcs = [
+        "test_pt.cpp",
+        "test_tc.cpp",
+    ],
+    deps = [
+        "//gse-driver/calibration",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
