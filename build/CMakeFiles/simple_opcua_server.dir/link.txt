@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/simple_opcua_server.dir/main.cpp.o -o simple_opcua_server  ../open62541/build/bin/open62541 

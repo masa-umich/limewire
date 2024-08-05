@@ -1,0 +1,3 @@
+/home/jack/Projects/MASA/limewire/limewire-opc-ua/build/CMakeFiles/simple_opcua_server.dir
+/home/jack/Projects/MASA/limewire/limewire-opc-ua/build/CMakeFiles/edit_cache.dir
+/home/jack/Projects/MASA/limewire/limewire-opc-ua/build/CMakeFiles/rebuild_cache.dir
