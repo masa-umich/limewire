@@ -1,0 +1,1 @@
+bazel-5.3.0 run //main:limewire
