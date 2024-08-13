@@ -13,11 +13,13 @@ Install Bazel-5.3.0\
 *NOTE: must be using Bazel 5.3.0 specifically, or use Bazelisk*
 
 Build or run with Bazel\
-`bazel-5.3.0 build //main:limewire`\
+`./build.sh`\
 or\
-`bazel-5.3.0 run //main:limewire`
+`./run.sh`
 
 ## Notes
+This project was designed to only be developed and run on Linux as we will be using networking APIs that are not available on Windows. A port to Windows may be possible but is not planned, I reccomend using WSL2 if you are on Windows.
+
 Bazel has a weird directory naming scheme that goes like this:
 - Every file you want to build or include must have a BUILD file in its directory
 - In that BUILD file you must specify a **name** for the target you want to build (NOT just the name of the file)
@@ -30,4 +32,8 @@ The Bazel WORKSPACE file specifies external/remote dependencies for the project.
 
 Because of these dependencies, it may take several minutes to build the project initially, subsequent builds should be faster due to caching.
 
-Intellesense may be broken before the first build due to the dependencies not being present.
+Intellisense may be broken before the first build due to the dependencies not being present.
+
+I don't like the way Bazel puts the binary file of a build inside some random folder and symlinks it, so I the build script copies the binary to the root of the project. You can still build with Bazel normally if you want, but you will need to modify the `.bazelrc` file if you want to re-enable the symlinks.
+
+If things get messed up, do a `bazel clean` and it might be fixed. It basically just clears the cache that Bazel uses.

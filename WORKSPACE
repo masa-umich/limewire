@@ -11,6 +11,7 @@ http_archive(
 load("@bazel_skylib//lib:versions.bzl", "versions")
 # Must be using exactly Bazel-5.3.0 (or just use bazelisk)
 versions.check(minimum_bazel_version = "5.3.0", bazel_version = "5.3.0", maximum_bazel_version = "5.3.0")
+# I thought this would make it so there would be an obvious error message if you're using the wrong Bazel version, but it doesn't seem to work for unknown reasons.
 
 ### Define Synnax Version ###
 synnax_release = "v0.26.9"

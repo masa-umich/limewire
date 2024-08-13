@@ -6,9 +6,9 @@
 using namespace std;
 
 int main() {
-    string input;
+    string test;
     cout << "Enter a string: ";
-    getline(cin, input);
-    cout << "You entered: " << input << endl;
+    cin >> test;
+    cout << "You entered: " << test << endl;
     return 0;
 }

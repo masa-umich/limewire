@@ -3,4 +3,3 @@ cc_binary(
     srcs = ["limewire.cpp"],
     deps = ["@synnax//client/cpp:synnax"],
 )
-
