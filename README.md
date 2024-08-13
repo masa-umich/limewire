@@ -15,7 +15,8 @@ Install Bazel-5.3.0\
 Build or run with Bazel\
 `./build.sh`\
 or\
-`./run.sh`
+`./run.sh`\
+*these are premade scripts, you can also use normal Bazel commands if you'd like*
 
 ## Notes
 This project was designed to only be developed and run on Linux as we will be using networking APIs that are not available on Windows. A port to Windows may be possible but is not planned, I reccomend using WSL2 if you are on Windows.
