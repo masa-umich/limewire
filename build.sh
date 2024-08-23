@@ -16,4 +16,4 @@ fi
 echo -e "${PREFIX} Build Successful! Copying binary to project root..."
 cp -f build/bin/main/limewire .
 
-echo -e "${PREFIX} Success!"
+echo -e "${PREFIX} Success"

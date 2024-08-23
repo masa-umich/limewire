@@ -1,8 +1,16 @@
 #!/bin/bash
 PREFIX="\033[0;34m[Build Script]\033[0m"
-# Debug message
-echo -e "${PREFIX} Building the project"
+
 # Run the project
+echo -e "${PREFIX} Running Limewire"
 bazel-5.3.0 run //main:limewire
+
+# Check if build failed
+EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]; then
+    echo -e "${PREFIX} Build Unsuccessful (Code ${EXIT_CODE})"
+    exit $EXIT_CODE
+fi
+
 # Debug message
 echo -e "${PREFIX} Success"
