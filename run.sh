@@ -3,7 +3,8 @@ PREFIX="\033[0;34m[Build Script]\033[0m"
 
 # Run the project
 echo -e "${PREFIX} Running Limewire"
-bazel-5.3.0 run //main:limewire
+bazel run //main:limewire
+# linux command is bazel-5.3.0 run //main:limewire
 
 # Check if build failed
 EXIT_CODE=$?
