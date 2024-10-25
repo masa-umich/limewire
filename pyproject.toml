@@ -8,6 +8,9 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.12"
 
+[tool.poetry.scripts]
+limewire = "limewire.__main__:main"
+
 
 [build-system]
 requires = ["poetry-core"]
