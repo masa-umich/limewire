@@ -10,8 +10,20 @@ async def deserialize_packet(bytes_recv: bytes):
     return
 
 
-async def handle_telemetry_data():
-    reader, writer = await asyncio.open_connection("127.0.0.1", 8888)
+async def handle_telemetry_data(ip_addr: str, port: int) -> None:
+    """Read incoming telemetry data and print data to STDOUT.
+
+    Args:
+        ip_addr: The flight computer's IP address.
+        port: The port to connect to the flight computer to.
+    """
+    try:
+        reader, writer = await asyncio.open_connection(ip_addr, port)
+    except ConnectionRefusedError:
+        # Give a more descriptive error message
+        raise ConnectionRefusedError(
+            f"Unable to connect to flight computer at {ip_addr}:{port}."
+        )
 
     print(f"Connected to {writer.get_extra_info("peername")}.")
 
@@ -56,15 +68,3 @@ async def handle_telemetry_data():
         f"Received {telemetry_packets_received} packets in {elapsed_time:.2f} sec ({
             telemetry_packets_received/elapsed_time:.2f} packets/sec, {bytes_received * 8 / elapsed_time / 1000:.2f} kbps)"
     )
-
-
-if __name__ == "__main__":
-    message = "Hello, world!"
-    if len(sys.argv) >= 2:
-        message = sys.argv[1]
-
-    try:
-        asyncio.run(handle_telemetry_data())
-    except KeyboardInterrupt:
-        print("Ctrl+C recieved.")
-        sys.exit(0)
