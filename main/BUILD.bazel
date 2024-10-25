@@ -1,5 +1,0 @@
-cc_binary(
-    name = "limewire",
-    srcs = ["limewire.cpp"],
-    deps = ["@synnax//client/cpp:synnax"],
-)

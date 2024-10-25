@@ -1,4 +1,0 @@
-# Specifies compilation with c++ version 17.
-build --action_env=BAZEL_CXXOPTS="-std=c++17"
-# Changes the default link for the output directories from the project root to the build directory
-build --symlink_prefix=build/
