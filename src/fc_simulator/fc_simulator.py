@@ -35,19 +35,11 @@ async def handle_client(
     )
 
 
-async def run_server():
-    server = await asyncio.start_server(handle_client, "127.0.0.1", 8888)
+async def run_server(ip_addr: str, port: int) -> None:
+    server = await asyncio.start_server(handle_client, ip_addr, port)
 
     addr = server.sockets[0].getsockname()
     print(f"Serving on {addr}.")
 
     async with server:
         await server.serve_forever()
-
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(run_server())
-    except KeyboardInterrupt:
-        print("Ctrl+C received.")
-        exit(0)
