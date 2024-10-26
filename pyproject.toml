@@ -4,10 +4,10 @@ version = "0.1.0"
 description = "A driver to facilitate communication between Synnax and Limelight"
 authors = ["Rohan Satapathy <61920401+rohansatapathy@users.noreply.github.com>"]
 readme = "README.md"
-packages = {
-    { include = "limewire", from = "src" }
-    { include = "packets", from = "src" }
-}
+packages = [ 
+    { include = "limewire", from = "src" },
+    { include = "packets", from = "src" }, 
+]
 
 [tool.poetry.dependencies]
 python = "^3.12"
