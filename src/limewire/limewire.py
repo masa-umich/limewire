@@ -1,12 +1,11 @@
 import asyncio
-import sys
 
 from packets import TelemetryPacket, TelemetryValue
 
 
 async def deserialize_packet(bytes_recv: bytes):
     packet = TelemetryPacket(bytes_recv=bytes_recv)
-    print(f"Received: {packet}")
+    # print(f"Received: {packet}")
     return
 
 
