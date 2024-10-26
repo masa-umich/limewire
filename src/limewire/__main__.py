@@ -16,6 +16,7 @@ def main():
     LIMELIGHT_FC_IP = os.getenv("LIMELIGHT_FC_IP")
     LIMELIGHT_FC_PORT = os.getenv("LIMELIGHT_FC_PORT")
 
+    # Prefer IP address and port from command line variables
     if len(sys.argv) == 2:
         LIMELIGHT_FC_IP, LIMELIGHT_FC_PORT = sys.argv[1].split(":", maxsplit=2)
 
