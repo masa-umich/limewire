@@ -13,7 +13,7 @@ async def deserialize_packet(bytes_recv: bytes) -> int:
         The number of telemetry values processed.
     """
     packet = TelemetryPacket(bytes_recv=bytes_recv)
-    # print(f"Received: {packet}")
+    print(f"Received: {packet}")
     return len(packet.values)
 
 
