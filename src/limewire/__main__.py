@@ -4,7 +4,7 @@ import sys
 
 from dotenv import load_dotenv
 
-from limewire import handle_telemetry_data
+import limewire
 from limewire.errors import print_limewire_error
 
 
@@ -31,9 +31,9 @@ def main():
         print_limewire_error(ValueError(f"Invalid port {LIMELIGHT_FC_PORT}."))
 
     try:
-        asyncio.run(handle_telemetry_data(LIMELIGHT_FC_IP, LIMELIGHT_FC_PORT))
+        asyncio.run(limewire.run(LIMELIGHT_FC_IP, LIMELIGHT_FC_PORT))
     except KeyboardInterrupt:
-        print("Ctrl+C recieved.")
+        print("\nCtrl+C recieved.")
         sys.exit(0)
     except ConnectionRefusedError as err:
         print_limewire_error(err)

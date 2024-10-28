@@ -3,41 +3,18 @@ import asyncio
 from packets import TelemetryPacket, TelemetryValue
 
 
-async def deserialize_packet(bytes_recv: bytes) -> int:
-    """Convert bytes to TelemetryValues and return number of values processed.
-
-    Args:
-        bytes_recv: The raw telemetry bytes.
-
-    Returns:
-        The number of telemetry values processed.
-    """
-    packet = TelemetryPacket(bytes_recv=bytes_recv)
-    print(f"Received: {packet}")
-    return len(packet.values)
-
-
-async def handle_telemetry_data(ip_addr: str, port: int) -> None:
-    """Read incoming telemetry data and print data to STDOUT.
+async def read_telemetry_data(
+    reader: asyncio.StreamReader,
+    queue: asyncio.Queue,
+) -> tuple[int, int]:
+    """Read incoming telemetry data and push to queue.
 
     Args:
         ip_addr: The flight computer's IP address.
         port: The port to connect to the flight computer to.
     """
-    try:
-        reader, writer = await asyncio.open_connection(ip_addr, port)
-    except ConnectionRefusedError:
-        # Give a more descriptive error message
-        raise ConnectionRefusedError(
-            f"Unable to connect to flight computer at {ip_addr}:{port}."
-        )
-
-    print(f"Connected to {writer.get_extra_info("peername")}.")
-
-    start_time = asyncio.get_event_loop().time()
 
     packets_received = 0
-    values_received = 0
     while True:
         header_byte = await reader.read(1)
         if not header_byte:
@@ -51,16 +28,60 @@ async def handle_telemetry_data(ip_addr: str, port: int) -> None:
                     break
                 num_values = int.from_bytes(num_values)
 
-                values_bytes = await reader.readexactly(
+                data_bytes = await reader.readexactly(
                     num_values * TelemetryValue.SIZE_BYTES
                 )
-                if not values_bytes:
+                if not data_bytes:
                     break
 
-                values_received += await deserialize_packet(values_bytes)
+                await queue.put(data_bytes)
                 packets_received += 1
             case _:
                 raise ValueError("Invalid Limestone packet header.")
+
+    return packets_received
+
+
+async def write_data_to_synnax(queue: asyncio.Queue) -> None:
+    """Write telemetry data from queue to Synnax.
+
+    This function currently prints the data to STDOUT instead
+    of writing to Synnax as a stand-in.
+
+    Args:
+        queue: The queue containing telemetry values.
+    """
+    while True:
+        data_bytes = await queue.get()
+        packet = TelemetryPacket(bytes_recv=data_bytes)
+        print(f"Received: {packet}")
+        queue.task_done()
+
+
+async def run(ip_addr: str, port: int):
+    """Open the TCP connection and run Limewire.
+
+    Args:
+        ip_addr: The flight computer's IP address.
+        port: The port to connect to the flight computer to.
+    """
+    try:
+        reader, writer = await asyncio.open_connection(ip_addr, port)
+    except ConnectionRefusedError:
+        # Give a more descriptive error message
+        raise ConnectionRefusedError(
+            f"Unable to connect to flight computer at {ip_addr}:{port}."
+        )
+    print(f"Connected to {writer.get_extra_info("peername")}.")
+    start_time = asyncio.get_event_loop().time()
+
+    queue = asyncio.Queue()
+
+    receive_task = asyncio.create_task(read_telemetry_data(reader, queue))
+    write_task = asyncio.create_task(write_data_to_synnax(queue))
+    packets_received = await receive_task
+    await queue.join()
+    write_task.cancel()
 
     print("Closing connection... ", end="")
     writer.close()
@@ -70,5 +91,5 @@ async def handle_telemetry_data(ip_addr: str, port: int) -> None:
     elapsed_time = asyncio.get_event_loop().time() - start_time
     print(
         f"Received {packets_received} packets in {elapsed_time:.2f} sec ({
-            packets_received/elapsed_time:.2f} packets/sec, {values_received / elapsed_time} values/sec)"
+            packets_received/elapsed_time:.2f} packets/sec)"
     )

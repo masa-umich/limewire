@@ -1,2 +1,2 @@
-from .limewire import handle_telemetry_data
+from .limewire import run
 from . import errors
