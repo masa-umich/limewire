@@ -139,4 +139,5 @@ instructions.
 
 If you would like to test Limewire locally, use the IP address `127.0.0.1`
 in place of `[public-ip-address]` and run Limewire using `python -m
-limewire 127.0.0.1:8888` on your local machine.
+limewire 127.0.0.1:8888` on your local machine. You'll need to have two
+terminals open -- one for Limewire and one for the FC simulator.
