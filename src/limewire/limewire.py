@@ -14,7 +14,7 @@ async def read_telemetry_data(
         port: The port to connect to the flight computer to.
     """
 
-    packets_received = 0
+    values_received = 0
     while True:
         header_byte = await reader.read(1)
         if not header_byte:
@@ -35,11 +35,11 @@ async def read_telemetry_data(
                     break
 
                 await queue.put(data_bytes)
-                packets_received += 1
+                values_received += num_values
             case _:
                 raise ValueError("Invalid Limestone packet header.")
 
-    return packets_received
+    return values_received
 
 
 async def write_data_to_synnax(queue: asyncio.Queue) -> None:
@@ -79,17 +79,24 @@ async def run(ip_addr: str, port: int):
 
     receive_task = asyncio.create_task(read_telemetry_data(reader, queue))
     write_task = asyncio.create_task(write_data_to_synnax(queue))
-    packets_received = await receive_task
+    values_received = await receive_task
+    read_time = asyncio.get_event_loop().time() - start_time
+
     await queue.join()
     write_task.cancel()
+
+    write_time = asyncio.get_event_loop().time() - start_time
 
     print("Closing connection... ", end="")
     writer.close()
     await writer.wait_closed()
     print("Done.")
 
-    elapsed_time = asyncio.get_event_loop().time() - start_time
     print(
-        f"Received {packets_received} packets in {elapsed_time:.2f} sec ({
-            packets_received/elapsed_time:.2f} packets/sec)"
+        f"Received {values_received} values in {read_time:.2f} sec ({
+            values_received/read_time:.2f} values/sec)"
+    )
+    print(
+        f"Wrote {values_received} values in {write_time:.2f} sec ({
+            values_received/write_time:.2f} values/sec)"
     )
