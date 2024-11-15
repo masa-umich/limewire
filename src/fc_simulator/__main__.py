@@ -16,7 +16,7 @@ def main():
     LIMELIGHT_FC_PORT = os.getenv("LIMELIGHT_FC_PORT")
 
     # Prefer IP address and port from command line variables
-    if len(sys.argv) == 2:
+    if len(sys.argv) >= 2:
         LIMELIGHT_FC_IP, LIMELIGHT_FC_PORT = sys.argv[1].split(":", maxsplit=2)
 
     if LIMELIGHT_FC_IP is None:
@@ -28,8 +28,16 @@ def main():
         LIMELIGHT_FC_PORT = int(LIMELIGHT_FC_PORT)
     except (ValueError, TypeError):
         print_fc_error(ValueError(f"Invalid port {LIMELIGHT_FC_PORT}."))
+
+    run_time = 10
+    if len(sys.argv) >= 3:
+        try:
+            run_time = int(sys.argv[2])
+        except (ValueError, TypeError):
+            print_fc_error(ValueError(f"Invalid run_time {sys.argv[2]}"))
+
     try:
-        asyncio.run(run_server(LIMELIGHT_FC_IP, LIMELIGHT_FC_PORT))
+        asyncio.run(run_server(LIMELIGHT_FC_IP, LIMELIGHT_FC_PORT, run_time))
     except KeyboardInterrupt:
         print("\nCtrl+C received.")
         exit(0)
