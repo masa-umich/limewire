@@ -54,7 +54,7 @@ async def write_data_to_synnax(queue: asyncio.Queue) -> None:
     while True:
         data_bytes = await queue.get()
         packet = TelemetryPacket(bytes_recv=data_bytes)
-        print(f"Received: {packet}")
+        # print(f"Received: {packet}")
         queue.task_done()
 
 
