@@ -1,5 +1,4 @@
 import asyncio
-import sys
 
 from packets import TelemetryPacket, TelemetryValue
 
@@ -14,14 +13,14 @@ async def handle_client(
     start_time = asyncio.get_event_loop().time()
     timeout_sec = 10
 
-    packets_sent = 0
+    values_sent = 0
     while True:
         values = [TelemetryValue(i, i * 2, i * 3) for i in range(3)]
         packet = TelemetryPacket(values=values)
 
         writer.write(bytes(packet))
         await writer.drain()
-        packets_sent += 1
+        values_sent += len(packet.values)
 
         if asyncio.get_event_loop().time() - start_time > timeout_sec:
             break
@@ -30,8 +29,8 @@ async def handle_client(
     writer.close()
     await writer.wait_closed()
     print(
-        f"Sent {packets_sent} packets in {
-            timeout_sec} sec ({packets_sent/timeout_sec:.2f} packets/sec)"
+        f"Sent {values_sent} telemetry values in {
+            timeout_sec} sec ({values_sent/timeout_sec:.2f} values/sec)"
     )
 
 
