@@ -1,6 +1,9 @@
 import asyncio
 
+import synnax as sy
+
 from packets import TelemetryPacket, TelemetryValue
+from .synnax_util import synnax_init
 
 
 async def read_telemetry_data(
@@ -42,7 +45,11 @@ async def read_telemetry_data(
     return values_received
 
 
-async def write_data_to_synnax(queue: asyncio.Queue) -> None:
+async def write_data_to_synnax(
+    queue: asyncio.Queue,
+    client: sy.Synnax,
+    data_channels: list[str],
+) -> None:
     """Write telemetry data from queue to Synnax.
 
     This function currently prints the data to STDOUT instead
@@ -50,6 +57,10 @@ async def write_data_to_synnax(queue: asyncio.Queue) -> None:
 
     Args:
         queue: The queue containing telemetry values.
+        client: The Synnax client.
+        data_channels: A list of all data channels, with indices
+            corresponding to the channel ID in the Limelight packet
+            structure.
     """
     while True:
         data_bytes = await queue.get()
@@ -59,12 +70,15 @@ async def write_data_to_synnax(queue: asyncio.Queue) -> None:
 
 
 async def run(ip_addr: str, port: int):
-    """Open the TCP connection and run Limewire.
+    """Open the TCP connection and the Synnax connection and run Limewire.
 
     Args:
         ip_addr: The flight computer's IP address.
         port: The port to connect to the flight computer to.
     """
+
+    client, data_channels = synnax_init()
+
     try:
         reader, writer = await asyncio.open_connection(ip_addr, port)
     except ConnectionRefusedError:
@@ -78,7 +92,9 @@ async def run(ip_addr: str, port: int):
     queue = asyncio.Queue()
 
     receive_task = asyncio.create_task(read_telemetry_data(reader, queue))
-    write_task = asyncio.create_task(write_data_to_synnax(queue))
+    write_task = asyncio.create_task(
+        write_data_to_synnax(queue, client, data_channels)
+    )
     values_received = await receive_task
     read_time = asyncio.get_event_loop().time() - start_time
 
