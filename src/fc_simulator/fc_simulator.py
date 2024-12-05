@@ -1,7 +1,7 @@
 import asyncio
 from functools import partial
 
-from packets import TelemetryPacket, TelemetryValue
+from packets import TelemetryMessage, TelemetryValue
 
 
 async def handle_client(
@@ -16,8 +16,8 @@ async def handle_client(
 
     values_sent = 0
     while True:
-        values = [TelemetryValue(i, i * 2, i * 3) for i in range(3)]
-        packet = TelemetryPacket(values=values)
+        values = [TelemetryValue(i, i * 2) for i in range(3)]
+        packet = TelemetryMessage(timestamp=34, values=values)
 
         writer.write(bytes(packet))
         await writer.drain()

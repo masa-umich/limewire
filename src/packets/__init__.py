@@ -1,1 +1,1 @@
-from .packets import TelemetryPacket, TelemetryValue
+from .packets import TelemetryMessage, TelemetryValue

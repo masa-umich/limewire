@@ -2,7 +2,8 @@ import asyncio
 
 import synnax as sy
 
-from packets import TelemetryPacket, TelemetryValue
+from packets import TelemetryMessage, TelemetryValue
+
 from .synnax_util import synnax_init
 
 
@@ -32,7 +33,7 @@ async def read_telemetry_data(
                 num_values = int.from_bytes(num_values)
 
                 data_bytes = await reader.readexactly(
-                    num_values * TelemetryValue.SIZE_BYTES
+                    num_values * TelemetryValue.SIZE_BYTES + 8
                 )
                 if not data_bytes:
                     break
@@ -40,7 +41,9 @@ async def read_telemetry_data(
                 await queue.put(data_bytes)
                 values_received += num_values
             case _:
-                raise ValueError("Invalid Limestone packet header.")
+                raise ValueError(
+                    f"Invalid Limestone packet header 0x{header:X}."
+                )
 
     return values_received
 
@@ -64,8 +67,8 @@ async def write_data_to_synnax(
     """
     while True:
         data_bytes = await queue.get()
-        packet = TelemetryPacket(bytes_recv=data_bytes)
-        await asyncio.to_thread(print, f"Received: {packet}")
+        packet = TelemetryMessage(bytes_recv=data_bytes)
+        print(f"Received: {packet}")
         queue.task_done()
 
 
@@ -77,7 +80,7 @@ async def run(ip_addr: str, port: int):
         port: The port to connect to the flight computer to.
     """
 
-    client, data_channels = synnax_init()
+    client, data_channels = None, None
 
     try:
         reader, writer = await asyncio.open_connection(ip_addr, port)
