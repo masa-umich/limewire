@@ -131,4 +131,4 @@ async def run(ip_addr: str, port: int):
         max(message_processing_times) * 1000 - mean_ms,
     )
     print(f"\nMessage Latency: {mean_ms:.2f} ± {jitter_ms:.2f} ms")
-    print(f"Stdev: {statistics.stdev(message_processing_times) * 1000} ms")
+    print(f"Stdev: {statistics.stdev(message_processing_times) * 1000:.2f} ms")
