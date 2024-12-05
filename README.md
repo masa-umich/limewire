@@ -19,13 +19,6 @@ development environment or on the DAQ PC.
 2. Install [Poetry](https://python-poetry.org/docs/), a dependency manager
    and virtual environment manager for Python projects. 
 
-   > [!NOTE]
-   > I highly recommend using the `pipx` installation method. `pipx` is a
-   > Python tool that is used to install packages that expose a command-line
-   > tool (such as Poetry) inside an isolated virtual environment. If this
-   > doesn't work for you, feel free to contact me (Rohan Satapathy) on
-   > Slack or use whichever installation method works for you.
-
 3. Clone the repository and `cd` into the project directory.
    
    ```shell
@@ -60,13 +53,13 @@ development environment or on the DAQ PC.
 
 ### DAQ PC Installation
 
-Limewire is installed on the DAQ PC using `pipx` because it installs
+Limewire is installed on the DAQ PC using `uv` because it installs
 Limewire in a virtual environment while globally exposing the `limewire`
 command-line entry point. To download the latest version from GitHub, use
 the following command.
 
 ```
-pipx reinstall limewire
+uv tool upgrade limewire
 ```
 
 Then, run Limewire.
@@ -128,7 +121,7 @@ instructions.
    DAQ PC.
 
    ```shell
-   pipx reinstall limewire
+   uv tool upgrade limewire
    ```
 
 6. Run Limewire.
