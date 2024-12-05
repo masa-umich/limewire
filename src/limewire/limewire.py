@@ -77,9 +77,9 @@ async def write_data_to_synnax(
         # Write and commit data to Synnax
         data_to_write = {}
         for value in message.values:
-            channel_name = data_channels[value.channel_id]
-            data_to_write[channel_name] = value.data
-            data_to_write[get_index_name(channel_name)] = message.timestamp
+            channel = data_channels[value.channel_id]
+            data_to_write[channel.name] = value.data
+            data_to_write[get_index_name(channel.name)] = message.timestamp
         writer.write(data_to_write)
         writer.commit()
 
