@@ -250,4 +250,3 @@ bb3_5V_voltage
 bb3_5V_current
 bb3_3V3_voltage
 bb3_3V3_current
-
