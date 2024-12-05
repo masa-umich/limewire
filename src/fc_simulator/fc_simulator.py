@@ -18,7 +18,7 @@ async def handle_client(
 
     values_sent = 0
     while True:
-        values = [TelemetryValue(i, i * 2) for i in range(3)]
+        values = [TelemetryValue(12 + i, i * 2) for i in range(3)]
         packet = TelemetryMessage(timestamp=sy.TimeStamp.now(), values=values)
 
         writer.write(bytes(packet))
