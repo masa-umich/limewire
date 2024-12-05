@@ -22,7 +22,7 @@ def synnax_init() -> (sy.Synnax, list[str]):
         port=int(os.environ["SYNNAX_PORT"]),
         username=os.environ["SYNNAX_USERNAME"],
         password=os.environ["SYNNAX_PASSWORD"],
-        secure=True,
+        secure=False,
     )
 
     with open("data/channels.txt") as f:
