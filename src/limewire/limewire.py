@@ -1,4 +1,5 @@
 import asyncio
+import statistics
 
 import synnax as sy
 
@@ -38,7 +39,7 @@ async def read_telemetry_data(
                 if not data_bytes:
                     break
 
-                await queue.put(data_bytes)
+                await queue.put((data_bytes, asyncio.get_event_loop().time()))
                 values_received += num_values
             case _:
                 raise ValueError(
@@ -50,6 +51,7 @@ async def read_telemetry_data(
 
 async def write_data_to_synnax(
     queue: asyncio.Queue,
+    message_processing_times: list,
     client: sy.Synnax,
     data_channels: list[str],
 ) -> None:
@@ -60,14 +62,19 @@ async def write_data_to_synnax(
 
     Args:
         queue: The queue containing telemetry values.
+        message_processing_times: A list containing the time it took
+            to process each message.
         client: The Synnax client.
         data_channels: A list of all data channels, with indices
             corresponding to the channel ID in the Limelight packet
             structure.
     """
     while True:
-        data_bytes = await queue.get()
+        data_bytes, enter_time = await queue.get()
         packet = TelemetryMessage(bytes_recv=data_bytes)
+        message_processing_times.append(
+            asyncio.get_event_loop().time() - enter_time
+        )
         print(f"Received: {packet}")
         queue.task_done()
 
@@ -93,10 +100,13 @@ async def run(ip_addr: str, port: int):
     start_time = asyncio.get_event_loop().time()
 
     queue = asyncio.Queue()
+    message_processing_times = []
 
     receive_task = asyncio.create_task(read_telemetry_data(reader, queue))
     write_task = asyncio.create_task(
-        write_data_to_synnax(queue, client, data_channels)
+        write_data_to_synnax(
+            queue, message_processing_times, client, data_channels
+        )
     )
     values_received = await receive_task
     read_time = asyncio.get_event_loop().time() - start_time
@@ -119,3 +129,7 @@ async def run(ip_addr: str, port: int):
         f"Wrote {values_received} values in {write_time:.2f} sec ({
             values_received/write_time:.2f} values/sec)"
     )
+
+    print("Packet processing time data:")
+    print(f"Mean: {statistics.mean(message_processing_times) * 1000} ms")
+    print(f"Stdev: {statistics.stdev(message_processing_times) * 1000} ms")
