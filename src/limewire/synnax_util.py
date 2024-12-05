@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import synnax as sy
 from dotenv import load_dotenv
@@ -25,7 +26,8 @@ def synnax_init() -> (sy.Synnax, list[str]):
         secure=False,
     )
 
-    with open("data/channels.txt") as f:
+    channels_file = Path(__file__).parent / "data" / "channels.txt"
+    with channels_file.open() as f:
         channel_names = f.readlines()
         # Remove leading comment
         channel_names = channel_names[1:]
