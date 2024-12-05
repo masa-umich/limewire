@@ -47,7 +47,7 @@ def synnax_init() -> (sy.Synnax, list[str]):
     # Create data channels
     data_channels = []
     for name in channel_names:
-        index_channel = index_channels[boards.indexof(name.split("_")[0])]
+        index_channel = index_channels[boards.index(name.split("_")[0])]
         data_channels.append(
             sy.Channel(
                 name=name,
