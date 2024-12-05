@@ -8,9 +8,11 @@ def synnax_init() -> (sy.Synnax, list[str]):
     """Load channels.txt and create all channels.
 
     Returns:
-        A tuple (client, data_channels) where client is the
-        Synnax Client object and data_channels contains a list
-        of all the data channels read in from channels.txt.
+        A tuple (client, index_channels, data_channels) where
+        client is the Synnax Client object, index_channels is
+        a list of all the timestamp channels, and data_channels
+        contains a list of all the data channels read in from
+        channels.txt.
     """
 
     load_dotenv()
@@ -57,7 +59,7 @@ def synnax_init() -> (sy.Synnax, list[str]):
     client.channels.create(index_channels, retrieve_if_name_exists=True)
     client.channels.create(data_channels, retrieve_if_name_exists=True)
 
-    return client, data_channels
+    return client, index_channels, data_channels
 
 
 def get_index_name(channel: str) -> str:
