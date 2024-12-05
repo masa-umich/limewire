@@ -131,5 +131,10 @@ async def run(ip_addr: str, port: int):
     )
 
     print("Packet processing time data:")
-    print(f"Mean: {statistics.mean(message_processing_times) * 1000} ms")
+    mean_ms = statistics.mean(message_processing_times) * 1000
+    print(f"Mean: {mean_ms} ms")
     print(f"Stdev: {statistics.stdev(message_processing_times) * 1000} ms")
+    print(
+        f"Jitter (max absolute deviation): {max(mean_ms - min(message_processing_times),
+                                            max(message_processing_times) - mean_ms)}"
+    )
