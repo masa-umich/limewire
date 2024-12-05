@@ -12,7 +12,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.12"
 python-dotenv = "^1.0.1"
-synnax = "^0.34.0"
+synnax = ">=0.34.0"
 
 [tool.poetry.scripts]
 limewire = "limewire.__main__:main"
