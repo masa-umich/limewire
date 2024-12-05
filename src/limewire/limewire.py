@@ -109,7 +109,6 @@ async def run(ip_addr: str, port: int):
         )
     )
     values_received = await receive_task
-    read_time = asyncio.get_event_loop().time() - start_time
 
     await queue.join()
     write_task.cancel()
@@ -122,19 +121,14 @@ async def run(ip_addr: str, port: int):
     print("Done.")
 
     print(
-        f"Received {values_received} values in {read_time:.2f} sec ({
-            values_received/read_time:.2f} values/sec)"
-    )
-    print(
-        f"Wrote {values_received} values in {write_time:.2f} sec ({
+        f"Processed {values_received} values in {write_time:.2f} sec ({
             values_received/write_time:.2f} values/sec)"
     )
 
-    print("Packet processing time data:")
     mean_ms = statistics.mean(message_processing_times) * 1000
-    print(f"Mean: {mean_ms} ms")
-    print(f"Stdev: {statistics.stdev(message_processing_times) * 1000} ms")
-    print(
-        f"Jitter (max absolute deviation): {max(mean_ms - min(message_processing_times) * 1000,
-                                            max(message_processing_times) * 1000 - mean_ms)} ms"
+    jitter_ms = max(
+        mean_ms - min(message_processing_times) * 1000,
+        max(message_processing_times) * 1000 - mean_ms,
     )
+    print(f"\nMessage Latency: {mean_ms:.2f} ± {jitter_ms:.2f} ms")
+    print(f"Stdev: {statistics.stdev(message_processing_times) * 1000} ms")
