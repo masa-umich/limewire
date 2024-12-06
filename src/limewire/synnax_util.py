@@ -49,25 +49,19 @@ def synnax_init() -> tuple[sy.Synnax, list[sy.Channel], list[sy.Channel]]:
     for name in channel_names:
         index_channel = index_channels[boards.index(name.split("_")[0])]
         data_channels.append(
-            sy.Channel(
+            client.channels.create(
                 name=name,
                 data_type=sy.DataType.UINT8
                 if "state" in name or "cmd" in name
                 else sy.DataType.FLOAT32,
                 index=index_channel.key,
+                retrieve_if_name_exists=True,
             )
         )
 
     index_channels = client.channels.create(
         index_channels, retrieve_if_name_exists=True
     )
-
-    # This is a workaround until lists of data channels can be passed to
-    # client.channels.create()
-    for i, ch in enumerate(data_channels):
-        data_channels[i] = client.channels.create(
-            ch, retrieve_if_name_exists=True
-        )
 
     return client, index_channels, data_channels
 
