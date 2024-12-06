@@ -7,11 +7,11 @@ from packets import TelemetryMessage, TelemetryValue
 
 
 async def handle_client(
-    reader: asyncio.StreamReader,
+    _reader: asyncio.StreamReader,
     writer: asyncio.StreamWriter,
     run_time: int,
 ) -> None:
-    addr = writer.get_extra_info("peername")
+    addr: str = writer.get_extra_info("peername")
     print(f"Connected to {addr}.")
 
     start_time = asyncio.get_event_loop().time()
@@ -48,7 +48,7 @@ async def run_server(ip_addr: str, port: int, run_time: int) -> None:
         port,
     )
 
-    addr = server.sockets[0].getsockname()
+    addr: str = server.sockets[0].getsockname()
     print(f"Serving on {addr}.")
 
     async with server:

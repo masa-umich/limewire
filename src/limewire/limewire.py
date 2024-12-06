@@ -10,8 +10,8 @@ from .synnax_util import get_index_name, synnax_init
 
 async def read_telemetry_data(
     reader: asyncio.StreamReader,
-    queue: asyncio.Queue,
-) -> tuple[int, int]:
+    queue: asyncio.Queue[tuple[bytes, float]],
+) -> int:
     """Read incoming telemetry data and push to queue.
 
     Args:
@@ -50,10 +50,10 @@ async def read_telemetry_data(
 
 
 async def write_data_to_synnax(
-    queue: asyncio.Queue,
-    message_processing_times: list,
+    queue: asyncio.Queue[tuple[bytes, float]],
+    message_processing_times: list[float],
     writer: sy.Writer,
-    data_channels: list[str],
+    data_channels: list[sy.Channel],
 ) -> None:
     """Write telemetry data from queue to Synnax.
 
@@ -75,12 +75,12 @@ async def write_data_to_synnax(
         message = TelemetryMessage(bytes_recv=data_bytes)
 
         # Write and commit data to Synnax
-        data_to_write = {}
+        data_to_write: dict[str, float] = {}
         for value in message.values:
             channel = data_channels[value.channel_id]
             data_to_write[channel.name] = value.data
             data_to_write[get_index_name(channel.name)] = message.timestamp
-        writer.write(data_to_write)
+        writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
         writer.commit()
 
         # Complete write task
@@ -101,7 +101,8 @@ async def run(ip_addr: str, port: int):
     # Initialize Synnax client
     client, index_channels, data_channels = synnax_init()
     synnax_writer = client.open_writer(
-        start=sy.TimeStamp.now(), channels=index_channels + data_channels
+        start=sy.TimeStamp.now(),
+        channels=[ch.name for ch in index_channels + data_channels],
     )
 
     # Initialize TCP connection to flight computer
@@ -116,8 +117,8 @@ async def run(ip_addr: str, port: int):
     start_time = asyncio.get_event_loop().time()
 
     # Set up read and write tasks
-    queue = asyncio.Queue()
-    message_processing_times = []
+    queue: asyncio.Queue[tuple[bytes, float]] = asyncio.Queue()
+    message_processing_times: list[float] = []
     receive_task = asyncio.create_task(read_telemetry_data(tcp_reader, queue))
     write_task = asyncio.create_task(
         write_data_to_synnax(

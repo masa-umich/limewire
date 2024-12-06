@@ -5,7 +5,7 @@ import synnax as sy
 from dotenv import load_dotenv
 
 
-def synnax_init() -> (sy.Synnax, list[str]):
+def synnax_init() -> tuple[sy.Synnax, list[sy.Channel], list[sy.Channel]]:
     """Load channels.txt and create all channels.
 
     Returns:
@@ -34,7 +34,7 @@ def synnax_init() -> (sy.Synnax, list[str]):
 
     boards = ["fc", "bb1", "bb2", "bb3"]
     # Create index channels
-    index_channels = []
+    index_channels: list[sy.Channel] = []
     for board in boards:
         index_channels.append(
             sy.Channel(
@@ -45,7 +45,7 @@ def synnax_init() -> (sy.Synnax, list[str]):
         )
 
     # Create data channels
-    data_channels = []
+    data_channels: list[sy.Channel] = []
     for name in channel_names:
         index_channel = index_channels[boards.index(name.split("_")[0])]
         data_channels.append(
