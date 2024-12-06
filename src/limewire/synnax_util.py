@@ -58,8 +58,16 @@ def synnax_init() -> tuple[sy.Synnax, list[sy.Channel], list[sy.Channel]]:
             )
         )
 
-    client.channels.create(index_channels, retrieve_if_name_exists=True)
-    client.channels.create(data_channels, retrieve_if_name_exists=True)
+    index_channels = client.channels.create(
+        index_channels, retrieve_if_name_exists=True
+    )
+
+    # This is a workaround until lists of data channels can be passed to
+    # client.channels.create()
+    for i, ch in enumerate(data_channels):
+        data_channels[i] = client.channels.create(
+            ch, retrieve_if_name_exists=True
+        )
 
     return client, index_channels, data_channels
 
