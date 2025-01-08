@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -5,15 +6,13 @@ import synnax as sy
 from dotenv import load_dotenv
 
 
-def synnax_init() -> tuple[sy.Synnax, list[sy.Channel], list[sy.Channel]]:
-    """Load channels.txt and create all channels.
+def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
+    """Load channels.json and retrieve channels from Synnax.
 
     Returns:
-        A tuple (client, index_channels, data_channels) where
-        client is the Synnax Client object, index_channels is
-        a list of all the timestamp channels, and data_channels
-        contains a list of all the data channels read in from
-        channels.txt.
+        A tuple (client, channels) where client is the Synnax
+        Client object and channels is a dictionary mapping timestamp channel
+        names to lists of data channels associated with that timestamp channel.
     """
 
     load_dotenv()
@@ -26,51 +25,40 @@ def synnax_init() -> tuple[sy.Synnax, list[sy.Channel], list[sy.Channel]]:
         secure=bool(os.environ["SYNNAX_SECURE"]),
     )
 
-    channels_file = Path(__file__).parent / "data" / "channels.txt"
+    channels_file = Path(__file__).parent / "data" / "channels.json"
     with channels_file.open() as f:
-        channel_names = f.readlines()
-        # Remove leading comment
-        channel_names = channel_names[1:]
+        channels: dict[str, list[str]] = json.load(f)
 
-    boards = ["fc", "bb1", "bb2", "bb3"]
-    # Create index channels
     index_channels: list[sy.Channel] = []
-    for board in boards:
+    for index_name in channels.keys():
         index_channels.append(
             sy.Channel(
-                name=f"{board}_timestamp",
+                name=index_name,
                 data_type=sy.DataType.TIMESTAMP,
                 is_index=True,
             )
         )
 
-    # Create data channels
+    client.channels.create(index_channels, retrieve_if_name_exists=True)
+
     data_channels: list[sy.Channel] = []
-    for name in channel_names:
-        index_channel = index_channels[boards.index(name.split("_")[0])]
-        data_channels.append(
-            sy.Channel(
-                name=name,
-                data_type=sy.DataType.UINT8
-                if "state" in name or "cmd" in name
-                else sy.DataType.FLOAT32,
-                index=index_channel.key,
-                rate=sy.Rate(50),
+    for index_name, channel_names in channels.items():
+        index_channel = client.channels.retrieve(index_name)
+        for name in channel_names:
+            data_channels.append(
+                sy.Channel(
+                    name=name,
+                    data_type=sy.DataType.UINT8
+                    if "state" in name or "cmd" in name
+                    else sy.DataType.FLOAT32,
+                    index=index_channel.key,
+                    rate=sy.Rate(50),
+                )
             )
-        )
 
-    index_channels = client.channels.create(
-        index_channels, retrieve_if_name_exists=True
-    )
+    client.channels.create(data_channels, retrieve_if_name_exists=True)
 
-    # This is a workaround until lists of data channels can be passed to
-    # client.channels.create()
-    for i, ch in enumerate(data_channels):
-        data_channels[i] = client.channels.create(
-            ch, retrieve_if_name_exists=True
-        )
-
-    return client, index_channels, data_channels
+    return client, channels
 
 
 def get_index_name(channel: str) -> str:

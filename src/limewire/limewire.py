@@ -99,10 +99,11 @@ async def run(ip_addr: str, port: int):
     """
 
     # Initialize Synnax client
-    client, index_channels, data_channels = synnax_init()
+    client, channels = synnax_init()
     synnax_writer = client.open_writer(
         start=sy.TimeStamp.now(),
-        channels=[ch.name for ch in index_channels + data_channels],
+        channels=list(channels.keys())
+        + [ch for chs in channels.values() for ch in chs],
     )
 
     # Initialize TCP connection to flight computer

@@ -1,0 +1,358 @@
+{
+    "fc_timestamp": [
+        "fc_vlv1_current",
+        "fc_vlv1_old",
+        "fc_vlv2_current",
+        "fc_vlv2_old",
+        "fc_vlv3_current",
+        "fc_vlv3_old",
+        "fc_pt_1",
+        "fc_pt_2",
+        "fc_pt_3",
+        "fc_pt_4",
+        "fc_pt_5",
+        "fc_pt_6",
+        "fc_pt_7",
+        "fc_pt_8",
+        "fc_pt_9",
+        "fc_pt_10",
+        "fc_tc_1",
+        "fc_tc_2",
+        "fc_tc_3",
+        "fc_tc_4",
+        "fc_tc_5",
+        "fc_tc_6",
+        "fc_imu1_x",
+        "fc_imu1_y",
+        "fc_imu1_z",
+        "fc_imu1_wp",
+        "fc_imu1_wr",
+        "fc_imu1_wy",
+        "fc_imu2_x",
+        "fc_imu2_y",
+        "fc_imu2_z",
+        "fc_imu2_wp",
+        "fc_imu2_wr",
+        "fc_imu2_wy",
+        "fc_gps_lat",
+        "fc_gps_long",
+        "fc_gps_alt",
+        "fc_bar_1",
+        "fc_bar_2",
+        "fc_24V_voltage",
+        "fc_24V_current",
+        "fc_12V_voltage",
+        "fc_12V_current",
+        "fc_5V_voltage",
+        "fc_5V_current",
+        "fc_3V3_voltage",
+        "fc_3V3_current"
+    ],
+    "fc_vlv1_cmd_timestamp": [
+        "fc_vlv1_cmd"
+    ],
+    "fc_vlv1_state_timestamp": [
+        "fc_vlv1_state"
+    ],
+    "fc_vlv2_cmd_timestamp": [
+        "fc_vlv2_cmd"
+    ],
+    "fc_vlv2_state_timestamp": [
+        "fc_vlv2_state"
+    ],
+    "fc_vlv3_cmd_timestamp": [
+        "fc_vlv3_cmd"
+    ],
+    "fc_vlv3_state_timestamp": [
+        "fc_vlv3_state"
+    ],
+    "bb1_timestamp": [
+        "bb1_vlv1_current",
+        "bb1_vlv1_old",
+        "bb1_vlv2_current",
+        "bb1_vlv2_old",
+        "bb1_vlv3_current",
+        "bb1_vlv3_old",
+        "bb1_vlv4_current",
+        "bb1_vlv4_old",
+        "bb1_vlv5_current",
+        "bb1_vlv5_old",
+        "bb1_vlv6_current",
+        "bb1_vlv6_old",
+        "bb1_vlv7_current",
+        "bb1_vlv7_old",
+        "bb1_pt_1",
+        "bb1_pt_2",
+        "bb1_pt_3",
+        "bb1_pt_4",
+        "bb1_pt_5",
+        "bb1_pt_6",
+        "bb1_pt_7",
+        "bb1_pt_8",
+        "bb1_pt_9",
+        "bb1_pt_10",
+        "bb1_tc_1",
+        "bb1_tc_2",
+        "bb1_tc_3",
+        "bb1_tc_4",
+        "bb1_tc_5",
+        "bb1_tc_6",
+        "bb1_imu1_x",
+        "bb1_imu1_y",
+        "bb1_imu1_z",
+        "bb1_imu1_wp",
+        "bb1_imu1_wr",
+        "bb1_imu1_wy",
+        "bb1_imu2_x",
+        "bb1_imu2_y",
+        "bb1_imu2_z",
+        "bb1_imu2_wp",
+        "bb1_imu2_wr",
+        "bb1_imu2_wy",
+        "bb1_bar_1",
+        "bb1_bar_2",
+        "fc_24V_voltage",
+        "fc_24V_current",
+        "fc_12V_voltage",
+        "fc_12V_current",
+        "fc_5V_voltage",
+        "fc_5V_current",
+        "fc_3V3_voltage",
+        "fc_3V3_current"
+    ],
+    "bb1_vlv1_cmd_timestamp": [
+        "bb1_vlv1_cmd"
+    ],
+    "bb1_vlv1_state_timestamp": [
+        "bb1_vlv1_state"
+    ],
+    "bb1_vlv2_cmd_timestamp": [
+        "bb1_vlv2_cmd"
+    ],
+    "bb1_vlv2_state_timestamp": [
+        "bb1_vlv2_state"
+    ],
+    "bb1_vlv3_cmd_timestamp": [
+        "bb1_vlv3_cmd"
+    ],
+    "bb1_vlv3_state_timestamp": [
+        "bb1_vlv3_state"
+    ],
+    "bb1_vlv4_cmd_timestamp": [
+        "bb1_vlv4_cmd"
+    ],
+    "bb1_vlv4_state_timestamp": [
+        "bb1_vlv4_state"
+    ],
+    "bb1_vlv5_cmd_timestamp": [
+        "bb1_vlv5_cmd"
+    ],
+    "bb1_vlv5_state_timestamp": [
+        "bb1_vlv5_state"
+    ],
+    "bb1_vlv6_cmd_timestamp": [
+        "bb1_vlv6_cmd"
+    ],
+    "bb1_vlv6_state_timestamp": [
+        "bb1_vlv6_state"
+    ],
+    "bb1_vlv7_cmd_timestamp": [
+        "bb1_vlv7_cmd"
+    ],
+    "bb1_vlv7_state_timestamp": [
+        "bb1_vlv7_state"
+    ],
+    "bb2_timestamp": [
+        "bb2_vlv1_current",
+        "bb2_vlv1_old",
+        "bb2_vlv2_current",
+        "bb2_vlv2_old",
+        "bb2_vlv3_current",
+        "bb2_vlv3_old",
+        "bb2_vlv4_current",
+        "bb2_vlv4_old",
+        "bb2_vlv5_current",
+        "bb2_vlv5_old",
+        "bb2_vlv6_current",
+        "bb2_vlv6_old",
+        "bb2_vlv7_current",
+        "bb2_vlv7_old",
+        "bb2_pt_1",
+        "bb2_pt_2",
+        "bb2_pt_3",
+        "bb2_pt_4",
+        "bb2_pt_5",
+        "bb2_pt_6",
+        "bb2_pt_7",
+        "bb2_pt_8",
+        "bb2_pt_9",
+        "bb2_pt_10",
+        "bb2_tc_1",
+        "bb2_tc_2",
+        "bb2_tc_3",
+        "bb2_tc_4",
+        "bb2_tc_5",
+        "bb2_tc_6",
+        "bb2_imu1_x",
+        "bb2_imu1_y",
+        "bb2_imu1_z",
+        "bb2_imu1_wp",
+        "bb2_imu1_wr",
+        "bb2_imu1_wy",
+        "bb2_imu2_x",
+        "bb2_imu2_y",
+        "bb2_imu2_z",
+        "bb2_imu2_wp",
+        "bb2_imu2_wr",
+        "bb2_imu2_wy",
+        "bb2_bar_1",
+        "bb2_bar_2",
+        "fc_24V_voltage",
+        "fc_24V_current",
+        "fc_12V_voltage",
+        "fc_12V_current",
+        "fc_5V_voltage",
+        "fc_5V_current",
+        "fc_3V3_voltage",
+        "fc_3V3_current"
+    ],
+    "bb2_vlv1_cmd_timestamp": [
+        "bb2_vlv1_cmd"
+    ],
+    "bb2_vlv1_state_timestamp": [
+        "bb2_vlv1_state"
+    ],
+    "bb2_vlv2_cmd_timestamp": [
+        "bb2_vlv2_cmd"
+    ],
+    "bb2_vlv2_state_timestamp": [
+        "bb2_vlv2_state"
+    ],
+    "bb2_vlv3_cmd_timestamp": [
+        "bb2_vlv3_cmd"
+    ],
+    "bb2_vlv3_state_timestamp": [
+        "bb2_vlv3_state"
+    ],
+    "bb2_vlv4_cmd_timestamp": [
+        "bb2_vlv4_cmd"
+    ],
+    "bb2_vlv4_state_timestamp": [
+        "bb2_vlv4_state"
+    ],
+    "bb2_vlv5_cmd_timestamp": [
+        "bb2_vlv5_cmd"
+    ],
+    "bb2_vlv5_state_timestamp": [
+        "bb2_vlv5_state"
+    ],
+    "bb2_vlv6_cmd_timestamp": [
+        "bb2_vlv6_cmd"
+    ],
+    "bb2_vlv6_state_timestamp": [
+        "bb2_vlv6_state"
+    ],
+    "bb2_vlv7_cmd_timestamp": [
+        "bb2_vlv7_cmd"
+    ],
+    "bb2_vlv7_state_timestamp": [
+        "bb2_vlv7_state"
+    ],
+    "bb3_timestamp": [
+        "bb3_vlv1_current",
+        "bb3_vlv1_old",
+        "bb3_vlv2_current",
+        "bb3_vlv2_old",
+        "bb3_vlv3_current",
+        "bb3_vlv3_old",
+        "bb3_vlv4_current",
+        "bb3_vlv4_old",
+        "bb3_vlv5_current",
+        "bb3_vlv5_old",
+        "bb3_vlv6_current",
+        "bb3_vlv6_old",
+        "bb3_vlv7_current",
+        "bb3_vlv7_old",
+        "bb3_pt_1",
+        "bb3_pt_2",
+        "bb3_pt_3",
+        "bb3_pt_4",
+        "bb3_pt_5",
+        "bb3_pt_6",
+        "bb3_pt_7",
+        "bb3_pt_8",
+        "bb3_pt_9",
+        "bb3_pt_10",
+        "bb3_tc_1",
+        "bb3_tc_2",
+        "bb3_tc_3",
+        "bb3_tc_4",
+        "bb3_tc_5",
+        "bb3_tc_6",
+        "bb3_imu1_x",
+        "bb3_imu1_y",
+        "bb3_imu1_z",
+        "bb3_imu1_wp",
+        "bb3_imu1_wr",
+        "bb3_imu1_wy",
+        "bb3_imu2_x",
+        "bb3_imu2_y",
+        "bb3_imu2_z",
+        "bb3_imu2_wp",
+        "bb3_imu2_wr",
+        "bb3_imu2_wy",
+        "bb3_bar_1",
+        "bb3_bar_2",
+        "fc_24V_voltage",
+        "fc_24V_current",
+        "fc_12V_voltage",
+        "fc_12V_current",
+        "fc_5V_voltage",
+        "fc_5V_current",
+        "fc_3V3_voltage",
+        "fc_3V3_current"
+    ],
+    "bb3_vlv1_cmd_timestamp": [
+        "bb3_vlv1_cmd"
+    ],
+    "bb3_vlv1_state_timestamp": [
+        "bb3_vlv1_state"
+    ],
+    "bb3_vlv2_cmd_timestamp": [
+        "bb3_vlv2_cmd"
+    ],
+    "bb3_vlv2_state_timestamp": [
+        "bb3_vlv2_state"
+    ],
+    "bb3_vlv3_cmd_timestamp": [
+        "bb3_vlv3_cmd"
+    ],
+    "bb3_vlv3_state_timestamp": [
+        "bb3_vlv3_state"
+    ],
+    "bb3_vlv4_cmd_timestamp": [
+        "bb3_vlv4_cmd"
+    ],
+    "bb3_vlv4_state_timestamp": [
+        "bb3_vlv4_state"
+    ],
+    "bb3_vlv5_cmd_timestamp": [
+        "bb3_vlv5_cmd"
+    ],
+    "bb3_vlv5_state_timestamp": [
+        "bb3_vlv5_state"
+    ],
+    "bb3_vlv6_cmd_timestamp": [
+        "bb3_vlv6_cmd"
+    ],
+    "bb3_vlv6_state_timestamp": [
+        "bb3_vlv6_state"
+    ],
+    "bb3_vlv7_cmd_timestamp": [
+        "bb3_vlv7_cmd"
+    ],
+    "bb3_vlv7_state_timestamp": [
+        "bb3_vlv7_state"
+    ]
+}
+
