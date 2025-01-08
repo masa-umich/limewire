@@ -23,7 +23,7 @@ def synnax_init() -> tuple[sy.Synnax, list[sy.Channel], list[sy.Channel]]:
         port=int(os.environ["SYNNAX_PORT"]),
         username=os.environ["SYNNAX_USERNAME"],
         password=os.environ["SYNNAX_PASSWORD"],
-        secure=False,
+        secure=bool(os.environ["SYNNAX_SECURE"]),
     )
 
     channels_file = Path(__file__).parent / "data" / "channels.txt"
