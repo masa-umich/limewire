@@ -1,37 +1,34 @@
 import struct
+from typing import override
 
 
 class TelemetryValue:
     """A class to encapsulate a single telemetry value."""
 
-    SIZE_BYTES = 5
+    SIZE_BYTES: int = 4
 
-    def __init__(self, channel_id: int, data: float):
-        if not (0 <= channel_id < 256):
-            raise ValueError(
-                f"Invalid channel_id {
-                    channel_id}; channel_id must fit within a byte."
-            )
-        self.channel_id = channel_id
-        self.data = data
+    def __init__(self, data: float):
+        self.data: float = data
 
     def __bytes__(self) -> bytes:
-        return self.channel_id.to_bytes(1) + struct.pack(">f", self.data)
+        return struct.pack(">f", self.data)
 
+    @override
     def __repr__(self) -> str:
-        return f"TelemetryValue<channel_id={self.channel_id}, data={self.data}>"
+        return f"TelemetryValue<data={self.data}>"
 
 
 class TelemetryMessage:
     """A class to represent a single telemetry message."""
 
-    HEADER = 0x01
+    HEADER: int = 0x01
 
     def __init__(
         self,
-        timestamp: int = None,
-        values: list[TelemetryValue] = None,
-        bytes_recv: bytes = None,
+        board_id: int | None = None,
+        timestamp: int | None = None,
+        values: list[TelemetryValue] | None = None,
+        bytes_recv: bytes | None = None,
     ):
         if (
             values is None
@@ -45,16 +42,17 @@ class TelemetryMessage:
             self.deserialize_bytes(bytes_recv)
             return
 
-        if len(values) > 256:
-            raise ValueError("Must pass 256 or fewer values.")
         if timestamp is None:
             raise ValueError("Must specify timestamp with values.")
+        if board_id is None:
+            raise ValueError("Must specify board ID with values.")
 
-        self.timestamp = timestamp
-        self.values = values
+        self.board_id: int = board_id
+        self.timestamp: int = timestamp
+        self.values: list[TelemetryValue] = values
 
     def __bytes__(self) -> bytes:
-        ret = self.HEADER.to_bytes(1) + len(self.values).to_bytes(1)
+        ret = self.HEADER.to_bytes(1) + self.timestamp.to_bytes(8)
 
         for value in self.values:
             ret += bytes(value)
@@ -63,6 +61,7 @@ class TelemetryMessage:
 
         return ret
 
+    @override
     def __repr__(self) -> str:
         ret = "TelemetryPacket:\n"
         for value in self.values:
@@ -77,28 +76,22 @@ class TelemetryMessage:
 
         Returns:
             None.
-
-        Raises:
-            ValueError: bytes_recv is of an invalid size.
         """
-        if (
-            len(bytes_recv) < 8
-            or len(bytes_recv[:-8]) % TelemetryValue.SIZE_BYTES != 0
-        ):
-            raise ValueError("Invalid bytes_recv.")
-
-        self.values = []
-        for chunk in iterate_chunks(bytes_recv[:-8], TelemetryValue.SIZE_BYTES):
-            channel_id = chunk[0]
-            data = struct.unpack(">f", chunk[1:5])[0]
-            self.values.append(TelemetryValue(channel_id, data))
+        self.board_id = int.from_bytes(
+            bytes_recv[0:1], byteorder="big", signed=False
+        )
 
         self.timestamp = int.from_bytes(
-            bytes_recv[-8:], byteorder="big", signed=False
+            bytes_recv[1:9], byteorder="big", signed=False
         )
+
+        self.values = []
+        for chunk in iterate_chunks(bytes_recv[9:], TelemetryValue.SIZE_BYTES):
+            data: float = struct.unpack(">f", chunk)[0]
+            self.values.append(TelemetryValue(data))
 
 
 def iterate_chunks(byte_data: bytes, chunk_size: int):
     """Yield chunks of size chunk_size from byte_data."""
     for i in range(0, len(byte_data), chunk_size):
-        yield byte_data[i: i + chunk_size]
+        yield byte_data[i : i + chunk_size]

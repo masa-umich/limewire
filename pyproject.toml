@@ -18,6 +18,9 @@ synnax = ">=0.34.0"
 limewire = "limewire.__main__:main"
 
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
