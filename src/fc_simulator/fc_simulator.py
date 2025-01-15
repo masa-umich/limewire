@@ -16,10 +16,13 @@ async def handle_client(
 
     start_time = asyncio.get_event_loop().time()
 
+    FC_NUM_CHANNELS = 47
     values_sent = 0
     while True:
-        values = [TelemetryValue(12 + i, i * 2) for i in range(3)]
-        packet = TelemetryMessage(timestamp=sy.TimeStamp.now(), values=values)
+        values = [TelemetryValue(i) for i in range(FC_NUM_CHANNELS)]
+        packet = TelemetryMessage(
+            board_id=0, timestamp=sy.TimeStamp.now(), values=values
+        )
 
         writer.write(bytes(packet))
         await writer.drain()

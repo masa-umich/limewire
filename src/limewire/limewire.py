@@ -5,7 +5,7 @@ import synnax as sy
 
 from packets import TelemetryMessage, TelemetryValue
 
-from .synnax_util import get_index_name, synnax_init
+from .synnax_util import synnax_init
 
 
 async def read_telemetry_data(
@@ -28,18 +28,26 @@ async def read_telemetry_data(
         header = int.from_bytes(header_byte)
         match header:
             case 0x01:
-                num_values = await reader.read(1)
-                if not num_values:
+                board_id = await reader.read(1)
+                if not board_id:
                     break
-                num_values = int.from_bytes(num_values)
+
+                FC_NUM_VALUES = 47
+                BB_NUM_VALUES = 52
+                if int.from_bytes(board_id) == 0:
+                    num_values = FC_NUM_VALUES
+                else:
+                    num_values = BB_NUM_VALUES
 
                 data_bytes = await reader.readexactly(
-                    num_values * TelemetryValue.SIZE_BYTES + 8
+                    8 + num_values * TelemetryValue.SIZE_BYTES
                 )
                 if not data_bytes:
                     break
 
-                await queue.put((data_bytes, asyncio.get_event_loop().time()))
+                await queue.put(
+                    (board_id + data_bytes, asyncio.get_event_loop().time())
+                )
                 values_received += num_values
             case _:
                 raise ValueError(
@@ -53,7 +61,7 @@ async def write_data_to_synnax(
     queue: asyncio.Queue[tuple[bytes, float]],
     message_processing_times: list[float],
     writer: sy.Writer,
-    data_channels: list[sy.Channel],
+    channels: dict[str, list[str]],
 ) -> None:
     """Write telemetry data from queue to Synnax.
 
@@ -65,29 +73,36 @@ async def write_data_to_synnax(
         message_processing_times: A list containing the time it took
             to process each message.
         writer: The Synnax writer.
-        data_channels: A list of all data channels, with indices
-            corresponding to the channel ID in the Limelight packet
-            structure.
+        channels: A dictionary mapping index channel names to data
+            channel names.
+
+    Raises:
+        ValueError: The board ID in one of the packets was invalid.
     """
     while True:
-        # Parse telemetry data
+        # Parse telemetry data bytes
         data_bytes, enter_time = await queue.get()
-        message = TelemetryMessage(bytes_recv=data_bytes)
+        try:
+            message = TelemetryMessage(bytes_recv=data_bytes)
+            data_to_write = {
+                channel: value.data
+                for channel, value in zip(
+                    channels[message.get_index_channel()], message.values
+                )
+            }
+            data_to_write[message.get_index_channel()] = message.timestamp
 
-        # Write and commit data to Synnax
-        data_to_write: dict[str, float] = {}
-        for value in message.values:
-            channel = data_channels[value.channel_id]
-            data_to_write[channel.name] = value.data
-            data_to_write[get_index_name(channel.name)] = message.timestamp
-        writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
-        writer.commit()
+            writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
+            writer.commit()
 
-        # Complete write task
-        message_processing_times.append(
-            asyncio.get_event_loop().time() - enter_time
-        )
-        queue.task_done()
+            # Track processing time
+            message_processing_times.append(
+                asyncio.get_event_loop().time() - enter_time
+            )
+        except ValueError as err:
+            print(f"{err}")
+        finally:
+            queue.task_done()
 
 
 async def run(ip_addr: str, port: int):
@@ -126,7 +141,7 @@ async def run(ip_addr: str, port: int):
             queue,
             message_processing_times,
             synnax_writer,
-            data_channels,
+            channels,
         )
     )
     values_received = await receive_task
@@ -140,6 +155,10 @@ async def run(ip_addr: str, port: int):
     tcp_writer.close()
     await tcp_writer.wait_closed()
     print("Done.")
+
+    if values_received == 0:
+        print("Unable to receive telemetry data from flight computer!")
+        return
 
     # Print statistics
     print(

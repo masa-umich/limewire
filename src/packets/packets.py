@@ -30,34 +30,48 @@ class TelemetryMessage:
         values: list[TelemetryValue] | None = None,
         bytes_recv: bytes | None = None,
     ):
-        if (
-            values is None
-            and bytes_recv is None
-            or values is not None
-            and bytes_recv is not None
-        ):
-            raise ValueError("Must specify either values or bytes_recv.")
-
         if bytes_recv:
             self.deserialize_bytes(bytes_recv)
-            return
+        else:
+            if values is None:
+                raise ValueError("Must specify either values or bytes_recv.")
+            if timestamp is None:
+                raise ValueError("Must specify timestamp with values.")
+            if board_id is None:
+                raise ValueError("Must specify board ID with values.")
 
-        if timestamp is None:
-            raise ValueError("Must specify timestamp with values.")
-        if board_id is None:
-            raise ValueError("Must specify board ID with values.")
+            self.board_id: int = board_id
+            self.timestamp: int = timestamp
+            self.values: list[TelemetryValue] = values
 
-        self.board_id: int = board_id
-        self.timestamp: int = timestamp
-        self.values: list[TelemetryValue] = values
+        # Ensure the board ID corresponds to a valid index channel.
+        try:
+            self.get_index_channel()
+        except ValueError as err:
+            raise err
+
+        # Ensure we receive the number of telemetry values we expect given
+        # the board ID.
+        FC_NUM_VALUES = 47
+        BB_NUM_VALUES = 52
+        if self.board_id == 0 and len(self.values) != FC_NUM_VALUES:
+            raise ValueError(
+                f"Invalid number of telemetry values (expected {FC_NUM_VALUES}, got {len(self.values)})"
+            )
+        elif 1 <= self.board_id <= 3 and len(self.values) != BB_NUM_VALUES:
+            raise ValueError(
+                f"Invalid number of telemetry values (expected {BB_NUM_VALUES}, got {len(self.values)})"
+            )
 
     def __bytes__(self) -> bytes:
-        ret = self.HEADER.to_bytes(1) + self.timestamp.to_bytes(8)
+        ret = (
+            self.HEADER.to_bytes(1)
+            + self.board_id.to_bytes(1)
+            + self.timestamp.to_bytes(8)
+        )
 
         for value in self.values:
             ret += bytes(value)
-
-        ret += self.timestamp.to_bytes(8)
 
         return ret
 
@@ -67,6 +81,24 @@ class TelemetryMessage:
         for value in self.values:
             ret += "  " + str(value) + "\n"
         return ret
+
+    def get_index_channel(self) -> str:
+        """Return the index channel name corresponding to the board ID.
+
+        Raises:
+            ValueError: The board ID is invalid.
+        """
+        match self.board_id:
+            case 0:
+                return "fc_timestamp"
+            case 1:
+                return "bb1_timestamp"
+            case 2:
+                return "bb2_timestamp"
+            case 3:
+                return "bb3_timestamp"
+            case num:
+                raise ValueError(f"Invalid Board ID '{num}'")
 
     def deserialize_bytes(self, bytes_recv: bytes) -> None:
         """Initialize values using bytes received via TCP.

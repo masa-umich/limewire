@@ -17,6 +17,11 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
 
     load_dotenv()
 
+    # If the DEV_SYNNAX environment variable is set, then Limewire will only
+    # create the fc_timestamp channels in order to stay under the 50-channel
+    # limit imposed by Synnax.
+    DEV_SYNNAX = bool(os.environ["LIMEWIRE_DEV_SYNNAX"])
+
     client = sy.Synnax(
         host=os.environ["SYNNAX_HOST"],
         port=int(os.environ["SYNNAX_PORT"]),
@@ -28,6 +33,10 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     channels_file = Path(__file__).parent / "data" / "channels.json"
     with channels_file.open() as f:
         channels: dict[str, list[str]] = json.load(f)
+
+    # Ignore non FC channels
+    if DEV_SYNNAX:
+        channels = {"fc_timestamp": channels["fc_timestamp"]}
 
     index_channels: list[sy.Channel] = []
     for index_name in channels.keys():
@@ -59,8 +68,3 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     client.channels.create(data_channels, retrieve_if_name_exists=True)
 
     return client, channels
-
-
-def get_index_name(channel: str) -> str:
-    """Return the index channel name associated with the given channel."""
-    return f"{channel.split("_")[0]}_timestamp"
