@@ -90,7 +90,6 @@ async def write_data_to_synnax(
             data_to_write[message.get_index_channel()] = message.timestamp
 
             writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
-            writer.commit()
 
             # Track processing time
             message_processing_times.append(
@@ -116,6 +115,7 @@ async def run(ip_addr: str, port: int):
         start=sy.TimeStamp.now(),
         channels=list(channels.keys())
         + [ch for chs in channels.values() for ch in chs],
+        enable_auto_commit=True,
     )
 
     # Initialize TCP connection to flight computer
