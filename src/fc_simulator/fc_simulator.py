@@ -4,7 +4,7 @@ from functools import partial
 
 import synnax as sy
 
-from packets import TelemetryMessage, TelemetryValue
+from messages import TelemetryMessage, TelemetryValue
 
 
 async def handle_client(

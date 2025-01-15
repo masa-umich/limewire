@@ -6,7 +6,7 @@ authors = ["Rohan Satapathy <61920401+rohansatapathy@users.noreply.github.com>"]
 readme = "README.md"
 packages = [ 
     { include = "limewire", from = "src" },
-    { include = "packets", from = "src" }, 
+    { include = "messages", from = "src" }, 
 ]
 
 [tool.poetry.dependencies]

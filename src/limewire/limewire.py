@@ -3,7 +3,7 @@ import statistics
 
 import synnax as sy
 
-from packets import TelemetryMessage, TelemetryValue
+from messages import TelemetryMessage, TelemetryValue
 
 from .synnax_util import synnax_init
 
@@ -90,6 +90,7 @@ async def write_data_to_synnax(
             data_to_write[message.get_index_channel()] = message.timestamp
 
             writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
+            writer.commit()
 
             # Track processing time
             message_processing_times.append(
