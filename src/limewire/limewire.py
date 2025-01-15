@@ -75,9 +75,6 @@ async def write_data_to_synnax(
         writer: The Synnax writer.
         channels: A dictionary mapping index channel names to data
             channel names.
-
-    Raises:
-        ValueError: The board ID in one of the packets was invalid.
     """
     while True:
         # Parse telemetry data bytes

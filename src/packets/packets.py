@@ -30,6 +30,13 @@ class TelemetryMessage:
         values: list[TelemetryValue] | None = None,
         bytes_recv: bytes | None = None,
     ):
+        """Initialize the TelemetryMessage.
+
+        Raises:
+            ValueError: The arguments were given in the incorrect
+                combination or one of the arguments had an invalid
+                format.
+        """
         if bytes_recv:
             self.deserialize_bytes(bytes_recv)
         else:
