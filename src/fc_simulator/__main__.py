@@ -32,7 +32,7 @@ def main():
     run_time = 10
     if len(sys.argv) >= 3:
         try:
-            run_time = int(sys.argv[2])
+            run_time = float(sys.argv[2])
         except (ValueError, TypeError):
             print_fc_error(ValueError(f"Invalid run_time {sys.argv[2]}"))
 

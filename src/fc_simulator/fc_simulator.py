@@ -1,4 +1,5 @@
 import asyncio
+import random
 from functools import partial
 
 import synnax as sy
@@ -9,7 +10,7 @@ from packets import TelemetryMessage, TelemetryValue
 async def handle_client(
     _reader: asyncio.StreamReader,
     writer: asyncio.StreamWriter,
-    run_time: int,
+    run_time: float,
 ) -> None:
     addr: str = writer.get_extra_info("peername")
     print(f"Connected to {addr}.")
@@ -19,7 +20,10 @@ async def handle_client(
     FC_NUM_CHANNELS = 47
     values_sent = 0
     while True:
-        values = [TelemetryValue(i) for i in range(FC_NUM_CHANNELS)]
+        values = [
+            TelemetryValue(i * random.uniform(0, 1))
+            for i in range(FC_NUM_CHANNELS)
+        ]
         packet = TelemetryMessage(
             board_id=0, timestamp=sy.TimeStamp.now(), values=values
         )
@@ -40,7 +44,7 @@ async def handle_client(
     )
 
 
-async def run_server(ip_addr: str, port: int, run_time: int) -> None:
+async def run_server(ip_addr: str, port: int, run_time: float) -> None:
     # We have to pass a partial function because asyncio.start_server()
     # expects a function with only two arguments. functools.partial()
     # "fills in" the run_time argument for us and returns a new function
