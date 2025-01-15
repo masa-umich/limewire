@@ -15,11 +15,13 @@ async def handle_client(
     addr: str = writer.get_extra_info("peername")
     print(f"Connected to {addr}.")
 
-    start_time = asyncio.get_event_loop().time()
+    start_time = asyncio.get_running_loop().time()
 
     FC_NUM_CHANNELS = 47
     values_sent = 0
     while True:
+        loop_start_time = asyncio.get_running_loop().time()
+
         values = [
             TelemetryValue(i * random.uniform(0, 1))
             for i in range(FC_NUM_CHANNELS)
@@ -32,8 +34,13 @@ async def handle_client(
         await writer.drain()
         values_sent += len(packet.values)
 
-        if asyncio.get_event_loop().time() - start_time > run_time:
+        if asyncio.get_running_loop().time() - start_time > run_time:
             break
+
+        # Add delay to send packets at 50Hz
+        DATA_RATE = 50
+        loop_elapsed_time = asyncio.get_running_loop().time() - loop_start_time
+        await asyncio.sleep(max(0, 1 / DATA_RATE - loop_elapsed_time))
 
     print(f"Connection with {addr} closed.")
     writer.close()
