@@ -20,14 +20,14 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     # If the DEV_SYNNAX environment variable is set, then Limewire will only
     # create the fc_timestamp channels in order to stay under the 50-channel
     # limit imposed by Synnax.
-    DEV_SYNNAX = bool(os.environ["LIMEWIRE_DEV_SYNNAX"])
+    DEV_SYNNAX = bool(os.getenv("LIMEWIRE_DEV_SYNNAX"))
 
     client = sy.Synnax(
-        host=os.environ["SYNNAX_HOST"],
-        port=int(os.environ["SYNNAX_PORT"]),
-        username=os.environ["SYNNAX_USERNAME"],
-        password=os.environ["SYNNAX_PASSWORD"],
-        secure=bool(os.environ["SYNNAX_SECURE"]),
+        host=os.getenv("SYNNAX_HOST"),
+        port=int(os.getenv("SYNNAX_PORT")),
+        username=os.getenv("SYNNAX_USERNAME"),
+        password=os.getenv("SYNNAX_PASSWORD"),
+        secure=bool(os.getenv("SYNNAX_SECURE")) or False,
     )
 
     channels_file = Path(__file__).parent / "data" / "channels.json"
