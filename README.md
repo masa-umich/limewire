@@ -32,18 +32,7 @@ development environment or on the DAQ PC.
    poetry install
    ```
 
-5. To run Limewire or the FC Simulator, run the following commands.
-
-   ```shell
-   # Run this once to enter the virtual environment
-   poetry shell
-
-   python -m limewire [IP]:[port]
-   # OR
-   python -m fc_simulator [IP]:[port]
-   ```
-
-6. Install [Ruff](https://github.com/astral-sh/ruff), a linter and code
+5. Install [Ruff](https://github.com/astral-sh/ruff), a linter and code
    formatter for Python projects. If you use VS Code, you can install the
    [VS Code Ruff Extension](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff).
    
@@ -62,31 +51,31 @@ the following command.
 uv tool upgrade limewire
 ```
 
-Then, run Limewire.
+## How to Run Limewire
 
-```
-limewire [IP]:[port]
-```
+Although Limewire is meant to run on the DAQ PC connected to the flight
+computer via Ethernet, there are three alternate configurations you can use
+that make it easier to test Limewire since the flight computer TCP firmware
+has yet to be written (as of Jan 15, 2024). In order from easiest/least
+realistic to hardest/most realistic, they are:
 
-## Project Structure
+1. Limewire, Synnax, and FC Simulator running on your development machine
+2. Limewire and Synnax running on the DAQ PC, FC Simulator running on your
+   development machine, connected via WiFi
+3. Limewire and Synnax running on the DAQ PC, FC Simulator running on your
+   development machine, connected via Ethernet
+4. Limewire and Synnax running on the DAQ PC, flight computer connected via
+   Ethernet
 
-This repository currently contains three packages in the `src` directory:
+### Running the FC Simulator
 
-- `limewire`: The Limewire driver, a TCP client that runs on the DAQ
-  PC and process telemetry data from the flight computer.
-- `fc_simulator`: The Flight Computer Simulator, a TCP server that acts
-  as a stand-in for the Flight Computer while its Ethernet issues are being
-  debugged, enabling testing of Limewire.
-- `packets`: A set of utility classes that represent different types of 
-  packets within the Limelight Packet Structure.
+To run the FC Simulator, you'll need to know how you're connecting to
+Limewire.
 
-At the moment, the FC Simulator is configured to send as many telemetry
-packets as possible to Limewire for a period of 10 seconds, then report the
-number of packets successfully transmitted. 
+If you're using local Limewire and Synnax (Configuration 1), then your IP
+address will be `localhost`.
 
-To test Limewire, you need to run the FC Simulator on your development
-machine, then run Limewire on the DAQ PC. To do so, use the following
-instructions.
+If you're connecting to the DAQ PC via WiFi (Configuration 2):
 
 1. Make sure you're connected to the University of Michigan WiFi. If you
    aren't on campus, you can use the 
@@ -99,38 +88,125 @@ instructions.
    like `35.X.X.X`. On macOS, the command to do this is `ipconfig getifaddr
    en0`.
 
-3. Open a new terminal window and start the FC Simulator. Make sure you've
-   activated the virtual environment with `poetry shell` first.
+If you're connecting to the DAQ PC via Ethernet (Configuration 3):
 
+1. Log into the DAQ PC, go to network settings, and find the Ethernet IP
+   address and subnet mask.
+
+2. Find your development machine's network settings and ensure that the
+   subnet mask matches and that the your computer's IP address is valid for
+   that subnet mask. 
+
+   On macOS, this can be done by going to Settings > Network > Ethernet >
+   Details > TCP/IP, set "Configure IPv4" to "Manually", then change the IP
+   address and subnet mask. 
+
+   A simple strategy for making sure the IP address is valid is to take the
+   IP address of the DAQ PC and incrementing the last octet by 1. Since
+   there are only two devices in the network, this guarantees that there are
+   no IP address conflicts.
+
+Once you've determined your development machine's IP address, open a new
+terminal window and start the FC Simulator. Make sure you've activated the
+virtual environment with `poetry shell` first. Configure the number of
+seconds that the simulator is active for each client connection by setting
+the `runtime` argument.
+
+```shell
+python -m fc_simulator [ip-address]:8888 [runtime]
+```
+
+You might receive a pop-up asking if you want to allow Python to accept
+incoming network connections. Make sure this option is enabled.
+
+### Running Limewire
+
+If you're running Limewire on your local machine:
+
+1. Open a new terminal window and start your local Synnax cluster using
+   [these
+   instructions](https://docs.synnaxlabs.com/reference/cluster/quick-start?platform=macos).
+   I recommend using the Docker container method, but feel free to use any
+   method that works well on your system.
+
+2. Open another terminal window and set the environment variables needed to
+   authenticate with Synnax. 
+
+   On macOS/Linux:
    ```shell
-   python -m fc_simulator [public-ip-address]:8888
+   export SYNNAX_HOST="localhost"
+   export SYNNAX_PORT="9090"
+   export SYNNAX_USERNAME="<insert-synnax-username-here>"
+   export SYNNAX_PASSWORD="<insert-synnax-password-here>"
+   # If SYNNAX_SECURE should be on:
+   export SYNNAX_SECURE=1
    ```
 
-   You might receive a pop-up asking if you want to allow Python to accept
-   incoming network connections. Make sure this option is enabled.
+   On Windows (make sure you're using PowerShell):
+   ```pwsh-console
+   $Env:SYNNAX_HOST="localhost"
+   $Env:SYNNAX_PORT="9090"
+   $Env:SYNNAX_USERNAME="<insert-synnax-username-here>"
+   $Env:SYNNAX_PASSWORD="<insert-synnax-password-here>"
+   # If SYNNAX_SECURE should be on:
+   $Env:SYNNAX_SECURE=1
+   ```
 
-4. Use `ssh` to access the DAQ PC.
+3. Activate the Limewire virtual environment, and run Limewire.
+
+   ```shell
+   poetry shell
+   python -m limewire localhost:8888
+   ```
+
+If you're running Limewire on the DAQ PC:
+
+1. Use `ssh` to access the DAQ PC. Then, switch to PowerShell (it's just
+   better, fight me 😤)
 
    ```shell
    ssh [username]@[daq-pc-ip-address]
+   powershell
    ```
    To get the username and IP address of the DAQ PC, contact Rohan Satapathy
    on Slack.
 
-5. If Limewire has been updated on GitHub, install the latest version on the
-   DAQ PC.
+2. Install the latest version of Limewire on the DAQ PC.
 
    ```shell
    uv tool upgrade limewire
    ```
 
-6. Run Limewire.
-   
-   ```shell
-   limewire [public-ip-address]:8888
+6. Set the Synnax environment variables to log into the cluster. If you
+   haven't already, make sure you're in PowerShell by typing `powershell` at
+   the command prompt.
+
+   ```pwsh-console
+   $Env:SYNNAX_HOST="localhost"
+   $Env:SYNNAX_PORT="9090"
+   $Env:SYNNAX_USERNAME="<insert-synnax-username-here>"
+   $Env:SYNNAX_PASSWORD="<insert-synnax-password-here>"
+   # If SYNNAX_SECURE should be on:
+   $Env:SYNNAX_SECURE=1
    ```
 
-If you would like to test Limewire locally, use the IP address `127.0.0.1`
-in place of `[public-ip-address]` and run Limewire using `python -m
-limewire 127.0.0.1:8888` on your local machine. You'll need to have two
-terminals open -- one for Limewire and one for the FC simulator.
+7. Run Limewire.
+   
+   ```shell
+   limewire [ip-address]:8888
+   ```
+## Project Structure
+
+This repository currently contains three packages in the `src` directory:
+
+- `limewire`: The Limewire driver, a TCP client that runs on the DAQ
+  PC and processes telemetry data from the flight computer.
+- `fc_simulator`: The Flight Computer Simulator, a TCP server that acts
+  as a stand-in for the Flight Computer while its Ethernet issues are being
+  debugged, enabling testing of Limewire.
+- `messages`: A set of utility classes that represent different types of 
+  messages within the Limelight Messaging Protocol. The classes are designed
+  with methods that allow them to be used from both Limewire (deserializing
+  bytes to Python data types) and the FC simulator (serializing Python data
+  types to bytes)
+
