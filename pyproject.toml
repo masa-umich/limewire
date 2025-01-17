@@ -1,29 +1,31 @@
-[tool.poetry]
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[project]
+authors = [
+    {name = "Rohan Satapathy", email = "61920401+rohansatapathy@users.noreply.github.com"},
+]
+requires-python = "<4.0,>=3.12"
+dependencies = [
+    "python-dotenv<2.0.0,>=1.0.1",
+    "synnax>=0.34.0",
+]
 name = "limewire"
 version = "0.1.0"
 description = "A driver to facilitate communication between Synnax and Limelight"
-authors = ["Rohan Satapathy <61920401+rohansatapathy@users.noreply.github.com>"]
 readme = "README.md"
-packages = [ 
-    { include = "limewire", from = "src" },
-    { include = "messages", from = "src" }, 
-]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-python-dotenv = "^1.0.1"
-synnax = ">=0.34.0"
-
-[tool.poetry.scripts]
+[project.scripts]
 limewire = "limewire.__main__:main"
 
+[dependency-groups]
+dev = [
+    "pytest<9.0.0,>=8.3.4",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.4"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.pdm.build]
+includes = ["src/limewire", "src/messages"]
 
 
 [tool.ruff]

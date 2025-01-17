@@ -16,8 +16,9 @@ development environment or on the DAQ PC.
 
 1. Make sure you have Python 3.12 or greater installed.
 
-2. Install [Poetry](https://python-poetry.org/docs/), a dependency manager
-   and virtual environment manager for Python projects. 
+2. Install [uv](https://docs.astral.sh/uv/getting-started/installation/), a
+   project manager for Python. If you're on macOS, you can install `uv`
+   with Homebrew using `brew install uv`.
 
 3. Clone the repository and `cd` into the project directory.
    
@@ -29,7 +30,7 @@ development environment or on the DAQ PC.
 4. Install the project dependencies.
 
    ```shell
-   poetry install
+   uv sync
    ```
 
 5. Install [Ruff](https://github.com/astral-sh/ruff), a linter and code
@@ -107,19 +108,55 @@ If you're connecting to the DAQ PC via Ethernet (Configuration 3):
    no IP address conflicts.
 
 Once you've determined your development machine's IP address, open a new
-terminal window and start the FC Simulator. Make sure you've activated the
-virtual environment with `poetry shell` first. Configure the number of
-seconds that the simulator is active for each client connection by setting
-the `runtime` argument.
+terminal window and start the FC Simulator. Configure the number of seconds
+that the simulator sends telemetry messages for each client connection by
+setting the `runtime` argument.
 
 ```shell
-python -m fc_simulator [ip-address]:8888 [runtime]
+uv run python -m fc_simulator [ip-address]:8888 [runtime]
 ```
 
 You might receive a pop-up asking if you want to allow Python to accept
 incoming network connections. Make sure this option is enabled.
 
 ### Running Limewire
+
+If you're running Limewire on the DAQ PC:
+
+1. Use `ssh` to access the DAQ PC. Then, switch to PowerShell (it's just
+   better, fight me 😤)
+
+   ```shell
+   ssh [username]@[daq-pc-ip-address]
+   powershell
+   ```
+   To get the username and IP address of the DAQ PC, contact Rohan Satapathy
+   on Slack.
+
+2. Install the latest version of Limewire on the DAQ PC.
+
+   ```shell
+   uv tool upgrade limewire
+   ```
+
+3. Set the Synnax environment variables to log into the cluster. If you
+   haven't already, make sure you're in PowerShell by typing `powershell` at
+   the command prompt.
+
+   ```pwsh-console
+   $Env:SYNNAX_HOST="localhost"
+   $Env:SYNNAX_PORT="9090"
+   $Env:SYNNAX_USERNAME="<insert-synnax-username-here>"
+   $Env:SYNNAX_PASSWORD="<insert-synnax-password-here>"
+   # If SYNNAX_SECURE should be on:
+   $Env:SYNNAX_SECURE=1
+   ```
+
+4. Run Limewire.
+   
+   ```shell
+   limewire [ip-address]:8888
+   ```
 
 If you're running Limewire on your local machine:
 
@@ -152,49 +189,12 @@ If you're running Limewire on your local machine:
    $Env:SYNNAX_SECURE=1
    ```
 
-3. Activate the Limewire virtual environment, and run Limewire.
+3. Run Limewire.
 
    ```shell
-   poetry shell
-   python -m limewire localhost:8888
+   uv run python -m limewire localhost:8888
    ```
 
-If you're running Limewire on the DAQ PC:
-
-1. Use `ssh` to access the DAQ PC. Then, switch to PowerShell (it's just
-   better, fight me 😤)
-
-   ```shell
-   ssh [username]@[daq-pc-ip-address]
-   powershell
-   ```
-   To get the username and IP address of the DAQ PC, contact Rohan Satapathy
-   on Slack.
-
-2. Install the latest version of Limewire on the DAQ PC.
-
-   ```shell
-   uv tool upgrade limewire
-   ```
-
-6. Set the Synnax environment variables to log into the cluster. If you
-   haven't already, make sure you're in PowerShell by typing `powershell` at
-   the command prompt.
-
-   ```pwsh-console
-   $Env:SYNNAX_HOST="localhost"
-   $Env:SYNNAX_PORT="9090"
-   $Env:SYNNAX_USERNAME="<insert-synnax-username-here>"
-   $Env:SYNNAX_PASSWORD="<insert-synnax-password-here>"
-   # If SYNNAX_SECURE should be on:
-   $Env:SYNNAX_SECURE=1
-   ```
-
-7. Run Limewire.
-   
-   ```shell
-   limewire [ip-address]:8888
-   ```
 ## Project Structure
 
 This repository currently contains three packages in the `src` directory:
