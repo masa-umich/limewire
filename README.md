@@ -30,7 +30,7 @@ development environment or on the DAQ PC.
 4. Install the project dependencies.
 
    ```shell
-   uv install
+   uv sync
    ```
 
 5. Install [Ruff](https://github.com/astral-sh/ruff), a linter and code
