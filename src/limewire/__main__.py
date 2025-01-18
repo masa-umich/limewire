@@ -8,7 +8,7 @@ from limewire.errors import print_limewire_error
 from limewire.util import SocketAddress
 
 
-@click.command()
+@click.command(context_settings={"help_option_names": ["-h", "--help"]})
 @click.argument("fc_address", type=SocketAddress())
 def main(fc_address: tuple[str, int]):
     """Run Limewire."""
