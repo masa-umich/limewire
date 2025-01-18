@@ -1,37 +1,51 @@
 import asyncio
-import os
+import re
 import sys
+from typing import override
 
-from dotenv import load_dotenv
+import click
 
 import limewire
 from limewire.errors import print_limewire_error
 
 
-def main():
+class SocketAddress(click.ParamType):
+    """A class to enable click to parse socket addresses with nice error messages."""
+
+    name: str = "address:port"
+    _pattern: re.Pattern[str] = re.compile(r"^(?:\d{1,3}\.){3}\d{1,3}:\d{1,5}$")
+
+    @override
+    def convert(
+        self,
+        value: str,
+        param: click.Parameter | None,
+        ctx: click.Context | None,
+    ) -> tuple[str, int]:
+        """Convert a string to an (ip, port) socket address."""
+
+        if not self._pattern.match(value):
+            self.fail(
+                "Address must be of the form [ip-address]:[port]",
+                param,
+                ctx,
+            )
+
+        ip, port = value.rsplit(":", 1)
+        port = int(port)
+        if not (0 <= port <= 65535):
+            self.fail("Port must be between 0 and 65535", param, ctx)
+
+        return ip, port
+
+
+@click.command()
+@click.argument("fc_address", type=SocketAddress())
+def main(fc_address: tuple[str, int]):
     """Run Limewire."""
 
-    # Load IP and port from environment variables
-    load_dotenv()
-    LIMELIGHT_FC_IP = os.getenv("LIMELIGHT_FC_IP")
-    LIMELIGHT_FC_PORT = os.getenv("LIMELIGHT_FC_PORT")
-
-    # Prefer IP address and port from command line variables
-    if len(sys.argv) == 2:
-        LIMELIGHT_FC_IP, LIMELIGHT_FC_PORT = sys.argv[1].split(":", maxsplit=2)
-
-    if LIMELIGHT_FC_IP is None:
-        print_limewire_error(ValueError("No IP address specified."))
-    if LIMELIGHT_FC_PORT is None:
-        print_limewire_error(ValueError("No port specified."))
-
     try:
-        LIMELIGHT_FC_PORT = int(LIMELIGHT_FC_PORT)
-    except (ValueError, TypeError):
-        print_limewire_error(ValueError(f"Invalid port {LIMELIGHT_FC_PORT}."))
-
-    try:
-        asyncio.run(limewire.run(LIMELIGHT_FC_IP, LIMELIGHT_FC_PORT))
+        asyncio.run(limewire.run(*fc_address))  # pyright: ignore[reportPrivateLocalImportUsage]
     except KeyboardInterrupt:
         print("\nCtrl+C recieved.")
         sys.exit(0)

@@ -276,6 +276,7 @@ name = "limewire"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "click" },
     { name = "python-dotenv" },
     { name = "synnax" },
 ]
@@ -287,6 +288,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "click", specifier = ">=8.1.8" },
     { name = "python-dotenv", specifier = ">=1.0.1,<2.0.0" },
     { name = "synnax", specifier = ">=0.34.0" },
 ]
