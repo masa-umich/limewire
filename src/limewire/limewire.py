@@ -5,6 +5,7 @@ import synnax as sy
 
 from messages import TelemetryMessage, TelemetryValue
 
+from .logger import Logger
 from .synnax_util import synnax_init
 
 
@@ -59,9 +60,9 @@ async def read_telemetry_data(
 
 async def write_data_to_synnax(
     queue: asyncio.Queue[tuple[bytes, float]],
-    message_processing_times: list[float],
     writer: sy.Writer,
     channels: dict[str, list[str]],
+    logger: Logger,
 ) -> None:
     """Write telemetry data from queue to Synnax.
 
@@ -70,11 +71,11 @@ async def write_data_to_synnax(
 
     Args:
         queue: The queue containing telemetry values.
-        message_processing_times: A list containing the time it took
-            to process each message.
         writer: The Synnax writer.
         channels: A dictionary mapping index channel names to data
             channel names.
+        logger: The logger object to store message processing latency
+            data.
     """
     while True:
         # Parse telemetry data bytes
@@ -93,8 +94,9 @@ async def write_data_to_synnax(
             writer.commit()
 
             # Track processing time
-            message_processing_times.append(
-                asyncio.get_event_loop().time() - enter_time
+            logger.log(
+                "telemetry",
+                {"latency": asyncio.get_event_loop().time() - enter_time},
             )
         except ValueError as err:
             print(f"{err}")
@@ -102,12 +104,13 @@ async def write_data_to_synnax(
             queue.task_done()
 
 
-async def run(ip_addr: str, port: int):
+async def run(ip_addr: str, port: int, enable_logging: bool):
     """Open the TCP connection and the Synnax connection and run Limewire.
 
     Args:
         ip_addr: The flight computer's IP address.
         port: The port to connect to the flight computer to.
+        enable_logging: Whether or not to write latency data to a file.
     """
 
     # Initialize Synnax client
@@ -132,15 +135,10 @@ async def run(ip_addr: str, port: int):
 
     # Set up read and write tasks
     queue: asyncio.Queue[tuple[bytes, float]] = asyncio.Queue()
-    message_processing_times: list[float] = []
+    logger = Logger()
     receive_task = asyncio.create_task(read_telemetry_data(tcp_reader, queue))
     write_task = asyncio.create_task(
-        write_data_to_synnax(
-            queue,
-            message_processing_times,
-            synnax_writer,
-            channels,
-        )
+        write_data_to_synnax(queue, synnax_writer, channels, logger)
     )
     values_received = await receive_task
 
@@ -164,10 +162,20 @@ async def run(ip_addr: str, port: int):
             values_received/write_time:.2f} values/sec)"
     )
 
-    mean_ms = statistics.mean(message_processing_times) * 1000
+    telemetry_message_latencies: list[float] = logger.get_data(  # pyright: ignore[reportAssignmentType]
+        "telemetry", "latency"
+    )
+    mean_ms = statistics.mean(telemetry_message_latencies) * 1000
     jitter_ms = max(
-        mean_ms - min(message_processing_times) * 1000,
-        max(message_processing_times) * 1000 - mean_ms,
+        mean_ms - min(telemetry_message_latencies) * 1000,
+        max(telemetry_message_latencies) * 1000 - mean_ms,
     )
     print(f"Message Latency: {mean_ms:.2f} ± {jitter_ms:.2f} ms")
-    print(f"Stdev: {statistics.stdev(message_processing_times) * 1000:.2f} ms")
+    print(
+        f"Stdev: {statistics.stdev(telemetry_message_latencies) * 1000:.2f} ms"
+    )
+
+    if enable_logging:
+        print("Writing log...", end="")
+        logger.write_log()
+        print("Done.")
