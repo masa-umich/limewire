@@ -53,7 +53,7 @@ class Logger:
     def write_log(self):
         """Write the log to a JSON file in the current directory."""
         filename = f"limewire_{datetime.now()}.json"
-        filename = filename.replace(" ", "_")
+        filename = filename.replace(" ", "_").replace(":", "-")
         with open(filename, "w") as f:
             json.dump(self._log, f, indent=4)
 
