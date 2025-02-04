@@ -139,18 +139,15 @@ If you're running Limewire on the DAQ PC:
    uv tool upgrade limewire
    ```
 
-3. Set the Synnax environment variables to log into the cluster. If you
-   haven't already, make sure you're in PowerShell by typing `powershell` at
-   the command prompt.
+3. Set the environment variables needed to run Limewire. These are contained
+   in a file called `limewire_env.ps1` in the DAQ PC's home directory. If
+   you haven't already, make sure you're in PowerShell by typing
+   `powershell` at the command prompt.
 
    ```pwsh-console
-   $Env:SYNNAX_HOST="localhost"
-   $Env:SYNNAX_PORT="9090"
-   $Env:SYNNAX_USERNAME="<insert-synnax-username-here>"
-   $Env:SYNNAX_PASSWORD="<insert-synnax-password-here>"
-   # If SYNNAX_SECURE should be on:
-   $Env:SYNNAX_SECURE=1
+   .\limewire_env.ps1
    ```
+   
 
 4. Run Limewire.
    
@@ -177,6 +174,7 @@ If you're running Limewire on your local machine:
    export SYNNAX_PASSWORD="<insert-synnax-password-here>"
    # If SYNNAX_SECURE should be on:
    export SYNNAX_SECURE=1
+   export LIMEWIRE_DEV_SYNNAX=1
    ```
 
    On Windows (make sure you're using PowerShell):
@@ -186,8 +184,14 @@ If you're running Limewire on your local machine:
    $Env:SYNNAX_USERNAME="<insert-synnax-username-here>"
    $Env:SYNNAX_PASSWORD="<insert-synnax-password-here>"
    # If SYNNAX_SECURE should be on:
-   $Env:SYNNAX_SECURE=1
+   $Env:SYNNAX_SECURE="1"
+   $Env:LIMEWIRE_DEV_SYNNAX="1"
    ```
+
+   NOTE: Synnax has a limit of 50 channels without getting a license key,
+   so the `LIMEWIRE_DEV_SYNNAX` only creates channels associated with the
+   flight computer to avoid hitting that limit in order to enable local
+   testing.
 
 3. Run Limewire.
 
@@ -204,9 +208,4 @@ This repository currently contains three packages in the `src` directory:
 - `fc_simulator`: The Flight Computer Simulator, a TCP server that acts
   as a stand-in for the Flight Computer while its Ethernet issues are being
   debugged, enabling testing of Limewire.
-- `messages`: A set of utility classes that represent different types of 
-  messages within the Limelight Messaging Protocol. The classes are designed
-  with methods that allow them to be used from both Limewire (deserializing
-  bytes to Python data types) and the FC simulator (serializing Python data
-  types to bytes)
 

@@ -1,6 +1,6 @@
 from pytest import approx
 
-from messages import TelemetryMessage
+from . import TelemetryMessage
 
 
 def test_telemetry_deserialize() -> None:
