@@ -1,5 +1,6 @@
 import asyncio
 import statistics
+import time
 
 import synnax as sy
 
@@ -114,6 +115,7 @@ async def run(ip_addr: str, port: int, enable_logging: bool):
     """
 
     # Initialize Synnax client
+    print("Initializing Synnax writer...", end="")
     client, channels = synnax_init()
     synnax_writer = client.open_writer(
         start=sy.TimeStamp.now(),
@@ -121,6 +123,10 @@ async def run(ip_addr: str, port: int, enable_logging: bool):
         + [ch for chs in channels.values() for ch in chs],
         enable_auto_commit=True,
     )
+
+    # This helps mitigate commit time mismatches on different systems
+    time.sleep(1)
+    print("Done.")
 
     # Initialize TCP connection to flight computer
     try:
