@@ -6,6 +6,8 @@ import synnax as sy
 
 from limewire.messages import TelemetryMessage, TelemetryValue
 
+from .logger import log_latency_data
+
 
 async def handle_client(
     _reader: asyncio.StreamReader,
@@ -19,6 +21,7 @@ async def handle_client(
 
     FC_NUM_CHANNELS = 47
     values_sent = 0
+    msg_send_times: dict[str, list[sy.TimeStamp]] = {}
     while True:
         loop_start_time = asyncio.get_running_loop().time()
 
@@ -32,7 +35,11 @@ async def handle_client(
 
         writer.write(bytes(packet))
         await writer.drain()
+
         values_sent += len(packet.values)
+        if packet.get_index_channel() not in msg_send_times:
+            msg_send_times[packet.get_index_channel()] = []
+        msg_send_times[packet.get_index_channel()].append(sy.TimeStamp.now())
 
         if asyncio.get_running_loop().time() - start_time > run_time:
             break
@@ -49,6 +56,11 @@ async def handle_client(
         f"Sent {values_sent} telemetry values in {
             run_time} sec ({values_sent/run_time:.2f} values/sec)"
     )
+
+    print("Writing latency log...", end="")
+    await asyncio.sleep(1)  # Wait for Limewire to finish writing
+    log_latency_data(msg_send_times)
+    print("Done.")
 
 
 async def run_server(ip_addr: str, port: int, run_time: float) -> None:
