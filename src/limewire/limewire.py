@@ -4,7 +4,6 @@ import time
 
 import synnax as sy
 
-from .logger import Logger
 from .messages import TelemetryMessage, TelemetryValue
 from .synnax_util import synnax_init
 
