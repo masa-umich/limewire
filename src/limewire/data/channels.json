@@ -46,25 +46,32 @@
         "fc_5V_voltage",
         "fc_5V_current",
         "fc_3V3_voltage",
-        "fc_3V3_current"
+        "fc_3V3_current",
+        "fc_timestamp_limewire_write_time"
     ],
     "fc_vlv1_cmd_timestamp": [
-        "fc_vlv1_cmd"
+        "fc_vlv1_cmd",
+        "fc_vlv1_cmd_timestamp_limewire_write_time"
     ],
     "fc_vlv1_state_timestamp": [
-        "fc_vlv1_state"
+        "fc_vlv1_state",
+        "fc_vlv1_state_timestamp_limewire_write_time"
     ],
     "fc_vlv2_cmd_timestamp": [
-        "fc_vlv2_cmd"
+        "fc_vlv2_cmd",
+        "fc_vlv2_cmd_timestamp_limewire_write_time"
     ],
     "fc_vlv2_state_timestamp": [
-        "fc_vlv2_state"
+        "fc_vlv2_state",
+        "fc_vlv2_state_timestamp_limewire_write_time"
     ],
     "fc_vlv3_cmd_timestamp": [
-        "fc_vlv3_cmd"
+        "fc_vlv3_cmd",
+        "fc_vlv3_cmd_timestamp_limewire_write_time"
     ],
     "fc_vlv3_state_timestamp": [
-        "fc_vlv3_state"
+        "fc_vlv3_state",
+        "fc_vlv3_state_timestamp_limewire_write_time"
     ],
     "bb1_timestamp": [
         "bb1_vlv1_current",
@@ -118,49 +125,64 @@
         "fc_5V_voltage",
         "fc_5V_current",
         "fc_3V3_voltage",
-        "fc_3V3_current"
+        "fc_3V3_current",
+        "bb1_timestamp_limewire_write_time"
     ],
     "bb1_vlv1_cmd_timestamp": [
-        "bb1_vlv1_cmd"
+        "bb1_vlv1_cmd",
+        "bb1_vlv1_cmd_timestamp_limewire_write_time"
     ],
     "bb1_vlv1_state_timestamp": [
-        "bb1_vlv1_state"
+        "bb1_vlv1_state",
+        "bb1_vlv1_state_timestamp_limewire_write_time"
     ],
     "bb1_vlv2_cmd_timestamp": [
-        "bb1_vlv2_cmd"
+        "bb1_vlv2_cmd",
+        "bb1_vlv2_cmd_timestamp_limewire_write_time"
     ],
     "bb1_vlv2_state_timestamp": [
-        "bb1_vlv2_state"
+        "bb1_vlv2_state",
+        "bb1_vlv2_state_timestamp_limewire_write_time"
     ],
     "bb1_vlv3_cmd_timestamp": [
-        "bb1_vlv3_cmd"
+        "bb1_vlv3_cmd",
+        "bb1_vlv3_cmd_timestamp_limewire_write_time"
     ],
     "bb1_vlv3_state_timestamp": [
-        "bb1_vlv3_state"
+        "bb1_vlv3_state",
+        "bb1_vlv3_state_timestamp_limewire_write_time"
     ],
     "bb1_vlv4_cmd_timestamp": [
-        "bb1_vlv4_cmd"
+        "bb1_vlv4_cmd",
+        "bb1_vlv4_cmd_timestamp_limewire_write_time"
     ],
     "bb1_vlv4_state_timestamp": [
-        "bb1_vlv4_state"
+        "bb1_vlv4_state",
+        "bb1_vlv4_state_timestamp_limewire_write_time"
     ],
     "bb1_vlv5_cmd_timestamp": [
-        "bb1_vlv5_cmd"
+        "bb1_vlv5_cmd",
+        "bb1_vlv5_cmd_timestamp_limewire_write_time"
     ],
     "bb1_vlv5_state_timestamp": [
-        "bb1_vlv5_state"
+        "bb1_vlv5_state",
+        "bb1_vlv5_state_timestamp_limewire_write_time"
     ],
     "bb1_vlv6_cmd_timestamp": [
-        "bb1_vlv6_cmd"
+        "bb1_vlv6_cmd",
+        "bb1_vlv6_cmd_timestamp_limewire_write_time"
     ],
     "bb1_vlv6_state_timestamp": [
-        "bb1_vlv6_state"
+        "bb1_vlv6_state",
+        "bb1_vlv6_state_timestamp_limewire_write_time"
     ],
     "bb1_vlv7_cmd_timestamp": [
-        "bb1_vlv7_cmd"
+        "bb1_vlv7_cmd",
+        "bb1_vlv7_cmd_timestamp_limewire_write_time"
     ],
     "bb1_vlv7_state_timestamp": [
-        "bb1_vlv7_state"
+        "bb1_vlv7_state",
+        "bb1_vlv7_state_timestamp_limewire_write_time"
     ],
     "bb2_timestamp": [
         "bb2_vlv1_current",
@@ -214,49 +236,64 @@
         "fc_5V_voltage",
         "fc_5V_current",
         "fc_3V3_voltage",
-        "fc_3V3_current"
+        "fc_3V3_current",
+        "bb2_timestamp_limewire_write_time"
     ],
     "bb2_vlv1_cmd_timestamp": [
-        "bb2_vlv1_cmd"
+        "bb2_vlv1_cmd",
+        "bb2_vlv1_cmd_timestamp_limewire_write_time"
     ],
     "bb2_vlv1_state_timestamp": [
-        "bb2_vlv1_state"
+        "bb2_vlv1_state",
+        "bb2_vlv1_state_timestamp_limewire_write_time"
     ],
     "bb2_vlv2_cmd_timestamp": [
-        "bb2_vlv2_cmd"
+        "bb2_vlv2_cmd",
+        "bb2_vlv2_cmd_timestamp_limewire_write_time"
     ],
     "bb2_vlv2_state_timestamp": [
-        "bb2_vlv2_state"
+        "bb2_vlv2_state",
+        "bb2_vlv2_state_timestamp_limewire_write_time"
     ],
     "bb2_vlv3_cmd_timestamp": [
-        "bb2_vlv3_cmd"
+        "bb2_vlv3_cmd",
+        "bb2_vlv3_cmd_timestamp_limewire_write_time"
     ],
     "bb2_vlv3_state_timestamp": [
-        "bb2_vlv3_state"
+        "bb2_vlv3_state",
+        "bb2_vlv3_state_timestamp_limewire_write_time"
     ],
     "bb2_vlv4_cmd_timestamp": [
-        "bb2_vlv4_cmd"
+        "bb2_vlv4_cmd",
+        "bb2_vlv4_cmd_timestamp_limewire_write_time"
     ],
     "bb2_vlv4_state_timestamp": [
-        "bb2_vlv4_state"
+        "bb2_vlv4_state",
+        "bb2_vlv4_state_timestamp_limewire_write_time"
     ],
     "bb2_vlv5_cmd_timestamp": [
-        "bb2_vlv5_cmd"
+        "bb2_vlv5_cmd",
+        "bb2_vlv5_cmd_timestamp_limewire_write_time"
     ],
     "bb2_vlv5_state_timestamp": [
-        "bb2_vlv5_state"
+        "bb2_vlv5_state",
+        "bb2_vlv5_state_timestamp_limewire_write_time"
     ],
     "bb2_vlv6_cmd_timestamp": [
-        "bb2_vlv6_cmd"
+        "bb2_vlv6_cmd",
+        "bb2_vlv6_cmd_timestamp_limewire_write_time"
     ],
     "bb2_vlv6_state_timestamp": [
-        "bb2_vlv6_state"
+        "bb2_vlv6_state",
+        "bb2_vlv6_state_timestamp_limewire_write_time"
     ],
     "bb2_vlv7_cmd_timestamp": [
-        "bb2_vlv7_cmd"
+        "bb2_vlv7_cmd",
+        "bb2_vlv7_cmd_timestamp_limewire_write_time"
     ],
     "bb2_vlv7_state_timestamp": [
-        "bb2_vlv7_state"
+        "bb2_vlv7_state",
+        "bb2_vlv7_state_timestamp_limewire_write_time"
     ],
     "bb3_timestamp": [
         "bb3_vlv1_current",
@@ -310,49 +347,64 @@
         "fc_5V_voltage",
         "fc_5V_current",
         "fc_3V3_voltage",
-        "fc_3V3_current"
+        "fc_3V3_current",
+        "bb3_timestamp_limewire_write_time"
     ],
     "bb3_vlv1_cmd_timestamp": [
-        "bb3_vlv1_cmd"
+        "bb3_vlv1_cmd",
+        "bb3_vlv1_cmd_timestamp_limewire_write_time"
     ],
     "bb3_vlv1_state_timestamp": [
-        "bb3_vlv1_state"
+        "bb3_vlv1_state",
+        "bb3_vlv1_state_timestamp_limewire_write_time"
     ],
     "bb3_vlv2_cmd_timestamp": [
-        "bb3_vlv2_cmd"
+        "bb3_vlv2_cmd",
+        "bb3_vlv2_cmd_timestamp_limewire_write_time"
     ],
     "bb3_vlv2_state_timestamp": [
-        "bb3_vlv2_state"
+        "bb3_vlv2_state",
+        "bb3_vlv2_state_timestamp_limewire_write_time"
     ],
     "bb3_vlv3_cmd_timestamp": [
-        "bb3_vlv3_cmd"
+        "bb3_vlv3_cmd",
+        "bb3_vlv3_cmd_timestamp_limewire_write_time"
     ],
     "bb3_vlv3_state_timestamp": [
-        "bb3_vlv3_state"
+        "bb3_vlv3_state",
+        "bb3_vlv3_state_timestamp_limewire_write_time"
     ],
     "bb3_vlv4_cmd_timestamp": [
-        "bb3_vlv4_cmd"
+        "bb3_vlv4_cmd",
+        "bb3_vlv4_cmd_timestamp_limewire_write_time"
     ],
     "bb3_vlv4_state_timestamp": [
-        "bb3_vlv4_state"
+        "bb3_vlv4_state",
+        "bb3_vlv4_state_timestamp_limewire_write_time"
     ],
     "bb3_vlv5_cmd_timestamp": [
-        "bb3_vlv5_cmd"
+        "bb3_vlv5_cmd",
+        "bb3_vlv5_cmd_timestamp_limewire_write_time"
     ],
     "bb3_vlv5_state_timestamp": [
-        "bb3_vlv5_state"
+        "bb3_vlv5_state",
+        "bb3_vlv5_state_timestamp_limewire_write_time"
     ],
     "bb3_vlv6_cmd_timestamp": [
-        "bb3_vlv6_cmd"
+        "bb3_vlv6_cmd",
+        "bb3_vlv6_cmd_timestamp_limewire_write_time"
     ],
     "bb3_vlv6_state_timestamp": [
-        "bb3_vlv6_state"
+        "bb3_vlv6_state",
+        "bb3_vlv6_state_timestamp_limewire_write_time"
     ],
     "bb3_vlv7_cmd_timestamp": [
-        "bb3_vlv7_cmd"
+        "bb3_vlv7_cmd",
+        "bb3_vlv7_cmd_timestamp_limewire_write_time"
     ],
     "bb3_vlv7_state_timestamp": [
-        "bb3_vlv7_state"
+        "bb3_vlv7_state",
+        "bb3_vlv7_state_timestamp_limewire_write_time"
     ]
 }
 
