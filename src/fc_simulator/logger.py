@@ -49,10 +49,14 @@ def log_latency_data(msg_send_times: dict[str, list[sy.TimeStamp]]):
                 f"mismatched number of latency values (sent {len(send_times)}, synnax has {len(channel)})"
             )
 
-        # This line relies on the fact that channel (which is a
-        # sy.ScopedChannel) acts as an np.ndarray, so we can subtract
-        # arrays elementwise.
-        latency_log[timestamp_channel] = channel - send_times  # pyright: ignore[reportOperatorIssue]
+        latency_log[timestamp_channel] = [
+            # Convert ns to seconds
+            float(synnax_write_time - send_time) / 10.0**9  # pyright: ignore[reportAny]
+            for synnax_write_time, send_time in zip(  # pyright: ignore[reportAny]
+                channel.to_numpy(),
+                send_times,
+            )
+        ]
 
     # Write log to file
     filename = f"limewire_latency_{datetime.now()}.json"
