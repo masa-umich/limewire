@@ -6,7 +6,7 @@ import synnax as sy
 from limewire.synnax_util import synnax_init
 
 
-def log_latency_data(msg_send_times: dict[str, list[sy.TimeStamp]]):
+def log_latency_data(start: sy.TimeStamp, timestamp_channels: list[str]):
     """Write a log containing message latency information to a JSON file.
 
     Latency is calculated by keeping track of when each message is sent
@@ -14,49 +14,35 @@ def log_latency_data(msg_send_times: dict[str, list[sy.TimeStamp]]):
     when that data was written.
 
     Args:
-        msg_send_times: A dictionary where keys are names of Synnax
-            timestamp channels and values are lists of sy.TimeStamp
-            objects representing when each packet was sent.
+        start: The sy.TimeStamp when the FC simulator started sending
+            values to Limewire.
+        timestamp_channels: A list of names of timestamp channels written
+            to during the current FC simulator run.
     """
 
     client, _ = synnax_init()
 
-    # Ensure that we only get values within the test window by creating
-    # a range that spans the first "sent" timestamp to right now.
-    start_timestamp = None
-    for send_times in msg_send_times.values():
-        for send_time in send_times:
-            if start_timestamp is None or send_time < start_timestamp:
-                start_timestamp = send_time
-
-    if start_timestamp is None:
-        raise ValueError("msg_send_times is empty")
-
-    test_range = client.ranges.create(
+    end = sy.TimeStamp.now()
+    print(f"Range start = {start}, Range end = {end}")
+    synnax_range = client.ranges.create(
         name=f"Limewire Range {datetime.now()}",
         time_range=sy.TimeRange(
-            start=start_timestamp,
-            end=sy.TimeStamp.now(),
+            start=start,
+            end=end,
         ),
     )
 
     # Calculate latencies from difference between synnax write and send times
     latency_log: dict[str, list[float]] = {}
-    for timestamp_channel, send_times in msg_send_times.items():
-        channel = test_range[timestamp_channel]
-        if len(send_times) != len(channel):
-            raise ValueError(
-                f"mismatched number of latency values (sent {len(send_times)}, synnax has {len(channel)})"
-            )
-
-        latency_log[timestamp_channel] = [
-            # Convert ns to seconds
-            float(synnax_write_time - send_time) / 10.0**9  # pyright: ignore[reportAny]
-            for synnax_write_time, send_time in zip(  # pyright: ignore[reportAny]
-                channel.to_numpy(),
-                send_times,
-            )
-        ]
+    for timestamp in timestamp_channels:
+        write_time_channel_name = (
+            f"{timestamp.replace('_timestamp', '')}_limewire_write_time"
+        )
+        print(write_time_channel_name)
+        write_times = synnax_range[write_time_channel_name]
+        send_times = synnax_range[timestamp]
+        raw_latency = list(write_times - send_times)
+        latency_log[timestamp] = [float(l) / 10**9 for l in raw_latency]
 
     # Write log to file
     filename = f"limewire_latency_{datetime.now()}.json"

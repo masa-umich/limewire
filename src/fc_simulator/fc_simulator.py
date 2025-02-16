@@ -1,5 +1,6 @@
 import asyncio
 import random
+import time
 from functools import partial
 
 import synnax as sy
@@ -18,10 +19,11 @@ async def handle_client(
     print(f"Connected to {addr}.")
 
     start_time = asyncio.get_running_loop().time()
+    synnax_start_time = None
+    timestamp_channels = ["fc_timestamp"]
 
     FC_NUM_CHANNELS = 47
     values_sent = 0
-    msg_send_times: dict[str, list[sy.TimeStamp]] = {}
     while True:
         loop_start_time = asyncio.get_running_loop().time()
 
@@ -29,17 +31,19 @@ async def handle_client(
             TelemetryValue(i * random.uniform(0, 1))
             for i in range(FC_NUM_CHANNELS)
         ]
+
+        timestamp = sy.TimeStamp.now()
+        if synnax_start_time is None:
+            synnax_start_time = timestamp
+
         packet = TelemetryMessage(
-            board_id=0, timestamp=sy.TimeStamp.now(), values=values
+            board_id=0, timestamp=timestamp, values=values
         )
 
         writer.write(bytes(packet))
         await writer.drain()
 
         values_sent += len(packet.values)
-        if packet.get_index_channel() not in msg_send_times:
-            msg_send_times[packet.get_index_channel()] = []
-        msg_send_times[packet.get_index_channel()].append(sy.TimeStamp.now())
 
         if asyncio.get_running_loop().time() - start_time > run_time:
             break
@@ -58,8 +62,8 @@ async def handle_client(
     )
 
     print("Writing latency log...", end="")
-    await asyncio.sleep(1)  # Wait for Limewire to finish writing
-    log_latency_data(msg_send_times)
+    time.sleep(2)  # Wait for limewire to finish writing to Synnax
+    log_latency_data(synnax_start_time, timestamp_channels)
     print("Done.")
 
 
