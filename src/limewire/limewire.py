@@ -141,7 +141,7 @@ async def run(ip_addr: str, port: int):
         raise ConnectionRefusedError(
             f"Unable to connect to flight computer at {ip_addr}:{port}."
         )
-    print(f"Connected to {tcp_writer.get_extra_info("peername")}.")
+    print(f"Connected to {tcp_writer.get_extra_info('peername')}.")
     start_time = asyncio.get_event_loop().time()
 
     # Set up read and write tasks
@@ -169,5 +169,6 @@ async def run(ip_addr: str, port: int):
     # Print statistics
     print(
         f"Processed {values_received} values in {write_time:.2f} sec ({
-            values_received/write_time:.2f} values/sec)"
+            values_received / write_time:.2f
+        } values/sec)"
     )
