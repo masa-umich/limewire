@@ -25,7 +25,7 @@ def main(fc_address: tuple[str, int], runtime: float, enable_logging: bool):
     """Run the FC simulator."""
 
     try:
-        asyncio.run(run_server(*fc_address, runtime))
+        asyncio.run(run_server(*fc_address, runtime, enable_logging))
     except KeyboardInterrupt:
         print("\nCtrl+C received.")
         exit(0)
