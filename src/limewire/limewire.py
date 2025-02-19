@@ -168,7 +168,5 @@ async def run(ip_addr: str, port: int):
 
     # Print statistics
     print(
-        f"Processed {values_received} values in {write_time:.2f} sec ({
-            values_received / write_time:.2f
-        } values/sec)"
+        f"Processed {values_received} values in {write_time:.2f} sec ({values_received / write_time:.2f} values/sec)"
     )
