@@ -23,7 +23,6 @@ def log_latency_data(start: sy.TimeStamp, timestamp_channels: list[str]):
     client, _ = synnax_init()
 
     end = sy.TimeStamp.now()
-    print(f"Range start = {start}, Range end = {end}")
     synnax_range = client.ranges.create(
         name=f"Limewire Range {datetime.now()}",
         time_range=sy.TimeRange(
@@ -38,7 +37,6 @@ def log_latency_data(start: sy.TimeStamp, timestamp_channels: list[str]):
         write_time_channel_name = (
             f"{timestamp.replace('_timestamp', '')}_limewire_write_time"
         )
-        print(write_time_channel_name)
         write_times = synnax_range[write_time_channel_name]
         send_times = synnax_range[timestamp]
         raw_latency = list(write_times - send_times)
