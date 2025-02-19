@@ -10,17 +10,11 @@ from limewire.util import SocketAddress
 
 @click.command(context_settings={"help_option_names": ["--help", "-h"]})
 @click.argument("fc_address", type=SocketAddress())
-@click.option(
-    "--enable-logging",
-    default=False,
-    is_flag=True,
-    help="Log latency data to a JSON file.",
-)
-def main(fc_address: tuple[str, int], enable_logging: bool):
+def main(fc_address: tuple[str, int]):
     """Run Limewire."""
 
     try:
-        asyncio.run(limewire.run(*fc_address, enable_logging))  # pyright: ignore[reportPrivateLocalImportUsage]
+        asyncio.run(limewire.run(*fc_address))  # pyright: ignore[reportPrivateLocalImportUsage]
     except KeyboardInterrupt:
         print("\nCtrl+C recieved.")
         sys.exit(0)

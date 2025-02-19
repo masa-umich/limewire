@@ -57,9 +57,7 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
             data_channels.append(
                 sy.Channel(
                     name=name,
-                    data_type=sy.DataType.UINT8
-                    if "state" in name or "cmd" in name
-                    else sy.DataType.FLOAT32,
+                    data_type=get_data_type(name),
                     index=index_channel.key,
                     rate=sy.Rate(50),
                 )
@@ -68,3 +66,12 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     client.channels.create(data_channels, retrieve_if_name_exists=True)
 
     return client, channels
+
+
+def get_data_type(channel_name: str) -> sy.DataType:
+    """Return the DataType associated with the channel."""
+    if "state" in channel_name or "cmd" in channel_name:
+        return sy.DataType.UINT8
+    if "limewire" in channel_name:
+        return sy.DataType.TIMESTAMP
+    return sy.DataType.FLOAT32
