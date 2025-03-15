@@ -6,7 +6,7 @@ import synnax as sy
 from limewire.synnax_util import synnax_init
 
 
-def log_latency_data(start: sy.TimeStamp, timestamp_channels: list[str]):
+def log_latency_data(range_name: str, timestamp_channels: list[str]):
     """Write a log containing message latency information to a JSON file.
 
     Latency is calculated by keeping track of when each message is sent
@@ -14,22 +14,15 @@ def log_latency_data(start: sy.TimeStamp, timestamp_channels: list[str]):
     when that data was written.
 
     Args:
-        start: The sy.TimeStamp when the FC simulator started sending
-            values to Limewire.
+        range_name: The name of the range from which to create the latency
+            log. This range should have been created in the Synnax console
+            before running this function.
         timestamp_channels: A list of names of timestamp channels written
             to during the current FC simulator run.
     """
 
     client, _ = synnax_init()
-
-    end = sy.TimeStamp.now()
-    synnax_range = client.ranges.create(
-        name=f"Limewire Range {datetime.now()}",
-        time_range=sy.TimeRange(
-            start=start,
-            end=end,
-        ),
-    )
+    synnax_range = client.ranges.retrieve(range_name)
 
     # Calculate latencies from difference between synnax write and send times
     latency_log: dict[str, list[float]] = {}

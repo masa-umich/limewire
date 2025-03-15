@@ -7,14 +7,11 @@ import synnax as sy
 
 from limewire.messages import TelemetryMessage, TelemetryValue
 
-from .logger import log_latency_data
-
 
 async def handle_client(
     _reader: asyncio.StreamReader,
     writer: asyncio.StreamWriter,
     run_time: float,
-    enable_logging: bool,
 ) -> None:
     addr: str = writer.get_extra_info("peername")
     print(f"Connected to {addr}.")
@@ -58,35 +55,23 @@ async def handle_client(
     writer.close()
     await writer.wait_closed()
     print(
-        f"Sent {values_sent} telemetry values in {
-            run_time} sec ({values_sent/run_time:.2f} values/sec)"
+        f"Sent {values_sent} telemetry values in {run_time} sec ({values_sent / run_time:.2f} values/sec)"
     )
 
-    if enable_logging:
-        print("Writing latency log...", end="")
-        time.sleep(1)  # Wait for limewire to finish writing to Synnax
-        log_latency_data(synnax_start_time, timestamp_channels)
-        print("Done.")
 
-
-async def run_server(
-    ip_addr: str, port: int, run_time: float, enable_logging: bool
-) -> None:
+async def run_server(ip_addr: str, port: int, run_time: float) -> None:
     """Run the FC simulator.
 
     Args:
         ip_addr: The IP address with which to start the TCP server.
         port: The port with which to start the server.
-        enable_logging: Whether or not to generate a latency log.
     """
     # We have to pass a partial function because asyncio.start_server()
     # expects a function with only two arguments. functools.partial()
     # "fills in" the run_time argument for us and returns a new function
     # with only the two expected arguments.
     server = await asyncio.start_server(
-        partial(
-            handle_client, run_time=run_time, enable_logging=enable_logging
-        ),
+        partial(handle_client, run_time=run_time),
         ip_addr,
         port,
     )
