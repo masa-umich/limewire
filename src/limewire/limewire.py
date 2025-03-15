@@ -120,7 +120,6 @@ async def write_data_to_synnax(
                 )
 
             synnax_writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
-            synnax_writer.commit()
         except ValueError as err:
             print(f"{err}")
         finally:
