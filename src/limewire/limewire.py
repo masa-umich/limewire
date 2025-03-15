@@ -56,7 +56,7 @@ async def read_telemetry_data(
 
 async def write_data_to_synnax(
     queue: asyncio.Queue[bytes],
-    writer: sy.Writer,
+    client: sy.Synnax,
     channels: dict[str, list[str]],
 ) -> None:
     """Write telemetry data from queue to Synnax.
@@ -66,10 +66,14 @@ async def write_data_to_synnax(
 
     Args:
         queue: The queue containing telemetry values.
-        writer: The Synnax writer.
+        client: The Synnax client.
         channels: A dictionary mapping index channel names to data
             channel names.
     """
+    # We need to use a global variable here to close the writer after the write
+    # task is canceled.
+    global synnax_writer
+    synnax_writer = None
     while True:
         # Parse telemetry data bytes
         data_bytes = await queue.get()
@@ -103,8 +107,18 @@ async def write_data_to_synnax(
             data_to_write[message.get_index_channel()] = message.timestamp
             data_to_write[limewire_write_time_channel] = sy.TimeStamp.now()
 
-            writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
-            writer.commit()
+            if synnax_writer is None:
+                writer_channels = list(channels.keys()) + [
+                    ch for chs in channels.values() for ch in chs
+                ]
+                synnax_writer = client.open_writer(
+                    start=message.timestamp,
+                    channels=writer_channels,
+                    enable_auto_commit=True,
+                )
+
+            synnax_writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
+            synnax_writer.commit()
         except ValueError as err:
             print(f"{err}")
         finally:
@@ -122,12 +136,6 @@ async def run(ip_addr: str, port: int):
     # Initialize Synnax client
     print("Initializing Synnax writer...", end="")
     client, channels = synnax_init()
-    synnax_writer = client.open_writer(
-        start=sy.TimeStamp.now(),
-        channels=list(channels.keys())
-        + [ch for chs in channels.values() for ch in chs],
-        enable_auto_commit=True,
-    )
 
     # This helps mitigate commit time mismatches on different systems
     time.sleep(1)
@@ -148,14 +156,16 @@ async def run(ip_addr: str, port: int):
     queue: asyncio.Queue[bytes] = asyncio.Queue()
     receive_task = asyncio.create_task(read_telemetry_data(tcp_reader, queue))
     write_task = asyncio.create_task(
-        write_data_to_synnax(queue, synnax_writer, channels)
+        write_data_to_synnax(queue, client, channels)
     )
     values_received = await receive_task
 
     await queue.join()
     write_task.cancel()
-    synnax_writer.close()
     write_time = asyncio.get_event_loop().time() - start_time
+
+    if synnax_writer is not None:
+        synnax_writer.close()
 
     print("Closing connection... ", end="")
     tcp_writer.close()
