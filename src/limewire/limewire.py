@@ -106,6 +106,7 @@ async def write_data_to_synnax(
             ][0]
             data_to_write[message.get_index_channel()] = message.timestamp
             data_to_write[limewire_write_time_channel] = sy.TimeStamp.now()
+            print(data_to_write)
 
             if synnax_writer is None:
                 writer_channels = list(channels.keys()) + [
