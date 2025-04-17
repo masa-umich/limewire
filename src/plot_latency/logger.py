@@ -1,13 +1,11 @@
-import json
-from datetime import datetime
-
-import synnax as sy
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from limewire.synnax_util import synnax_init
 
 
-def log_latency_data(range_name: str, timestamp_channels: list[str]):
-    """Write a log containing message latency information to a JSON file.
+def get_latency_data(range_name: str, timestamp_channels: list[str]) -> dict:
+    """Return a log containing message latency information to a JSON file.
 
     Latency is calculated by keeping track of when each message is sent
     in the simulator, then comparing it with the timestamp in Synnax
@@ -22,7 +20,7 @@ def log_latency_data(range_name: str, timestamp_channels: list[str]):
     """
 
     client, _ = synnax_init()
-    synnax_range = client.ranges.retrieve(range_name)
+    synnax_range = client.ranges.retrieve(name=range_name)
 
     # Calculate latencies from difference between synnax write and send times
     latency_log: dict[str, list[float]] = {}
@@ -32,11 +30,14 @@ def log_latency_data(range_name: str, timestamp_channels: list[str]):
         )
         write_times = synnax_range[write_time_channel_name]
         send_times = synnax_range[timestamp]
-        raw_latency = list(write_times - send_times)
+        raw_latency = list(write_times - send_times)  # pyright: ignore[reportOperatorIssue]
         latency_log[timestamp] = [float(l) / 10**9 for l in raw_latency]
 
-    # Write log to file
-    filename = f"limewire_latency_{datetime.now()}.json"
-    filename = filename.replace(" ", "_").replace(":", "-")
-    with open(filename, "w") as f:
-        json.dump(latency_log, f, indent=4)
+    return latency_log
+
+
+def plot_latency_data(latency_log: dict[str, list[float]]):
+    """Create a latency histogram for each index channel."""
+    for index_channel, latency_data in latency_log.items():
+        sns.histplot(data=latency_data)
+        plt.show()
