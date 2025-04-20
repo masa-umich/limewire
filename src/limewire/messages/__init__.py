@@ -1,3 +1,3 @@
-__all__ = ["TelemetryMessage", "TelemetryValue"]
+__all__ = ["TelemetryMessage"]
 
-from .telemetry import TelemetryMessage, TelemetryValue
+from .telemetry import TelemetryMessage

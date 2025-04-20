@@ -1,133 +1,111 @@
 import struct
-from typing import override
+from enum import IntEnum
+
+TELEM_VALUE_SIZE: int = 4
 
 
-class TelemetryValue:
-    """A class to encapsulate a single telemetry value."""
+class BoardID(IntEnum):
+    """An Enum to store board identifier constants."""
 
-    SIZE_BYTES: int = 4
+    FC = 0
+    BB1 = 1
+    BB2 = 2
+    BB3 = 3
 
-    def __init__(self, data: float):
-        self.data: float = data
+    @property
+    def num_values(self) -> int:
+        """The number of telemetry values for this board."""
+        NUM_VALUES = {
+            BoardID.FC: 47,
+            BoardID.BB1: 52,
+            BoardID.BB2: 52,
+            BoardID.BB3: 52,
+        }
+        return NUM_VALUES[self]
 
-    def __bytes__(self) -> bytes:
-        return struct.pack(">f", self.data)
-
-    @override
-    def __repr__(self) -> str:
-        return f"TelemetryValue<data={self.data}>"
+    @property
+    def index_channel(self) -> str:
+        """The Synnax index channel name for this board."""
+        INDEX_CHANNELS = {
+            BoardID.FC: "fc_timestamp",
+            BoardID.BB1: "bb1_timestamp",
+            BoardID.BB2: "bb2_timestamp",
+            BoardID.BB3: "bb3_timestamp",
+        }
 
 
 class TelemetryMessage:
-    """A class to represent a single telemetry message."""
+    """A class to represent a telemetry message."""
 
-    HEADER: int = 0x01
+    # Class variables
+    HEADER: int = 0x00
 
-    def __init__(
-        self,
-        board_id: int | None = None,
-        timestamp: int | None = None,
-        values: list[TelemetryValue] | None = None,
-        bytes_recv: bytes | None = None,
-    ):
-        """Initialize the TelemetryMessage.
+    # Instance variables
+    board_id: BoardID
+    timestamp: int
+    values: list[float]
+
+    @classmethod
+    def from_bytes(cls, msg_bytes: bytes):
+        """Construct a TelemetryMessage by parsing msg_bytes.
 
         Raises:
-            ValueError: The arguments were given in the incorrect
-                combination or one of the arguments had an invalid
-                format.
+            ValueError: The parsed board_id is invalid or the number of
+                values received doesn't match the number of values expected
+                based on the board ID.
         """
-        if bytes_recv:
-            self.deserialize_bytes(bytes_recv)
-        else:
-            if values is None:
-                raise ValueError("Must specify either values or bytes_recv.")
-            if timestamp is None:
-                raise ValueError("Must specify timestamp with values.")
-            if board_id is None:
-                raise ValueError("Must specify board ID with values.")
+        obj = cls()
 
-            self.board_id: int = board_id
-            self.timestamp: int = timestamp
-            self.values: list[TelemetryValue] = values
+        obj.board_id = BoardID(
+            int.from_bytes(msg_bytes[0:1], byteorder="big", signed=False)
+        )
 
-        # Ensure the board ID corresponds to a valid index channel.
-        try:
-            self.get_index_channel()
-        except ValueError as err:
-            raise err
+        obj.timestamp = int.from_bytes(
+            msg_bytes[1:9], byteorder="big", signed=False
+        )
 
-        # Ensure we receive the number of telemetry values we expect given
-        # the board ID.
-        FC_NUM_VALUES = 47
-        BB_NUM_VALUES = 52
-        if self.board_id == 0 and len(self.values) != FC_NUM_VALUES:
+        obj.values = []
+        for chunk in iterate_chunks(msg_bytes[9:], TELEM_VALUE_SIZE):
+            data: float = struct.unpack(">f", chunk)[0]
+            obj.values.append(data)
+
+        obj._validate_self()
+
+        return obj
+
+    @classmethod
+    def from_data(cls, board_id: BoardID, timestamp: int, values: list[float]):
+        """Construct a TelemetryMessage with the given data."""
+        obj = cls()
+        obj.board_id = board_id
+        obj.timestamp = timestamp
+        obj.values = values
+        obj._validate_self()
+        return obj
+
+    def _validate_self(self):
+        """Raise ValueError if number of values is invalid."""
+        if len(self.values) != self.board_id.num_values:
             raise ValueError(
-                f"Invalid number of telemetry values (expected {FC_NUM_VALUES}, got {len(self.values)})"
-            )
-        elif 1 <= self.board_id <= 3 and len(self.values) != BB_NUM_VALUES:
-            raise ValueError(
-                f"Invalid number of telemetry values (expected {BB_NUM_VALUES}, got {len(self.values)})"
+                f"Expected {self.board_id.num_values} values for {self.board_id}, got {len(self.values)}"
             )
 
     def __bytes__(self) -> bytes:
-        ret = (
+        msg_bytes = (
             self.HEADER.to_bytes(1)
             + self.board_id.to_bytes(1)
             + self.timestamp.to_bytes(8)
         )
 
         for value in self.values:
-            ret += bytes(value)
+            msg_bytes += struct.pack(">f", value)
 
-        return ret
+        return msg_bytes
 
-    @override
-    def __repr__(self) -> str:
-        ret = "TelemetryPacket:\n"
-        for value in self.values:
-            ret += "  " + str(value) + "\n"
-        return ret
-
-    def get_index_channel(self) -> str:
-        """Return the index channel name corresponding to the board ID.
-
-        Raises:
-            ValueError: The board ID is invalid.
-        """
-        match self.board_id:
-            case 0:
-                return "fc_timestamp"
-            case 1:
-                return "bb1_timestamp"
-            case 2:
-                return "bb2_timestamp"
-            case 3:
-                return "bb3_timestamp"
-            case num:
-                raise ValueError(f"Invalid Board ID '{num}'")
-
-    def deserialize_bytes(self, bytes_recv: bytes) -> None:
-        """Initialize values using bytes received via TCP.
-
-        Args:
-            bytes_recv: The bytes containing the telemetry values.
-
-        Returns:
-            None.
-        """
-        self.board_id = int.from_bytes(
-            bytes_recv[0:1], byteorder="big", signed=False
-        )
-
-        self.timestamp = int.from_bytes(
-            bytes_recv[1:9], byteorder="big", signed=False
-        )
-
-        self.values = []
-        for chunk in iterate_chunks(bytes_recv[9:], TelemetryValue.SIZE_BYTES):
-            data: float = struct.unpack(">f", chunk)[0]
-            self.values.append(TelemetryValue(data))
+    @property
+    def index_channel(self) -> str:
+        """The Synnax channel that indexes this message's data."""
+        return self.board_id.index_channel
 
 
 def iterate_chunks(byte_data: bytes, chunk_size: int):
