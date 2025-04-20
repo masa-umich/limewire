@@ -32,6 +32,7 @@ class BoardID(IntEnum):
             BoardID.BB2: "bb2_timestamp",
             BoardID.BB3: "bb3_timestamp",
         }
+        return INDEX_CHANNELS[self]
 
 
 class TelemetryMessage:
