@@ -106,6 +106,7 @@ async def write_data_to_synnax(
             pprint(data_to_write, indent=4)
 
             synnax_writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
+            print("Wrote frame")
         except (ValueError, KeyError) as err:
             print(err)
         finally:
