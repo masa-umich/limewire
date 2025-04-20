@@ -90,9 +90,13 @@ async def write_data_to_synnax(
             data_to_write[limewire_write_time_channel] = sy.TimeStamp.now()
 
             if synnax_writer is None:
-                writer_channels = list(channels.keys()) + [
-                    ch for chs in channels.values() for ch in chs
-                ]
+                # Create a list of all channels
+                writer_channels = []
+                for index_channel, data_channels in channels.items():
+                    writer_channels.append(index_channel)
+                    for ch in data_channels:
+                        writer_channels.append(ch)
+
                 synnax_writer = client.open_writer(
                     start=msg.timestamp,
                     channels=writer_channels,
