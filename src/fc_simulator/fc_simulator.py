@@ -32,7 +32,7 @@ async def handle_client(
         msg = TelemetryMessage.from_data(BoardID.FC, timestamp, values)
         msg_bytes = bytes(msg)
 
-        writer.write(len(msg_bytes).to_bytes(1, byteorder="big"))
+        writer.write(len(msg_bytes).to_bytes(1, byteorder="big") + msg_bytes)
         await writer.drain()
 
         values_sent += len(msg.values)
