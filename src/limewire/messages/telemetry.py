@@ -1,10 +1,10 @@
 import struct
-from enum import IntEnum
+from enum import Enum
 
 TELEM_VALUE_SIZE: int = 4
 
 
-class BoardID(IntEnum):
+class BoardID(Enum):
     """An Enum to store board identifier constants."""
 
     FC = 0
@@ -94,7 +94,7 @@ class TelemetryMessage:
     def __bytes__(self) -> bytes:
         msg_bytes = (
             self.MSG_ID.to_bytes(1)
-            + self.board_id.to_bytes(1)
+            + self.board_id.value.to_bytes(1)
             + self.timestamp.to_bytes(8)
         )
 
