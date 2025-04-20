@@ -98,8 +98,8 @@ async def write_data_to_synnax(
                 )
 
             synnax_writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
-        except ValueError as err:
-            print(f"{err}")
+        except (ValueError, KeyError) as err:
+            print(err)
         finally:
             queue.task_done()
 
