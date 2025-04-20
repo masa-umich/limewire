@@ -8,7 +8,7 @@ from limewire.messages import BoardID, TelemetryMessage
 
 
 async def handle_client(
-    _reader: asyncio.StreamReader,
+    _: asyncio.StreamReader,
     writer: asyncio.StreamWriter,
     run_time: float,
 ) -> None:
