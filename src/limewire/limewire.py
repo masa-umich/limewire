@@ -31,7 +31,7 @@ async def read_telemetry_data(
 
         msg_id = int.from_bytes(msg_bytes[0:1])
         match msg_id:
-            case TelemetryMessage.ID:
+            case TelemetryMessage.MSG_ID:
                 await queue.put(msg_bytes)
                 num_values = int((len(msg_bytes) - 1 - 1 - 8) / 4)
                 values_received += num_values
