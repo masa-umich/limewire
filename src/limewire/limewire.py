@@ -63,6 +63,7 @@ async def write_data_to_synnax(
         msg_bytes = await queue.get()
         try:
             msg = TelemetryMessage.from_bytes(msg_bytes)
+            print(msg)
 
             # channels contains a "limewire_write_time" channel for each index
             # channel for the purpose of latency logging. This channel's data is
@@ -96,6 +97,8 @@ async def write_data_to_synnax(
                     channels=writer_channels,
                     enable_auto_commit=True,
                 )
+
+            print(data_to_write)
 
             synnax_writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
         except (ValueError, KeyError) as err:

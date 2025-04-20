@@ -91,6 +91,9 @@ class TelemetryMessage:
                 f"Expected {self.board_id.num_values} values for {self.board_id}, got {len(self.values)}"
             )
 
+    def __repr__(self) -> str:
+        return f"TelemetryMessage(board_id: {self.board_id}, timestamp: {self.timestamp})"
+
     def __bytes__(self) -> bytes:
         msg_bytes = (
             self.MSG_ID.to_bytes(1)
