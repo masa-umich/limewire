@@ -18,24 +18,26 @@ async def handle_client(
     start_time = asyncio.get_running_loop().time()
     synnax_start_time = None
 
-    FC_NUM_CHANNELS = 47
+    boards = [BoardID.FC]
+
     values_sent = 0
     while True:
         loop_start_time = asyncio.get_running_loop().time()
 
-        values = [i * random.uniform(0, 1) for i in range(FC_NUM_CHANNELS)]
+        for board in boards:
+            values = [i * random.uniform(0, 1) for i in range(board.num_values)]
 
-        timestamp = sy.TimeStamp.now()
-        if synnax_start_time is None:
-            synnax_start_time = timestamp
+            timestamp = sy.TimeStamp.now()
+            if synnax_start_time is None:
+                synnax_start_time = timestamp
 
-        msg = TelemetryMessage.from_data(BoardID.FC, timestamp, values)
-        msg_bytes = bytes(msg)
+            msg = TelemetryMessage.from_data(board, timestamp, values)
+            msg_bytes = bytes(msg)
 
-        writer.write(len(msg_bytes).to_bytes(1, byteorder="big") + msg_bytes)
-        await writer.drain()
+            writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
+            await writer.drain()
 
-        values_sent += len(msg.values)
+            values_sent += len(msg.values)
 
         if asyncio.get_running_loop().time() - start_time > run_time:
             break
