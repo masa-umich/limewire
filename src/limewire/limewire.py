@@ -1,5 +1,6 @@
 import asyncio
 import time
+from pprint import pprint
 
 import synnax as sy
 
@@ -98,7 +99,7 @@ async def write_data_to_synnax(
                     enable_auto_commit=True,
                 )
 
-            print(data_to_write)
+            pprint(data_to_write, indent=4)
 
             synnax_writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
         except (ValueError, KeyError) as err:
