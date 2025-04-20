@@ -10,6 +10,7 @@ requires-python = "<4.0,>=3.12"
 dependencies = [
     "click>=8.1.8",
     "python-dotenv<2.0.0,>=1.0.1",
+    "seaborn>=0.13.2",
     "synnax>=0.34.0",
 ]
 name = "limewire"

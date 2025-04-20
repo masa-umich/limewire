@@ -61,9 +61,6 @@ async def write_data_to_synnax(
 ) -> None:
     """Write telemetry data from queue to Synnax.
 
-    This function currently prints the data to STDOUT instead
-    of writing to Synnax as a stand-in.
-
     Args:
         queue: The queue containing telemetry values.
         client: The Synnax client.
