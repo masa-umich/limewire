@@ -11,6 +11,7 @@ class BoardID(Enum):
     BB1 = 1
     BB2 = 2
     BB3 = 3
+    FR = 4
 
     @property
     def num_values(self) -> int:
@@ -20,19 +21,17 @@ class BoardID(Enum):
             BoardID.BB1: 52,
             BoardID.BB2: 52,
             BoardID.BB3: 52,
+            BoardID.FR: 14,
         }
         return NUM_VALUES[self]
 
     @property
     def index_channel(self) -> str:
         """The Synnax index channel name for this board."""
-        INDEX_CHANNELS = {
-            BoardID.FC: "fc_timestamp",
-            BoardID.BB1: "bb1_timestamp",
-            BoardID.BB2: "bb2_timestamp",
-            BoardID.BB3: "bb3_timestamp",
-        }
-        return INDEX_CHANNELS[self]
+        return f"{str(self).lower()}_timestamp"
+
+    def __str__(self) -> str:
+        return repr(self).removeprefix(f"{self.__class__.__name__}.")
 
 
 class TelemetryMessage:
@@ -92,7 +91,7 @@ class TelemetryMessage:
             )
 
     def __repr__(self) -> str:
-        return f"TelemetryMessage(board_id: {self.board_id}, timestamp: {self.timestamp})"
+        return f"TelemetryMessage(board_id: {repr(self.board_id)}, timestamp: {self.timestamp})"
 
     def __bytes__(self) -> bytes:
         msg_bytes = (
