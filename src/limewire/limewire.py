@@ -5,7 +5,7 @@ from pprint import pprint
 import synnax as sy
 
 from .messages import TelemetryMessage
-from .synnax_util import synnax_init
+from .util import synnax_init
 
 
 async def read_telemetry_data(
