@@ -1,6 +1,5 @@
 import asyncio
 from asyncio.streams import StreamReader, StreamWriter
-from pprint import pprint
 
 import synnax as sy
 
