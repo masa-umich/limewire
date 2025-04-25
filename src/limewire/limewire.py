@@ -119,6 +119,7 @@ class Limewire:
                 msg.index_channel
             )
             data_channels.remove(limewire_write_time_channel)
+            print(data_channels)
             frame = {
                 channel: value
                 for channel, value in zip(data_channels, msg.values)
