@@ -1,6 +1,5 @@
 import asyncio
 import time
-from pprint import pprint
 
 import synnax as sy
 
@@ -64,7 +63,6 @@ async def write_data_to_synnax(
         msg_bytes = await queue.get()
         try:
             msg = TelemetryMessage.from_bytes(msg_bytes)
-            print(msg)
 
             # channels contains a "limewire_write_time" channel for each index
             # channel for the purpose of latency logging. This channel's data is
@@ -103,10 +101,7 @@ async def write_data_to_synnax(
                     enable_auto_commit=True,
                 )
 
-            pprint(data_to_write, indent=4)
-
             synnax_writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
-            print("Wrote frame")
         except (ValueError, KeyError) as err:
             print(err)
         finally:
