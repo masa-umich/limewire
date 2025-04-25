@@ -18,7 +18,13 @@ async def handle_client(
     start_time = asyncio.get_running_loop().time()
     synnax_start_time = None
 
-    boards = [BoardID.FC]
+    boards = [
+        BoardID.FC,
+        BoardID.BB1,
+        BoardID.BB2,
+        BoardID.BB3,
+        BoardID.FR,
+    ]
 
     values_sent = 0
     while True:
