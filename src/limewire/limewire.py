@@ -194,6 +194,8 @@ class Limewire:
                 ):
                     cmd_channels.append(channel)
 
+        print(cmd_channels)
+
         async with await self.synnax_client.open_async_streamer(
             cmd_channels
         ) as streamer:
