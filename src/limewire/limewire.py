@@ -4,6 +4,8 @@ from pprint import pprint
 
 import synnax as sy
 
+from limewire.messages.valve import ValveStateMessage
+
 from .messages import TelemetryMessage
 from .util import get_write_time_channel_name, synnax_init
 
@@ -111,31 +113,51 @@ class Limewire:
         while True:
             # Parse message bytes into TelemetryMessage
             msg_bytes = await self.queue.get()
-            msg = TelemetryMessage.from_bytes(msg_bytes)
+            msg_id = int.from_bytes(msg_bytes[0:1])
 
-            # Generate Synnax Frame as dictionary, removing channels that
-            # have data originating from Limewire itself.
-            data_channels = self.channels[msg.index_channel].copy()
-            limewire_write_time_channel = get_write_time_channel_name(
-                msg.index_channel
-            )
-            data_channels.remove(limewire_write_time_channel)
-            frame = {
-                channel: value
-                for channel, value in zip(data_channels, msg.values)
-            }
-            frame[msg.index_channel] = msg.timestamp
-            frame[limewire_write_time_channel] = sy.TimeStamp.now()
+            if msg_id == TelemetryMessage.MSG_ID:
+                msg = TelemetryMessage.from_bytes(msg_bytes)
+                frame = self._build_telemetry_frame(msg)
+            else:
+                msg = ValveStateMessage.from_bytes(msg_bytes)
+                frame = self._build_valve_state_frame(msg)
 
             if self.synnax_writer is None:
-                self.synnax_writer = self._open_synnax_writer(msg)
+                self.synnax_writer = self._open_synnax_writer(msg.timestamp)
 
             self.synnax_writer.write(frame)  # pyright: ignore[reportArgumentType]
 
             self.queue.task_done()
 
-    def _open_synnax_writer(self, msg: TelemetryMessage) -> sy.Writer:
-        """Return an initialized Synnax writer using msg's timestamp."""
+    def _build_telemetry_frame(self, msg: TelemetryMessage) -> dict:
+        """Construct a frame to write to Synnax from a telemetry message."""
+
+        data_channels = self.channels[msg.index_channel].copy()
+        limewire_write_time_channel = get_write_time_channel_name(
+            msg.index_channel
+        )
+        data_channels.remove(limewire_write_time_channel)
+        frame = {
+            channel: value for channel, value in zip(data_channels, msg.values)
+        }
+        frame[msg.index_channel] = msg.timestamp
+        frame[limewire_write_time_channel] = sy.TimeStamp.now()
+
+        return frame
+
+    def _build_valve_state_frame(self, msg: ValveStateMessage) -> dict:
+        """Construct a frame to write to Synnax from a valve state message."""
+        frame = {}
+        frame[msg.valve.state_channel_index] = msg.timestamp
+        frame[msg.valve.state_channel] = msg.state
+        limewire_write_time_channel = get_write_time_channel_name(
+            msg.valve.state_channel_index
+        )
+        frame[limewire_write_time_channel] = sy.TimeStamp.now()
+        return frame
+
+    def _open_synnax_writer(self, timestamp: int) -> sy.Writer:
+        """Return an initialized Synnax writer using the given timestamp."""
 
         # Create a list of all channels
         writer_channels = []
@@ -145,7 +167,7 @@ class Limewire:
                 writer_channels.append(ch)
 
         return self.synnax_client.open_writer(
-            start=msg.timestamp,
+            start=timestamp,
             channels=writer_channels,
             enable_auto_commit=True,
         )
