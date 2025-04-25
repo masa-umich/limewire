@@ -121,7 +121,7 @@ class Limewire:
                 for channel, value in zip(data_channels, msg.values)
             }
             frame[msg.index_channel] = msg.timestamp
-            frame[msg.limewire_write_time_channel]
+            frame[msg.limewire_write_time_channel] = sy.TimeStamp.now()
 
             if self.synnax_writer is None:
                 self.synnax_writer = self._open_synnax_writer(msg)
