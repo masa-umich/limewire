@@ -48,3 +48,55 @@ class Board(Enum):
     def __str__(self) -> str:
         return repr(self).removeprefix(f"{self.__class__.__name__}.")
 
+
+class Valve:
+    """A class to represent a valve on the rocket."""
+
+    def __init__(self, board: Board, num: int):
+        self.board = board
+        self.num = num
+
+    @classmethod
+    def from_identifier(cls, id: int):
+        """Construct a Valve from an LMP valve identifier.
+
+        Raises:
+            ValueError: The valve identifier given is invalid.
+        """
+        board = Board(id // 10)
+        num = id % 10
+
+        if num > board.num_valves:
+            raise ValueError(
+                f"Invalid valve identifer {id} (valve number must be <={board.num_valves} for board {board})"
+            )
+
+        return cls(board, num)
+
+    def __repr__(self) -> str:
+        return f"Valve(board: {self.board}, num: {self.num})"
+
+    @property
+    def id(self) -> int:
+        """The valve's LMP identifier."""
+        return 10 * self.board.value + self.num
+
+    @property
+    def cmd_channel(self) -> str:
+        """The Synnax command channel name for this valve."""
+        return f"{self.board.name.lower()}_vlv{self.num}_cmd"
+
+    @property
+    def cmd_channel_index(self) -> str:
+        """The Synnax index channel name for this valve's command channel."""
+        return f"{self.board.name.lower()}_vlv{self.num}_cmd_timestamp"
+
+    @property
+    def state_channel(self) -> str:
+        """The Synnax state channel name for this valve."""
+        return f"{self.board.name.lower()}_vlv{self.num}_state"
+
+    @property
+    def state_channel_index(self) -> str:
+        """The Synnax index channel name for this valve's state channel."""
+        return f"{self.board.name.lower()}_vlv{self.num}_state_timestamp"
