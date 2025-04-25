@@ -1,6 +1,11 @@
 __all__ = [
-    "BoardID",
+    "Board",
+    "Valve",
     "TelemetryMessage",
+    "ValveCommandMessage",
+    "ValveStateMessage",
 ]
 
-from .telemetry import BoardID, TelemetryMessage
+from .telemetry import TelemetryMessage
+from .util import Board, Valve
+from .valve import ValveCommandMessage, ValveStateMessage
