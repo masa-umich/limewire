@@ -7,13 +7,10 @@ import synnax as sy
 from limewire.messages import Board, TelemetryMessage
 
 
-async def handle_client(
-    _: asyncio.StreamReader,
-    writer: asyncio.StreamWriter,
-    run_time: float,
+async def generate_telemetry_data(
+    addr: str, writer: asyncio.StreamWriter, run_time: float
 ) -> None:
-    addr: str = writer.get_extra_info("peername")
-    print(f"Connected to {addr}.")
+    """Send randomly generated telemetry data to Limewire."""
 
     start_time = asyncio.get_running_loop().time()
     synnax_start_time = None
@@ -59,6 +56,21 @@ async def handle_client(
     print(
         f"Sent {values_sent} telemetry values in {run_time} sec ({values_sent / run_time:.2f} values/sec)"
     )
+
+
+async def handle_client(
+    _: asyncio.StreamReader,
+    writer: asyncio.StreamWriter,
+    run_time: float,
+) -> None:
+    addr: str = writer.get_extra_info("peername")
+    print(f"Connected to {addr}.")
+
+    telemetry_task = asyncio.create_task(
+        generate_telemetry_data(addr, writer, run_time)
+    )
+
+    await telemetry_task
 
 
 async def run_server(ip_addr: str, port: int, run_time: float) -> None:
