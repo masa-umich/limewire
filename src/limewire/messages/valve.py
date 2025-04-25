@@ -1,17 +1,11 @@
-from abc import ABC, abstractmethod
-
 from .util import Valve
 
 
-class ValveMessage(ABC):
-    """A class to represent both valve command and valve state messages.
+class ValveCommandMessage:
+    """A class to represent a valve command message."""
 
-    Since valve command messages and valve state messages are equivalent
-    in structure except for the message identifier, this class implements
-    the shared functionality of both types of messages, leaving the classes
-    for each message type to simply define MSG_ID as a class-level
-    property.
-    """
+    # Class variables
+    MSG_ID = 0x01
 
     # Instance variables
     valve: Valve
@@ -38,7 +32,7 @@ class ValveMessage(ABC):
         return obj
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(valve: {repr(self.valve)}, state: {int(self.state)})"
+        return f"ValveCommandMessage(valve: {repr(self.valve)}, state: {int(self.state)})"
 
     def __bytes__(self) -> bytes:
         return (
@@ -47,23 +41,47 @@ class ValveMessage(ABC):
             + self.state.to_bytes()
         )
 
-    @property
-    @abstractmethod
-    def MSG_ID(self) -> int:
-        pass
 
-
-class ValveCommandMessage(ValveMessage):
-    """A class to represent a valve command message."""
-
-    @property
-    def MSG_ID(self):
-        return 0x01
-
-
-class ValveStateMessage(ValveMessage):
+class ValveStateMessage:
     """A class to represent a valve state message."""
 
-    @property
-    def MSG_ID(self):
-        return 0x02
+    # Class variables
+    MSG_ID = 0x02
+
+    # Instance variables
+    valve: Valve
+    state: bool
+    timestamp: int
+
+    def __init__(self, valve: Valve, state: bool, timestamp: int):
+        self.valve = valve
+        self.state = state
+        self.timestamp = timestamp
+
+    @classmethod
+    def from_bytes(cls, msg_bytes: bytes):
+        """Construct a ValveStateMessage by parsing msg_bytes.
+
+        Raises:
+            ValueError: The valve identifier is invalid.
+        """
+        obj = cls.__new__(cls)
+
+        obj.valve = Valve.from_identifier(
+            int.from_bytes(msg_bytes[1:2], byteorder="big", signed=False)
+        )
+        obj.state = bool.from_bytes(msg_bytes[2:3])
+        obj.timestamp = int.from_bytes(msg_bytes[3:11])
+
+        return obj
+
+    def __repr__(self) -> str:
+        return f"ValveStateMessage(valve: {repr(self.valve)}, state: {int(self.state)}, timestamp: {self.timestamp})"
+
+    def __bytes__(self) -> bytes:
+        return (
+            self.MSG_ID.to_bytes(1)
+            + self.valve.id.to_bytes(1)
+            + self.state.to_bytes()
+            + self.timestamp.to_bytes(8)
+        )

@@ -77,7 +77,9 @@ async def handle_valve_commands(
         msg_id = int.from_bytes(msg_bytes[0:1])
         if msg_id == ValveCommandMessage.MSG_ID:
             cmd_msg = ValveCommandMessage.from_bytes(msg_bytes)
-            state_msg = ValveStateMessage(cmd_msg.valve, cmd_msg.state)
+            state_msg = ValveStateMessage(
+                cmd_msg.valve, cmd_msg.state, sy.TimeStamp.now()
+            )
             writer.write(bytes(state_msg))
             await writer.drain()
 
