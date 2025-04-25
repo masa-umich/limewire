@@ -194,12 +194,11 @@ class Limewire:
             cmd_channels
         ) as streamer:
             async for frame in streamer:
-                # For now, let's assume that if multiple values are in the
-                # frame, we only care about the most recent one
-                most_recent = frame[-1]
-                for channel, state in most_recent.items():
+                for channel, series in frame.items():
                     valve = Valve.from_channel_name(channel)
-                    msg = ValveCommandMessage(valve, bool(state))
+                    # For now, let's assume that if multiple values are in the
+                    # frame, we only care about the most recent one
+                    msg = ValveCommandMessage(valve, bool(series[-1]))
                     msg_bytes = bytes(msg)
 
                     self.tcp_writer.write(
