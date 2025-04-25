@@ -1,15 +1,14 @@
 import asyncio
 import random
-import time
 from functools import partial
 
 import synnax as sy
 
-from limewire.messages import TelemetryMessage, TelemetryValue
+from limewire.messages import BoardID, TelemetryMessage
 
 
 async def handle_client(
-    _reader: asyncio.StreamReader,
+    _: asyncio.StreamReader,
     writer: asyncio.StreamWriter,
     run_time: float,
 ) -> None:
@@ -18,30 +17,27 @@ async def handle_client(
 
     start_time = asyncio.get_running_loop().time()
     synnax_start_time = None
-    timestamp_channels = ["fc_timestamp"]
 
-    FC_NUM_CHANNELS = 47
+    boards = [BoardID.FC]
+
     values_sent = 0
     while True:
         loop_start_time = asyncio.get_running_loop().time()
 
-        values = [
-            TelemetryValue(i * random.uniform(0, 1))
-            for i in range(FC_NUM_CHANNELS)
-        ]
+        for board in boards:
+            values = [i * random.uniform(0, 1) for i in range(board.num_values)]
 
-        timestamp = sy.TimeStamp.now()
-        if synnax_start_time is None:
-            synnax_start_time = timestamp
+            timestamp = sy.TimeStamp.now()
+            if synnax_start_time is None:
+                synnax_start_time = timestamp
 
-        packet = TelemetryMessage(
-            board_id=0, timestamp=timestamp, values=values
-        )
+            msg = TelemetryMessage.from_data(board, timestamp, values)
+            msg_bytes = bytes(msg)
 
-        writer.write(bytes(packet))
-        await writer.drain()
+            writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
+            await writer.drain()
 
-        values_sent += len(packet.values)
+            values_sent += len(msg.values)
 
         if asyncio.get_running_loop().time() - start_time > run_time:
             break

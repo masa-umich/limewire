@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from limewire.synnax_util import synnax_init
+from limewire.util import synnax_init
 
 
 def get_latency_data(range_name: str, timestamp_channels: list[str]) -> dict:
