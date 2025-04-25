@@ -28,7 +28,7 @@ class BoardID(Enum):
     @property
     def index_channel(self) -> str:
         """The Synnax index channel name for this board."""
-        return f"{str(self).lower()}_timestamp"
+        return f"{self.name.lower()}_timestamp"
 
     def __str__(self) -> str:
         return repr(self).removeprefix(f"{self.__class__.__name__}.")
