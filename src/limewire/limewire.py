@@ -26,7 +26,7 @@ class Limewire:
         self.tcp_reader, self.tcp_writer = await self._connect_fc(*fc_addr)
 
         peername = self.tcp_writer.get_extra_info("peername")
-        print(f"Connected to flight computer at {peername[0]}:{peername[1]}!")
+        print(f"Connected to flight computer at {peername[0]}:{peername[1]}.")
 
         # Set up async tasks
         recv_task = asyncio.create_task(self._tcp_read())
