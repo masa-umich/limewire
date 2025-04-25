@@ -204,3 +204,4 @@ class Limewire:
                     self.tcp_writer.write(
                         len(msg_bytes).to_bytes(1) + msg_bytes
                     )
+                    await self.tcp_writer.drain()
