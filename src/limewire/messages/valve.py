@@ -38,7 +38,7 @@ class ValveMessage(ABC):
         return obj
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(valve: {repr(self.valve)}, state: {self.state})"
+        return f"{self.__class__.__name__}(valve: {repr(self.valve)}, state: {int(self.state)})"
 
     def __bytes__(self) -> bytes:
         return (
