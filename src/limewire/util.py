@@ -110,3 +110,8 @@ def get_data_type(channel_name: str) -> sy.DataType:
     if "limewire" in channel_name:
         return sy.DataType.TIMESTAMP
     return sy.DataType.FLOAT32
+
+
+def get_write_time_channel_name(ch_name: str) -> str:
+    """Return this timestamp channel's limewire write time channel."""
+    return ch_name.replace("timestamp", "limewire_write_time")

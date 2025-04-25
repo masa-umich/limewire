@@ -30,11 +30,6 @@ class BoardID(Enum):
         """The Synnax index channel name for this board."""
         return f"{self.name.lower()}_timestamp"
 
-    @property
-    def limewire_write_time_channel(self) -> str:
-        """The Limewire write time channel name for this board."""
-        return f"{self.name.lower()}_limewire_write_time"
-
     def __str__(self) -> str:
         return repr(self).removeprefix(f"{self.__class__.__name__}.")
 
@@ -114,11 +109,6 @@ class TelemetryMessage:
     def index_channel(self) -> str:
         """The Synnax channel that indexes this message's data."""
         return self.board_id.index_channel
-
-    @property
-    def limewire_write_time_channel(self) -> str:
-        """The Synnax channel that logs Limewire write time to this message."""
-        return self.board_id.limewire_write_time_channel
 
 
 def iterate_chunks(byte_data: bytes, chunk_size: int):

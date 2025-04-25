@@ -4,7 +4,7 @@ from asyncio.streams import StreamReader, StreamWriter
 import synnax as sy
 
 from .messages import TelemetryMessage
-from .util import synnax_init
+from .util import synnax_init, get_write_time_channel_name
 
 
 class Limewire:
@@ -115,13 +115,16 @@ class Limewire:
             # Generate Synnax Frame as dictionary, removing channels that
             # have data originating from Limewire itself.
             data_channels = self.channels[msg.index_channel]
-            data_channels.remove(msg.limewire_write_time_channel)
+            limewire_write_time_channel = get_write_time_channel_name(
+                msg.index_channel
+            )
+            data_channels.remove(limewire_write_time_channel)
             frame = {
                 channel: value
                 for channel, value in zip(data_channels, msg.values)
             }
             frame[msg.index_channel] = msg.timestamp
-            frame[msg.limewire_write_time_channel] = sy.TimeStamp.now()
+            frame[limewire_write_time_channel] = sy.TimeStamp.now()
 
             if self.synnax_writer is None:
                 self.synnax_writer = self._open_synnax_writer(msg)
