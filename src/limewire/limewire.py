@@ -116,7 +116,7 @@ class Limewire:
 
                 # Generate Synnax Frame as dictionary, removing channels that
                 # have data originating from Limewire itself.
-                data_channels = self.channels[msg.index_channel]
+                data_channels = self.channels[msg.index_channel].copy()
                 limewire_write_time_channel = get_write_time_channel_name(
                     msg.index_channel
                 )
