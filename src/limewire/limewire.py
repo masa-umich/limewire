@@ -3,9 +3,12 @@ from asyncio.streams import StreamReader, StreamWriter
 
 import synnax as sy
 
-from limewire.messages.valve import ValveStateMessage
-
-from .messages import TelemetryMessage
+from .messages import (
+    TelemetryMessage,
+    Valve,
+    ValveCommandMessage,
+    ValveStateMessage,
+)
 from .util import get_write_time_channel_name, synnax_init
 
 
@@ -30,14 +33,16 @@ class Limewire:
         print(f"Connected to flight computer at {peername[0]}:{peername[1]}.")
 
         # Set up async tasks
-        recv_task = asyncio.create_task(self._tcp_read())
-        write_task = asyncio.create_task(self._synnax_write())
+        tcp_read_task = asyncio.create_task(self._tcp_read())
+        synnax_write_task = asyncio.create_task(self._synnax_write())
+        valve_task = asyncio.create_task(self._relay_valve_cmds())
         start_time = asyncio.get_event_loop().time()
 
         # Clean up resources after tasks complete
-        values_processed = await recv_task
+        values_processed = await tcp_read_task
         await self.queue.join()
-        write_task.cancel()
+        synnax_write_task.cancel()
+        valve_task.cancel()
         if self.synnax_writer is not None:
             self.synnax_writer.close()
         self.tcp_writer.close()
@@ -170,3 +175,33 @@ class Limewire:
             channels=writer_channels,
             enable_auto_commit=True,
         )
+
+    async def _relay_valve_cmds(self):
+        """Relay valve commands from Synnax to the flight computer."""
+
+        # Create a list of all valve command channels
+        cmd_channels = []
+        for data_channels in self.channels.values():
+            for channel in data_channels:
+                if (
+                    "cmd" in channel
+                    and "timestamp" not in channel
+                    and "limewire" not in channel
+                ):
+                    cmd_channels.append(channel)
+
+        async with await self.synnax_client.open_async_streamer(
+            cmd_channels
+        ) as streamer:
+            async for frame in streamer:
+                # For now, let's assume that if multiple values are in the
+                # frame, we only care about the most recent one
+                most_recent = frame[-1]
+                for channel, state in most_recent.items():
+                    valve = Valve.from_channel_name(channel)
+                    msg = ValveCommandMessage(valve, bool(state))
+                    msg_bytes = bytes(msg)
+
+                    self.tcp_writer.write(
+                        len(msg_bytes).to_bytes(1) + msg_bytes
+                    )
