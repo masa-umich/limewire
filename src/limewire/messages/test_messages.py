@@ -10,7 +10,7 @@ def test_telemetry_deserialize() -> None:
     )
     msg = TelemetryMessage(bytes_recv=bytes_recv)
 
-    assert msg.board_id == 0x00
+    assert msg.board == 0x00
     assert msg.timestamp == 0x1111111111111111
 
     # I used https://www.scadacore.com/tools/programming-calculators/online-hex-converter/

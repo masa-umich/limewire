@@ -4,7 +4,7 @@ from functools import partial
 
 import synnax as sy
 
-from limewire.messages import BoardID, TelemetryMessage
+from limewire.messages import Board, TelemetryMessage
 
 
 async def handle_client(
@@ -19,11 +19,11 @@ async def handle_client(
     synnax_start_time = None
 
     boards = [
-        BoardID.FC,
-        BoardID.BB1,
-        BoardID.BB2,
-        BoardID.BB3,
-        BoardID.FR,
+        Board.FC,
+        Board.BB1,
+        Board.BB2,
+        Board.BB3,
+        Board.FR,
     ]
 
     values_sent = 0
@@ -37,7 +37,7 @@ async def handle_client(
             if synnax_start_time is None:
                 synnax_start_time = timestamp
 
-            msg = TelemetryMessage.from_data(board, timestamp, values)
+            msg = TelemetryMessage(board, timestamp, values)
             msg_bytes = bytes(msg)
 
             writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
