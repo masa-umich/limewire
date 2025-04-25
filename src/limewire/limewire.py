@@ -1,10 +1,11 @@
 import asyncio
 from asyncio.streams import StreamReader, StreamWriter
+from pprint import pprint
 
 import synnax as sy
 
 from .messages import TelemetryMessage
-from .util import synnax_init, get_write_time_channel_name
+from .util import get_write_time_channel_name, synnax_init
 
 
 class Limewire:
@@ -99,7 +100,7 @@ class Limewire:
                     num_values = (len(msg_bytes) - 1 - 1 - 8) // 4
                     values_processed += num_values
                 case _:
-                    print(
+                    raise ValueError(
                         f"Received invalid LMP message identifier: 0x{msg_id:X}"
                     )
 
@@ -126,6 +127,8 @@ class Limewire:
             }
             frame[msg.index_channel] = msg.timestamp
             frame[limewire_write_time_channel] = sy.TimeStamp.now()
+
+            pprint(frame)
 
             if self.synnax_writer is None:
                 self.synnax_writer = self._open_synnax_writer(msg)
