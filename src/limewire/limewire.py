@@ -84,7 +84,7 @@ class Limewire:
         """
         values_processed = 0
         while True:
-            msg_length = await self.tcp_reader.readexactly(1)
+            msg_length = await self.tcp_reader.read(1)
             if not msg_length:
                 break
 
@@ -109,33 +109,36 @@ class Limewire:
     async def _synnax_write(self) -> None:
         """Write telemetry data and valve state data to Synnax."""
         while True:
-            # Parse message bytes into TelemetryMessage
-            msg_bytes = await self.queue.get()
-            msg = TelemetryMessage.from_bytes(msg_bytes)
+            try:
+                # Parse message bytes into TelemetryMessage
+                msg_bytes = await self.queue.get()
+                msg = TelemetryMessage.from_bytes(msg_bytes)
 
-            # Generate Synnax Frame as dictionary, removing channels that
-            # have data originating from Limewire itself.
-            data_channels = self.channels[msg.index_channel]
-            limewire_write_time_channel = get_write_time_channel_name(
-                msg.index_channel
-            )
-            data_channels.remove(limewire_write_time_channel)
-            print(data_channels)
-            frame = {
-                channel: value
-                for channel, value in zip(data_channels, msg.values)
-            }
-            frame[msg.index_channel] = msg.timestamp
-            frame[limewire_write_time_channel] = sy.TimeStamp.now()
+                # Generate Synnax Frame as dictionary, removing channels that
+                # have data originating from Limewire itself.
+                data_channels = self.channels[msg.index_channel]
+                limewire_write_time_channel = get_write_time_channel_name(
+                    msg.index_channel
+                )
+                data_channels.remove(limewire_write_time_channel)
+                print(data_channels)
+                frame = {
+                    channel: value
+                    for channel, value in zip(data_channels, msg.values)
+                }
+                frame[msg.index_channel] = msg.timestamp
+                frame[limewire_write_time_channel] = sy.TimeStamp.now()
 
-            pprint(frame)
+                pprint(frame)
 
-            if self.synnax_writer is None:
-                self.synnax_writer = self._open_synnax_writer(msg)
+                if self.synnax_writer is None:
+                    self.synnax_writer = self._open_synnax_writer(msg)
 
-            self.synnax_writer.write(frame)  # pyright: ignore[reportArgumentType]
-
-            self.queue.task_done()
+                self.synnax_writer.write(frame)  # pyright: ignore[reportArgumentType]
+            except Exception as err:
+                print(err)
+            finally:
+                self.queue.task_done()
 
     def _open_synnax_writer(self, msg: TelemetryMessage) -> sy.Writer:
         """Return an initialized Synnax writer using msg's timestamp."""
