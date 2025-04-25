@@ -73,6 +73,23 @@ class Valve:
 
         return cls(board, num)
 
+    @classmethod
+    def from_channel_name(cls, name: str):
+        """Construct a Valve from a Synnax channel name.
+
+        Raises:
+            ValueError: The channel name passed in is not a valve channel.
+        """
+
+        if "vlv" not in name:
+            raise ValueError(f"Invalid valve channel {name}")
+
+        components = name.split("_")
+        board_name = components[0]
+        num = int(components[1][-1])
+
+        return cls(Board[board_name.upper()], num)
+
     def __repr__(self) -> str:
         return f"Valve(board: {self.board}, num: {self.num})"
 
