@@ -127,6 +127,7 @@ class Limewire:
                 frame = self._build_telemetry_frame(msg)
             else:
                 msg = ValveStateMessage.from_bytes(msg_bytes)
+                print(f"Received state message: {msg}")
                 frame = self._build_valve_state_frame(msg)
 
             if self.synnax_writer is None:
@@ -208,3 +209,4 @@ class Limewire:
                         len(msg_bytes).to_bytes(1) + msg_bytes
                     )
                     await self.tcp_writer.drain()
+                    print(f"Sent cmd message: {msg}")

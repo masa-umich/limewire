@@ -74,12 +74,14 @@ async def handle_valve_commands(
         msg_id = int.from_bytes(msg_bytes[0:1])
         if msg_id == ValveCommandMessage.MSG_ID:
             cmd_msg = ValveCommandMessage.from_bytes(msg_bytes)
+            print(f"Received cmd message: {cmd_msg}")
             state_msg = ValveStateMessage(
                 cmd_msg.valve, cmd_msg.state, sy.TimeStamp.now()
             )
             state_msg_bytes = bytes(state_msg)
             writer.write(len(state_msg_bytes).to_bytes(1) + state_msg_bytes)
             await writer.drain()
+            print(f"Sent state message: {state_msg}")
 
 
 async def handle_client(
