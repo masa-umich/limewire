@@ -80,7 +80,8 @@ async def handle_valve_commands(
             state_msg = ValveStateMessage(
                 cmd_msg.valve, cmd_msg.state, sy.TimeStamp.now()
             )
-            writer.write(bytes(state_msg))
+            state_msg_bytes = bytes(state_msg)
+            writer.write(len(state_msg_bytes).to_bytes(1) + state_msg_bytes)
             await writer.drain()
 
 
