@@ -40,9 +40,9 @@ class Limewire:
 
         # Clean up resources after tasks complete
         values_processed = await tcp_read_task
+        await valve_task
         await self.queue.join()
         synnax_write_task.cancel()
-        valve_task.cancel()
         if self.synnax_writer is not None:
             self.synnax_writer.close()
         self.tcp_writer.close()
