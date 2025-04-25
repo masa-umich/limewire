@@ -1,37 +1,8 @@
 import struct
-from enum import Enum
+
+from .util import Board
 
 TELEM_VALUE_SIZE: int = 4
-
-
-class BoardID(Enum):
-    """An Enum to store board identifier constants."""
-
-    FC = 0
-    BB1 = 1
-    BB2 = 2
-    BB3 = 3
-    FR = 4
-
-    @property
-    def num_values(self) -> int:
-        """The number of telemetry values for this board."""
-        NUM_VALUES = {
-            BoardID.FC: 47,
-            BoardID.BB1: 52,
-            BoardID.BB2: 52,
-            BoardID.BB3: 52,
-            BoardID.FR: 14,
-        }
-        return NUM_VALUES[self]
-
-    @property
-    def index_channel(self) -> str:
-        """The Synnax index channel name for this board."""
-        return f"{self.name.lower()}_timestamp"
-
-    def __str__(self) -> str:
-        return repr(self).removeprefix(f"{self.__class__.__name__}.")
 
 
 class TelemetryMessage:
@@ -41,9 +12,16 @@ class TelemetryMessage:
     MSG_ID: int = 0x00
 
     # Instance variables
-    board_id: BoardID
+    board: Board
     timestamp: int
     values: list[float]
+
+    def __init__(self, board: Board, timestamp: int, values: list[float]):
+        """Construct a TelemetryMessage with the given data."""
+        self.board = board
+        self.timestamp = timestamp
+        self.values = values
+        self._validate_self()
 
     @classmethod
     def from_bytes(cls, msg_bytes: bytes):
@@ -54,9 +32,10 @@ class TelemetryMessage:
                 values received doesn't match the number of values expected
                 based on the board ID.
         """
-        obj = cls()
+        # Bypass __init__ to create an "empty" TelemetryMessage
+        obj = cls.__new__(cls)
 
-        obj.board_id = BoardID(
+        obj.board = Board(
             int.from_bytes(msg_bytes[1:2], byteorder="big", signed=False)
         )
 
@@ -73,30 +52,20 @@ class TelemetryMessage:
 
         return obj
 
-    @classmethod
-    def from_data(cls, board_id: BoardID, timestamp: int, values: list[float]):
-        """Construct a TelemetryMessage with the given data."""
-        obj = cls()
-        obj.board_id = board_id
-        obj.timestamp = timestamp
-        obj.values = values
-        obj._validate_self()
-        return obj
-
     def _validate_self(self):
         """Raise ValueError if number of values is invalid."""
-        if len(self.values) != self.board_id.num_values:
+        if len(self.values) != self.board.num_values:
             raise ValueError(
-                f"Expected {self.board_id.num_values} values for {self.board_id}, got {len(self.values)}"
+                f"Expected {self.board.num_values} values for {self.board}, got {len(self.values)}"
             )
 
     def __repr__(self) -> str:
-        return f"TelemetryMessage(board_id: {repr(self.board_id)}, timestamp: {self.timestamp})"
+        return f"TelemetryMessage(board: {repr(self.board)}, timestamp: {self.timestamp})"
 
     def __bytes__(self) -> bytes:
         msg_bytes = (
             self.MSG_ID.to_bytes(1)
-            + self.board_id.value.to_bytes(1)
+            + self.board.value.to_bytes(1)
             + self.timestamp.to_bytes(8)
         )
 
@@ -108,7 +77,7 @@ class TelemetryMessage:
     @property
     def index_channel(self) -> str:
         """The Synnax channel that indexes this message's data."""
-        return self.board_id.index_channel
+        return self.board.index_channel
 
 
 def iterate_chunks(byte_data: bytes, chunk_size: int):
