@@ -109,9 +109,9 @@ class Limewire:
     async def _synnax_write(self) -> None:
         """Write telemetry data and valve state data to Synnax."""
         while True:
+            msg_bytes = await self.queue.get()
             try:
                 # Parse message bytes into TelemetryMessage
-                msg_bytes = await self.queue.get()
                 msg = TelemetryMessage.from_bytes(msg_bytes)
 
                 # Generate Synnax Frame as dictionary, removing channels that
