@@ -1,8 +1,8 @@
 from . import errors, messages
-from .limewire import run
+from .limewire import Limewire
 
 __all__ = [
     "errors",
     "messages",
-    "run",
+    "Limewire",
 ]

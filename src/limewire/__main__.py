@@ -3,7 +3,7 @@ import sys
 
 import click
 
-import limewire
+from limewire import Limewire
 from limewire.errors import print_limewire_error
 from limewire.util import SocketAddress
 
@@ -14,7 +14,8 @@ def main(fc_address: tuple[str, int]):
     """Run Limewire."""
 
     try:
-        asyncio.run(limewire.run(*fc_address))  # pyright: ignore[reportPrivateLocalImportUsage]
+        limewire = Limewire()
+        asyncio.run(limewire.start(fc_address))  # pyright: ignore[reportPrivateLocalImportUsage]
     except KeyboardInterrupt:
         print("\nCtrl+C recieved.")
         sys.exit(0)

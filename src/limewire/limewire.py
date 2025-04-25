@@ -1,5 +1,5 @@
 import asyncio
-import time
+from asyncio.streams import StreamReader, StreamWriter
 
 import synnax as sy
 
@@ -7,159 +7,141 @@ from .messages import TelemetryMessage
 from .util import synnax_init
 
 
-async def read_telemetry_data(
-    reader: asyncio.StreamReader,
-    queue: asyncio.Queue[bytes],
-) -> int:
-    """Read incoming telemetry data and push to queue.
+class Limewire:
+    """A class to manage Limewire's resources."""
 
-    Args:
-        ip_addr: The flight computer's IP address.
-        port: The port to connect to the flight computer to.
-    """
+    def __init__(self) -> None:
+        self.synnax_client, self.channels = synnax_init()
+        self.synnax_writer = None
+        self.queue: asyncio.Queue[bytes] = asyncio.Queue()
 
-    values_received = 0
-    while True:
-        msg_length = await reader.read(1)
-        if not msg_length:
-            break
+    async def start(self, fc_addr: tuple[str, int]) -> None:
+        """Open a connection to the flight computer and start Limewire.
 
-        msg_length = int.from_bytes(msg_length)
-        msg_bytes = await reader.readexactly(msg_length)
-        if not msg_bytes:
-            break
+        Args:
+            fc_addr: A tuple (ip_addr, port) indicating the flight
+                computer's TCP socket address.
+        """
+        self.tcp_reader, self.tcp_writer = await self._connect_fc(*fc_addr)
 
-        msg_id = int.from_bytes(msg_bytes[0:1])
-        match msg_id:
-            case TelemetryMessage.MSG_ID:
-                await queue.put(msg_bytes)
-                num_values = int((len(msg_bytes) - 1 - 1 - 8) / 4)
-                values_received += num_values
-            case _:
-                raise ValueError(f"Invalid LMP message identifier 0x{msg_id:X}")
+        peername = self.tcp_writer.get_extra_info("peername")
+        print(f"Connected to flight computer at {peername[0]}:{peername[1]}!")
 
-    return values_received
+        # Set up async tasks
+        recv_task = asyncio.create_task(self._tcp_read())
+        write_task = asyncio.create_task(self._synnax_write())
+        start_time = asyncio.get_event_loop().time()
 
+        # Clean up resources after tasks complete
+        values_processed = await recv_task
+        await self.queue.join()
+        write_task.cancel()
+        if self.synnax_writer is not None:
+            self.synnax_writer.close()
+        self.tcp_writer.close()
+        await self.tcp_writer.wait_closed()
 
-async def write_data_to_synnax(
-    queue: asyncio.Queue[bytes],
-    client: sy.Synnax,
-    channels: dict[str, list[str]],
-) -> None:
-    """Write telemetry data from queue to Synnax.
+        # Print statistics
+        runtime = asyncio.get_event_loop().time() - start_time
+        if values_processed == 0:
+            print("Unable to receive data from flight computer!")
+        else:
+            print(
+                f"Processed {values_processed} values in {runtime:.2f} sec ({values_processed / runtime:.2f} values/sec)"
+            )
 
-    Args:
-        queue: The queue containing telemetry values.
-        client: The Synnax client.
-        channels: A dictionary mapping index channel names to data
-            channel names.
-    """
-    # We need to use a global variable here to close the writer after the write
-    # task is canceled.
-    global synnax_writer
-    synnax_writer = None
-    while True:
-        # Parse telemetry data bytes
-        msg_bytes = await queue.get()
+    async def _connect_fc(
+        self, ip_addr: str, port: int
+    ) -> tuple[StreamReader, StreamWriter]:
+        """Establish the TCP connection to the flight computer.
+
+        Args:
+            ip_addr: The IP address portion of the flight computer socket
+                address.
+            port: The port at which the flight computer is listening for
+                connections.
+        Returns:
+            A tuple (reader, writer) containing the TCP reader and writer
+            objects, respectively.
+        Raises:
+            ConnectionRefusedError: Limewire was unable to connect to the
+                flight computer at the given socket address.
+        """
         try:
+            return await asyncio.open_connection(ip_addr, port)
+        except ConnectionRefusedError:
+            # Give a more descriptive error message
+            raise ConnectionRefusedError(
+                f"Unable to connect to flight computer at {ip_addr}:{port}."
+            )
+
+    async def _tcp_read(self) -> int:
+        """Handle incoming data from the TCP connection.
+
+        Returns:
+            The number of telemetry values processed.
+        """
+        values_processed = 0
+        while True:
+            msg_length = await self.tcp_reader.readexactly(1)
+            if not msg_length:
+                break
+
+            msg_length = int.from_bytes(msg_length)
+            msg_bytes = await self.tcp_reader.readexactly(msg_length)
+            if not msg_bytes:
+                break
+
+            msg_id = int.from_bytes(msg_bytes[0:1])
+            match msg_id:
+                case TelemetryMessage.MSG_ID:
+                    await self.queue.put(msg_bytes)
+                    num_values = (len(msg_bytes) - 1 - 1 - 8) // 4
+                    values_processed += num_values
+                case _:
+                    print(
+                        f"Received invalid LMP message identifier: 0x{msg_id:X}"
+                    )
+
+        return values_processed
+
+    async def _synnax_write(self) -> None:
+        """Write telemetry data and valve state data to Synnax."""
+        while True:
+            # Parse message bytes into TelemetryMessage
+            msg_bytes = await self.queue.get()
             msg = TelemetryMessage.from_bytes(msg_bytes)
 
-            # channels contains a "limewire_write_time" channel for each index
-            # channel for the purpose of latency logging. This channel's data is
-            # intended to be generated by Limewire, and as such is not present
-            # in the actual telemetry message.
-            data_channels = [
-                ch for ch in channels[msg.index_channel] if "limewire" not in ch
-            ]
-            data_to_write = {
+            # Generate Synnax Frame as dictionary, removing channels that
+            # have data originating from Limewire itself.
+            data_channels = self.channels[msg.index_channel]
+            data_channels.remove(msg.limewire_write_time_channel)
+            frame = {
                 channel: value
                 for channel, value in zip(data_channels, msg.values)
             }
+            frame[msg.index_channel] = msg.timestamp
+            frame[msg.limewire_write_time_channel]
 
-            # NOTE: This line of code is not robust at all. There are 50 million
-            # ways it could fail. (What if channels.json missed the limewire
-            # write time channel? What if we add more 'limewire' channels in the
-            # future?) But because Python, this is the jank-ness we're using for
-            # now.
-            limewire_write_time_channel = [
-                ch for ch in channels[msg.index_channel] if "limewire" in ch
-            ][0]
-            data_to_write[msg.index_channel] = msg.timestamp
-            data_to_write[limewire_write_time_channel] = sy.TimeStamp.now()
+            if self.synnax_writer is None:
+                self.synnax_writer = self._open_synnax_writer(msg)
 
-            if synnax_writer is None:
-                # Create a list of all channels
-                writer_channels = []
-                for index_channel, data_channels in channels.items():
-                    writer_channels.append(index_channel)
-                    for ch in data_channels:
-                        writer_channels.append(ch)
+            self.synnax_writer.write(frame)  # pyright: ignore[reportArgumentType]
 
-                synnax_writer = client.open_writer(
-                    start=msg.timestamp,
-                    channels=writer_channels,
-                    enable_auto_commit=True,
-                )
+            self.queue.task_done()
 
-            synnax_writer.write(data_to_write)  # pyright: ignore[reportArgumentType]
-        except (ValueError, KeyError) as err:
-            print(err)
-        finally:
-            queue.task_done()
+    def _open_synnax_writer(self, msg: TelemetryMessage) -> sy.Writer:
+        """Return an initialized Synnax writer using msg's timestamp."""
 
+        # Create a list of all channels
+        writer_channels = []
+        for index_channel, data_channels in self.channels.items():
+            writer_channels.append(index_channel)
+            for ch in data_channels:
+                writer_channels.append(ch)
 
-async def run(ip_addr: str, port: int):
-    """Open the TCP connection and the Synnax connection and run Limewire.
-
-    Args:
-        ip_addr: The flight computer's IP address.
-        port: The port to connect to the flight computer to.
-    """
-
-    # Initialize Synnax client
-    print("Initializing Synnax writer...", end="")
-    client, channels = synnax_init()
-
-    # This helps mitigate commit time mismatches on different systems
-    time.sleep(1)
-    print("Done.")
-
-    # Initialize TCP connection to flight computer
-    try:
-        tcp_reader, tcp_writer = await asyncio.open_connection(ip_addr, port)
-    except ConnectionRefusedError:
-        # Give a more descriptive error message
-        raise ConnectionRefusedError(
-            f"Unable to connect to flight computer at {ip_addr}:{port}."
+        return self.synnax_client.open_writer(
+            start=msg.timestamp,
+            channels=writer_channels,
+            enable_auto_commit=True,
         )
-    print(f"Connected to {tcp_writer.get_extra_info('peername')}.")
-    start_time = asyncio.get_event_loop().time()
-
-    # Set up read and write tasks
-    queue: asyncio.Queue[bytes] = asyncio.Queue()
-    receive_task = asyncio.create_task(read_telemetry_data(tcp_reader, queue))
-    write_task = asyncio.create_task(
-        write_data_to_synnax(queue, client, channels)
-    )
-    values_received = await receive_task
-
-    await queue.join()
-    write_task.cancel()
-    write_time = asyncio.get_event_loop().time() - start_time
-
-    if synnax_writer is not None:
-        synnax_writer.close()
-
-    print("Closing connection... ", end="")
-    tcp_writer.close()
-    await tcp_writer.wait_closed()
-    print("Done.")
-
-    if values_received == 0:
-        print("Unable to receive telemetry data from flight computer!")
-        return
-
-    # Print statistics
-    print(
-        f"Processed {values_received} values in {write_time:.2f} sec ({values_received / write_time:.2f} values/sec)"
-    )
