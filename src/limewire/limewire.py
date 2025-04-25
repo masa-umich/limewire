@@ -105,6 +105,9 @@ class Limewire:
                     await self.queue.put(msg_bytes)
                     num_values = (len(msg_bytes) - 1 - 1 - 8) // 4
                     values_processed += num_values
+                case ValveStateMessage.MSG_ID:
+                    await self.queue.put(msg_bytes)
+                    values_processed += 1
                 case _:
                     raise ValueError(
                         f"Received invalid LMP message identifier: 0x{msg_id:X}"
