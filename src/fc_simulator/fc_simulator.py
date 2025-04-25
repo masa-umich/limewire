@@ -53,11 +53,8 @@ async def generate_telemetry_data(
 
     actual_run_time = asyncio.get_running_loop().time() - start_time
 
-    print(f"Connection with {addr} closed.")
-    writer.close()
-    await writer.wait_closed()
     print(
-        f"Sent {values_sent} telemetry values in {actual_run_time} sec ({values_sent / actual_run_time:.2f} values/sec)"
+        f"Sent {values_sent} telemetry values in {actual_run_time:.2f} sec ({values_sent / actual_run_time:.2f} values/sec)"
     )
 
 
@@ -100,6 +97,10 @@ async def handle_client(
 
     await telemetry_task
     await valve_task
+
+    writer.close()
+    await writer.wait_closed()
+    print(f"Connection with {addr} closed.")
 
 
 async def run_server(ip_addr: str, port: int, run_time: float) -> None:
