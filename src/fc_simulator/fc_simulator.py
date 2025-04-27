@@ -76,7 +76,7 @@ async def handle_valve_commands(
             cmd_msg = ValveCommandMessage.from_bytes(msg_bytes)
             print(f"Received cmd message: {cmd_msg}")
             state_msg = ValveStateMessage(
-                cmd_msg.valve, cmd_msg.state, sy.TimeStamp.now()
+                cmd_msg.valve, cmd_msg.state, int(sy.TimeStamp.now())
             )
             state_msg_bytes = bytes(state_msg)
             writer.write(len(state_msg_bytes).to_bytes(1) + state_msg_bytes)
