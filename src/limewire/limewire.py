@@ -194,12 +194,11 @@ class Limewire:
                 ):
                     cmd_channels.append(channel)
 
-        print(cmd_channels)
-
         async with await self.synnax_client.open_async_streamer(
             cmd_channels
         ) as streamer:
             async for frame in streamer:
+                print("Got a frame!")
                 for channel, series in frame.items():
                     valve = Valve.from_channel_name(channel)
                     # For now, let's assume that if multiple values are in the
