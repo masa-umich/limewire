@@ -162,7 +162,7 @@ class Limewire:
         """Construct a frame to write to Synnax from a valve state message."""
         frame = {}
         frame[msg.valve.state_channel_index] = msg.timestamp
-        frame[msg.valve.state_channel] = msg.state
+        frame[msg.valve.state_channel] = int(msg.state)
         limewire_write_time_channel = get_write_time_channel_name(
             msg.valve.state_channel_index
         )
