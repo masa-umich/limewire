@@ -1,7 +1,7 @@
 import asyncio
 import traceback
 from asyncio.streams import StreamReader, StreamWriter
-from pprint import pformat
+from pprint import pformat, pprint
 
 import synnax as sy
 
@@ -134,6 +134,8 @@ class Limewire:
 
             if self.synnax_writer is None:
                 self.synnax_writer = self._open_synnax_writer(msg.timestamp)
+
+            pprint(frame)
 
             try:
                 if not self.synnax_writer.write(frame):  # pyright: ignore[reportArgumentType]
