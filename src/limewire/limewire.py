@@ -1,7 +1,5 @@
 import asyncio
-import traceback
 from asyncio.streams import StreamReader, StreamWriter
-from pprint import pformat, pprint
 
 import synnax as sy
 
@@ -129,20 +127,13 @@ class Limewire:
                 frame = self._build_telemetry_frame(msg)
             else:
                 msg = ValveStateMessage.from_bytes(msg_bytes)
-                print(f"Received state message: {msg}")
                 frame = self._build_valve_state_frame(msg)
 
             if self.synnax_writer is None:
                 self.synnax_writer = self._open_synnax_writer(msg.timestamp)
 
-            pprint(frame)
-
-            try:
-                if not self.synnax_writer.write(frame):  # pyright: ignore[reportArgumentType]
-                    print(self.synnax_writer.error())
-            except OverflowError as err:
-                traceback.print_exception(type(err), err, err.__traceback__)
-                print(f"frame: {pformat(frame)}")
+            if not self.synnax_writer.write(frame):  # pyright: ignore[reportArgumentType]
+                print(self.synnax_writer.error())
 
             self.queue.task_done()
 
