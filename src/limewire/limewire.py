@@ -1,5 +1,6 @@
 import asyncio
 from asyncio.streams import StreamReader, StreamWriter
+from pprint import pprint
 
 import synnax as sy
 
@@ -133,6 +134,8 @@ class Limewire:
             if self.synnax_writer is None:
                 self.synnax_writer = self._open_synnax_writer(msg.timestamp)
 
+            pprint(frame)
+
             self.synnax_writer.write(frame)  # pyright: ignore[reportArgumentType]
 
             self.queue.task_done()
@@ -211,7 +214,7 @@ class Limewire:
             async for frame in streamer:
                 print("Got a frame!")
                 for channel, series in frame.items():
-                    valve = Valve.from_channel_name(channel)
+                    valve = Valve.from_channel_name(channel)  # pyright: ignore[reportArgumentType]
                     # For now, let's assume that if multiple values are in the
                     # frame, we only care about the most recent one
                     msg = ValveCommandMessage(valve, bool(series[-1]))
