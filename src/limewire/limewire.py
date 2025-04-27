@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from asyncio.streams import StreamReader, StreamWriter
 from pprint import pformat
 
@@ -138,7 +139,7 @@ class Limewire:
                 if not self.synnax_writer.write(frame):  # pyright: ignore[reportArgumentType]
                     print(self.synnax_writer.error())
             except OverflowError as err:
-                print(err)
+                traceback.print_exception(type(err), err, err.__traceback__)
                 print(f"frame: {pformat(frame)}")
 
             self.queue.task_done()
