@@ -134,8 +134,11 @@ class Limewire:
             if self.synnax_writer is None:
                 self.synnax_writer = self._open_synnax_writer(msg.timestamp)
 
-            if not self.synnax_writer.write(frame):  # pyright: ignore[reportArgumentType]
-                print(self.synnax_writer.error())
+            try:
+                if not self.synnax_writer.write(frame):  # pyright: ignore[reportArgumentType]
+                    print(self.synnax_writer.error())
+            except OverflowError:
+                print(f"Got overflow error, frame: {pformat(frame)}")
 
             self.queue.task_done()
 
