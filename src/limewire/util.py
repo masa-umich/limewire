@@ -105,10 +105,10 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
 
 def get_data_type(channel_name: str) -> sy.DataType:
     """Return the DataType associated with the channel."""
-    if "state" in channel_name or "cmd" in channel_name:
-        return sy.DataType.UINT8
     if "limewire" in channel_name:
         return sy.DataType.TIMESTAMP
+    if "state" in channel_name or "cmd" in channel_name:
+        return sy.DataType.UINT8
     return sy.DataType.FLOAT32
 
 
