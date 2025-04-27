@@ -137,8 +137,9 @@ class Limewire:
             try:
                 if not self.synnax_writer.write(frame):  # pyright: ignore[reportArgumentType]
                     print(self.synnax_writer.error())
-            except OverflowError:
-                print(f"Got overflow error, frame: {pformat(frame)}")
+            except OverflowError as err:
+                print(err)
+                print(f"frame: {pformat(frame)}")
 
             self.queue.task_done()
 
