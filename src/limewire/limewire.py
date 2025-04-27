@@ -1,6 +1,6 @@
 import asyncio
 from asyncio.streams import StreamReader, StreamWriter
-from pprint import pprint
+from pprint import pformat
 
 import synnax as sy
 
@@ -134,9 +134,10 @@ class Limewire:
             if self.synnax_writer is None:
                 self.synnax_writer = self._open_synnax_writer(msg.timestamp)
 
-            pprint(frame)
-
-            self.synnax_writer.write(frame)  # pyright: ignore[reportArgumentType]
+            try:
+                self.synnax_writer.write(frame)  # pyright: ignore[reportArgumentType]
+            except OverflowError:
+                print(f"Got overflow error, frame: {pformat(frame)}")
 
             self.queue.task_done()
 
@@ -212,7 +213,6 @@ class Limewire:
             cmd_channels
         ) as streamer:
             async for frame in streamer:
-                print("Got a frame!")
                 for channel, series in frame.items():
                     valve = Valve.from_channel_name(channel)  # pyright: ignore[reportArgumentType]
                     # For now, let's assume that if multiple values are in the
@@ -224,4 +224,3 @@ class Limewire:
                         len(msg_bytes).to_bytes(1) + msg_bytes
                     )
                     await self.tcp_writer.drain()
-                    print(f"Sent cmd message: {msg}")
