@@ -130,7 +130,9 @@ class Limewire:
                 frame = self._build_valve_state_frame(msg)
 
             if self.synnax_writer is None:
-                self.synnax_writer = self._open_synnax_writer(msg.timestamp)
+                self.synnax_writer = await self._open_synnax_writer(
+                    msg.timestamp
+                )
 
             if not self.synnax_writer.write(frame):  # pyright: ignore[reportArgumentType]
                 print(self.synnax_writer.error())
@@ -164,7 +166,7 @@ class Limewire:
         frame[limewire_write_time_channel] = sy.TimeStamp.now()
         return frame
 
-    def _open_synnax_writer(self, timestamp: int) -> sy.Writer:
+    async def _open_synnax_writer(self, timestamp: int) -> sy.Writer:
         """Return an initialized Synnax writer using the given timestamp."""
 
         # Create a list of all channels
