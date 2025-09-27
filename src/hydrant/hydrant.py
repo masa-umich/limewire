@@ -3,7 +3,7 @@ from nicegui import ui
 def setup():
     with ui.card():
         ui.label('Frontend')
-        ui.button('Say hi', on_click=lambda: ui.notify('Hi from UI!'))
+        ui.button('Hello World', on_click=lambda: print("Hello, world!"))
     
 def run():
     print("Running...")
