@@ -54,7 +54,13 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
 
     load_dotenv()
 
-    client = sy.Synnax() # Use sy login to authenticate
+    client = sy.Synnax(
+        host=os.getenv("SYNNAX_HOST"),
+        port=int(os.getenv("SYNNAX_PORT")),
+        username=os.getenv("SYNNAX_USERNAME"),
+        password=os.getenv("SYNNAX_PASSWORD"),
+        secure=bool(os.getenv("SYNNAX_SECURE")) or False,
+    )
 
     channels_file = Path(__file__).parent / "data" / "channels.json"
     with channels_file.open() as f:
