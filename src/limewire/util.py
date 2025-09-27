@@ -88,7 +88,6 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
                     name=name,
                     data_type=get_data_type(name),
                     index=index_channel.key,
-                    rate=sy.Rate(50),
                 )
             )
 
