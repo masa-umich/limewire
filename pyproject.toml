@@ -20,6 +20,7 @@ readme = "README.md"
 
 [project.scripts]
 limewire = "limewire.__main__:main"
+hydrant = "hydrant:main"
 
 [dependency-groups]
 dev = [
