@@ -1,2 +1,7 @@
+from .hydrant import setup, run
+
+__all__ = ['setup', 'run']
+
 def main():
-    print("Hello, world!")
+    setup()
+    run()
