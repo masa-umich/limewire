@@ -2,7 +2,7 @@ import asyncio
 
 import click
 
-from fc_simulator import run_server
+from fc_simulator import FCSimulator
 from limewire.util import SocketAddress
 
 
@@ -19,7 +19,8 @@ def main(fc_address: tuple[str, int], runtime: float):
     """Run the FC simulator."""
 
     try:
-        asyncio.run(run_server(*fc_address, runtime))
+        fc_simulator = FCSimulator()
+        asyncio.run(fc_simulator.run(*fc_address, runtime))
     except KeyboardInterrupt:
         print("\nCtrl+C received.")
         exit(0)

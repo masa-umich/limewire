@@ -1,2 +1,2 @@
-from .fc_simulator import run_server
+from .fc_simulator import FCSimulator
 from . import errors
