@@ -21,6 +21,7 @@ readme = "README.md"
 
 [project.scripts]
 limewire = "limewire.__main__:main"
+fc_simulator = "fc_simulator:main"
 hydrant = "hydrant:main"
 
 [dependency-groups]
