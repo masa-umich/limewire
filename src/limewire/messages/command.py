@@ -1,5 +1,5 @@
 import struct
-from .util import Board, Command
+from .util import Board, DeviceCommand
 
 
 class DeviceCommandMessage:
@@ -9,9 +9,9 @@ class DeviceCommandMessage:
 
     MSG_ID: int = 0x04
     board: Board
-    command: Command
+    command: DeviceCommand
 
-    def __init__(self, board: Board, command_id: Command):
+    def __init__(self, board: Board, command_id: DeviceCommand):
         self.board = board
         self.command = command_id
 
@@ -24,7 +24,7 @@ class DeviceCommandMessage:
             int.from_bytes(msg_bytes[1:2], byteorder="big", signed=False)
         )
 
-        obj.command = Command(
+        obj.command = DeviceCommand(
             int.from_bytes(msg_bytes[2:3], byteorder="big", signed=False)
         )
 
