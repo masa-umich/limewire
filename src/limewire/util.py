@@ -59,7 +59,7 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
         port=int(os.getenv("SYNNAX_PORT")),
         username=os.getenv("SYNNAX_USERNAME"),
         password=os.getenv("SYNNAX_PASSWORD"),
-        secure=bool(os.getenv("SYNNAX_SECURE")) or False,
+        secure = os.getenv("SYNNAX_SECURE", "false").lower() in ["1", "true", "yes"]
     )
 
     channels_file = Path(__file__).parent / "data" / "channels.json"

@@ -1,58 +1,44 @@
 import struct
+from .util import Board, Command
 
-from .util import Board
+# Consists of only the messageID, boardID, and commandID
 
 class DeviceCommand:
-    """A class to represent a device command."""
+    """A class to represent a device command.
+        Format: [1 byte MsgID][1 byte Board ID][1 byte Command ID]
+    """
 
-    MSG_ID: int = 0x04
-
-    length: int
+    MSG_ID: int=0x04 
     board: Board
-    command_id: int
+    command_id: Command
 
-    def __init__(self, length: int, board: Board, command_id: int):
-        self.length = length
+    def __init__(self, board: Board, command_id: Command):
         self.board = board
         self.command_id = command_id
-        self._validate_self()
 
     @classmethod
     def from_bytes(cls, msg_bytes: bytes):
-        """Construct a DeviceCommand by parsing msg_bytes.
-        
-        Format: [1 byte Length][1 byte MsgID][1 byte Board ID][2 bytes Command ID]
-        """
+        """Construct a DeviceCommand by parsing msg_bytes."""
         obj = cls.__new__(cls)
 
-        length = msg_bytes[0]
-        msg_id = msg_bytes[1]
-        # Check to ensure valid command
-        if msg_id != cls.MSG_ID:
-            raise ValueError(f"Invalid MSG_ID {msg_id:#02x}")
+        obj.board = Board(
+            int.from_bytes(msg_bytes[1:2], byteorder="big", signed=False)
+        )
 
-        obj.length = length
-        board_id = msg_bytes[2]
-        obj.board = Board(board_id)
+        obj.command_id = Command(
+            int.from_bytes(msg_bytes[2:3], byteorder="big", signed=False)
+        )
 
-        obj.command_id = int.from_bytes(msg_bytes[3:5])
-
-        obj._validate_self()
         return obj
-
-    def _validate_self(self):
-        """Validation"""
-        pass
 
     def __bytes__(self) -> bytes:
         """Convert command to bytes: [Length][MsgID][BoardID][CommandID]."""
-        length = 1 + 1 + 1 + 2  # length + msg_id + board_id + cmd_id
-        return (
-            length.to_bytes(1, "big")
-            + self.MSG_ID.to_bytes(1, "big")
-            + self.board.value.to_bytes(1, "big")
-            + self.command_id.to_bytes(2, "big")
+        msg_bytes = (
+            self.MSG_ID.to_bytes(1)
+            + self.board.value.to_bytes(1)
+            + self.command_id.value.to_bytes(1)
         )
+        return msg_bytes
 
     def __repr__(self) -> str:
-        return f"DeviceCommand(board={repr(self.board)}, command_id={self.command_id:#04x})"
+        return f"DeviceCommand(board: {repr(self.board)}, command: {repr(self.command_id)})"
