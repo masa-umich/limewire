@@ -1,6 +1,18 @@
 from enum import Enum
 
 
+class DeviceCommand(Enum):
+    "A class to represent commands going to the rocket."
+
+    # TODO: Add command definitions
+    RESET_BOARD = 0x00
+    CLEAR_FLASH = 0x01
+    FLASH_SPACE = 0x02
+
+    def __str__(self) -> str:
+        return repr(self).removeprefix(f"{self.__class__.__name__}.")
+
+
 class Board(Enum):
     """A class to represent a board on the rocket.
 
