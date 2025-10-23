@@ -1,6 +1,6 @@
 import asyncio
-import signal
 from asyncio.streams import StreamReader, StreamWriter
+from contextlib import asynccontextmanager
 
 import synnax as sy
 
@@ -28,34 +28,36 @@ class Limewire:
             fc_addr: A tuple (ip_addr, port) indicating the flight
                 computer's TCP socket address.
         """
-        self.tcp_reader, self.tcp_writer = await self._connect_fc(*fc_addr)
 
-        peername = self.tcp_writer.get_extra_info("peername")
-        print(f"Connected to flight computer at {peername[0]}:{peername[1]}.")
+        # We need to define an asynccontextmanager to ensure that shutdown
+        # code runs after the task is canceled because of e.g. Ctrl+C
+        @asynccontextmanager
+        async def lifespan():
+            try:
+                yield
+            finally:
+                await self.stop()
 
-        # Set up Ctrl+C handling
-        self.stop_event = asyncio.Event()
+        async with lifespan():
+            self.tcp_reader, self.tcp_writer = await self._connect_fc(*fc_addr)
 
-        def handle_sigint():
-            print("\nCtrl+C received.")
-            self.stop_event.set()
-            asyncio.create_task(self.stop())
+            peername = self.tcp_writer.get_extra_info("peername")
+            print(
+                f"Connected to flight computer at {peername[0]}:{peername[1]}."
+            )
 
-        loop = asyncio.get_running_loop()
-        loop.add_signal_handler(signal.SIGINT, handle_sigint)
+            # Set up async tasks
+            self.tasks = [
+                asyncio.create_task(self._tcp_read()),
+                asyncio.create_task(self._synnax_write()),
+                asyncio.create_task(self._relay_valve_cmds()),
+            ]
+            self.start_time = asyncio.get_event_loop().time()
 
-        # Set up async tasks
-        self.tasks = [
-            asyncio.create_task(self._tcp_read()),
-            asyncio.create_task(self._synnax_write()),
-            asyncio.create_task(self._relay_valve_cmds()),
-        ]
-        self.start_time = asyncio.get_event_loop().time()
-
-        await asyncio.gather(
-            *self.tasks,
-            return_exceptions=True,
-        )
+            await asyncio.gather(
+                *self.tasks,
+                return_exceptions=True,
+            )
 
     async def stop(self):
         """Run shutdown code."""
@@ -72,6 +74,7 @@ class Limewire:
             self.synnax_writer.close()
 
         # Print statistics
+        print()  # Add extra newline after Ctrl+C
         runtime = asyncio.get_event_loop().time() - self.start_time
         if self.values_processed == 0:
             print("Unable to receive data from flight computer!")
@@ -112,7 +115,7 @@ class Limewire:
             The number of telemetry values processed.
         """
         self.values_processed = 0
-        while not self.stop_event.is_set():
+        while True:
             msg_length = await self.tcp_reader.read(1)
             if not msg_length:
                 break
@@ -138,7 +141,7 @@ class Limewire:
 
     async def _synnax_write(self) -> None:
         """Write telemetry data and valve state data to Synnax."""
-        while not self.stop_event.is_set():
+        while True:
             # Parse message bytes into TelemetryMessage
             msg_bytes = await self.queue.get()
             msg_id = int.from_bytes(msg_bytes[0:1])

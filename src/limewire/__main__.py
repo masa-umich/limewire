@@ -17,6 +17,8 @@ def main(fc_address: tuple[str, int]):
 
     try:
         asyncio.run(limewire.start(fc_address))  # pyright: ignore[reportPrivateLocalImportUsage]
+    except KeyboardInterrupt:
+        pass
     except ConnectionRefusedError as err:
         print_limewire_error(err)
 
