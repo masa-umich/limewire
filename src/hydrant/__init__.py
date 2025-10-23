@@ -1,7 +1,8 @@
-from .hydrant import setup, run
+# Just run the module when imported
+from . import hydrant
+from nicegui import ui
 
-__all__ = ['setup', 'run']
 
 def main():
-    setup()
-    run()
+    print("! HYDRANT RUNNING !")
+    ui.run(show=False, reload=False)
