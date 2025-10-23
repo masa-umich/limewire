@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from asyncio.streams import StreamReader, StreamWriter
 from contextlib import asynccontextmanager
 
@@ -47,25 +48,23 @@ class Limewire:
             )
 
             # Set up async tasks
-            self.tasks = [
-                asyncio.create_task(self._tcp_read()),
-                asyncio.create_task(self._synnax_write()),
-                asyncio.create_task(self._relay_valve_cmds()),
-            ]
             self.start_time = asyncio.get_event_loop().time()
 
-            await asyncio.gather(
-                *self.tasks,
-                return_exceptions=True,
-            )
+            try:
+                async with asyncio.TaskGroup() as tg:
+                    tg.create_task(self._tcp_read())
+                    tg.create_task(self._synnax_write())
+                    tg.create_task(self._relay_valve_cmds())
+            except* Exception as eg:
+                print("=" * 60)
+                print(f"Tasks failed with {len(eg.exceptions)} error(s)")
+                for exc in eg.exceptions:
+                    print("=" * 60)
+                    traceback.print_exception(type(exc), exc, exc.__traceback__)
+                print("=" * 60)
 
     async def stop(self):
         """Run shutdown code."""
-
-        for t in self.tasks:
-            t.cancel()
-
-        await asyncio.gather(*self.tasks, return_exceptions=True)
 
         self.tcp_writer.close()
         await self.tcp_writer.wait_closed()
@@ -148,7 +147,13 @@ class Limewire:
 
             if msg_id == TelemetryMessage.MSG_ID:
                 msg = TelemetryMessage.from_bytes(msg_bytes)
-                frame = self._build_telemetry_frame(msg)
+
+                try:
+                    frame = self._build_telemetry_frame(msg)
+                except KeyError as err:
+                    print(str(err))
+                    self.queue.task_done()
+                    continue
             else:
                 msg = ValveStateMessage.from_bytes(msg_bytes)
                 frame = self._build_valve_state_frame(msg)
@@ -157,13 +162,22 @@ class Limewire:
                 self.synnax_writer = await self._open_synnax_writer(
                     msg.timestamp
                 )
-
             self.synnax_writer.write(frame)
 
             self.queue.task_done()
 
     def _build_telemetry_frame(self, msg: TelemetryMessage) -> dict:
-        """Construct a frame to write to Synnax from a telemetry message."""
+        """Construct a frame to write to Synnax from a telemetry message.
+
+        Raises:
+            KeyError: Index channel for given message is not loaded.
+        """
+
+        # Check if index channel is loaded
+        if msg.index_channel not in self.channels:
+            raise KeyError(
+                f"Channel {msg.index_channel} not active! Is LIMEWIRE_DEV_SYNNAX enabled?"
+            )
 
         data_channels = self.channels[msg.index_channel].copy()
         limewire_write_time_channel = get_write_time_channel_name(
@@ -209,12 +223,14 @@ class Limewire:
             else:
                 authorities.append(255)
 
-        return self.synnax_client.open_writer(
+        writer = self.synnax_client.open_writer(
             start=timestamp,
             channels=writer_channels,
             enable_auto_commit=True,
             authorities=authorities,
         )
+
+        return writer
 
     async def _relay_valve_cmds(self):
         """Relay valve commands from Synnax to the flight computer."""
