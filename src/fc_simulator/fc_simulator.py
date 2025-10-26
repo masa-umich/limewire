@@ -35,6 +35,7 @@ class FCSimulator:
 
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.tcp_aborted = False
 
     async def generate_telemetry_data(
         self, addr: str, writer: asyncio.StreamWriter, run_time: float
@@ -54,7 +55,6 @@ class FCSimulator:
         values_sent = 0
         while True:
             loop_start_time = asyncio.get_running_loop().time()
-
             for board in boards:
                 values = [
                     i * random.uniform(0, 1) for i in range(board.num_values)
@@ -64,10 +64,17 @@ class FCSimulator:
                 msg = TelemetryMessage(board, timestamp, values)
                 msg_bytes = bytes(msg)
 
-                writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
-                await writer.drain()
+                try:
+                    writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
+                    await writer.drain()
+                    values_sent += len(msg.values)
+                except ConnectionAbortedError:
+                    print(f"Connection to client {addr} manually aborted")
+                    self.tcp_aborted = True
+                    break
 
-                values_sent += len(msg.values)
+            if self.tcp_aborted:
+                break
 
             if asyncio.get_running_loop().time() - start_time > run_time:
                 break
@@ -127,6 +134,8 @@ class FCSimulator:
         addr = writer.get_extra_info("peername")
         print(f"Connected to {format_socket_address(addr)}.")
 
+        self.tcp_aborted = False
+
         telemetry_task = asyncio.create_task(
             self.generate_telemetry_data(addr, writer, run_time)
         )
@@ -135,9 +144,10 @@ class FCSimulator:
         await telemetry_task
         await valve_task
 
-        writer.close()
-        await writer.wait_closed()
-        print(f"Connection with {format_socket_address(addr)} closed.")
+        if not self.tcp_aborted:
+            writer.close()
+            await writer.wait_closed()
+            print(f"Connection with {addr} closed.")
 
     async def run(self) -> None:
         """Run the FC simulator.
