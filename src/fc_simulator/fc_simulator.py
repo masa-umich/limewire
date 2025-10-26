@@ -38,7 +38,10 @@ class FCSimulator:
         self.tcp_aborted = False
 
     async def generate_telemetry_data(
-        self, addr: str, writer: asyncio.StreamWriter, run_time: float
+        self,
+        addr: Tuple[str, int],
+        writer: asyncio.StreamWriter,
+        run_time: float,
     ) -> None:
         """Send randomly generated telemetry data to Limewire."""
 
@@ -69,7 +72,9 @@ class FCSimulator:
                     await writer.drain()
                     values_sent += len(msg.values)
                 except ConnectionAbortedError:
-                    print(f"Connection to client {addr} manually aborted")
+                    print(
+                        f"Connection to client {format_socket_address(addr)} manually aborted"
+                    )
                     self.tcp_aborted = True
                     break
 
@@ -147,7 +152,7 @@ class FCSimulator:
         if not self.tcp_aborted:
             writer.close()
             await writer.wait_closed()
-            print(f"Connection with {addr} closed.")
+            print(f"Connection with {format_socket_address(addr)} closed.")
 
     async def run(self) -> None:
         """Run the FC simulator.
