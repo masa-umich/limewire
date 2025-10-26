@@ -3,6 +3,7 @@ import random
 import socket
 import time
 from functools import partial
+from typing import Tuple
 
 import synnax as sy
 
@@ -14,6 +15,12 @@ from limewire.messages import (
     DeviceCommandMessage,
 )
 from limewire.messages.util import DeviceCommand
+
+
+def format_socket_address(addr: Tuple[str, int]) -> str:
+    """Format of addr: [address, port]"""
+
+    return addr[0] + ":" + str(addr[1])
 
 
 class FCSimulator:
@@ -31,7 +38,10 @@ class FCSimulator:
         self.tcp_aborted = False
 
     async def generate_telemetry_data(
-        self, addr: str, writer: asyncio.StreamWriter, run_time: float
+        self,
+        addr: Tuple[str, int],
+        writer: asyncio.StreamWriter,
+        run_time: float,
     ) -> None:
         """Send randomly generated telemetry data to Limewire."""
 
@@ -62,7 +72,9 @@ class FCSimulator:
                     await writer.drain()
                     values_sent += len(msg.values)
                 except ConnectionAbortedError:
-                    print(f"Connection to client {addr} manually aborted")
+                    print(
+                        f"Connection to client {format_socket_address(addr)} manually aborted"
+                    )
                     self.tcp_aborted = True
                     break
 
@@ -124,8 +136,8 @@ class FCSimulator:
         writer: asyncio.StreamWriter,
         run_time: float,
     ) -> None:
-        addr: str = writer.get_extra_info("peername")
-        print(f"Connected to {addr}.")
+        addr = writer.get_extra_info("peername")
+        print(f"Connected to {format_socket_address(addr)}.")
 
         self.tcp_aborted = False
 
@@ -140,7 +152,7 @@ class FCSimulator:
         if not self.tcp_aborted:
             writer.close()
             await writer.wait_closed()
-            print(f"Connection with {addr} closed.")
+            print(f"Connection with {format_socket_address(addr)} closed.")
 
     async def run(self) -> None:
         """Run the FC simulator.
@@ -159,8 +171,8 @@ class FCSimulator:
             self.tcp_port,
         )
 
-        addr: str = server.sockets[0].getsockname()
-        print(f"Serving on {addr}.")
+        addr = server.sockets[0].getsockname()
+        print(f"Serving on {format_socket_address(addr)}.")
 
         async with server:
             await server.serve_forever()
