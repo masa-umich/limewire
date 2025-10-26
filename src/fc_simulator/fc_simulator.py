@@ -3,6 +3,7 @@ import random
 import socket
 import time
 from functools import partial
+from typing import Tuple
 
 import synnax as sy
 
@@ -14,6 +15,12 @@ from limewire.messages import (
     DeviceCommandMessage,
 )
 from limewire.messages.util import DeviceCommand
+
+
+def format_socket_address(addr: Tuple[str, int]) -> str:
+    """Format of addr: [address, port]"""
+
+    return addr[0] + ":" + str(addr[1])
 
 
 class FCSimulator:
@@ -117,8 +124,8 @@ class FCSimulator:
         writer: asyncio.StreamWriter,
         run_time: float,
     ) -> None:
-        addr: str = writer.get_extra_info("peername")
-        print(f"Connected to {addr}.")
+        addr = writer.get_extra_info("peername")
+        print(f"Connected to {format_socket_address(addr)}.")
 
         telemetry_task = asyncio.create_task(
             self.generate_telemetry_data(addr, writer, run_time)
@@ -130,7 +137,7 @@ class FCSimulator:
 
         writer.close()
         await writer.wait_closed()
-        print(f"Connection with {addr} closed.")
+        print(f"Connection with {format_socket_address(addr)} closed.")
 
     async def run(self) -> None:
         """Run the FC simulator.
@@ -149,8 +156,8 @@ class FCSimulator:
             self.tcp_port,
         )
 
-        addr: str = server.sockets[0].getsockname()
-        print(f"Serving on {addr}.")
+        addr = server.sockets[0].getsockname()
+        print(f"Serving on {format_socket_address(addr)}.")
 
         async with server:
             await server.serve_forever()
