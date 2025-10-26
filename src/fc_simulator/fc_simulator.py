@@ -54,24 +54,18 @@ class FCSimulator:
                 ]
 
                 timestamp = sy.TimeStamp.now()
-                try:
-                    msg = TelemetryMessage(board, timestamp, values)
-                    msg_bytes = bytes(msg)
+                msg = TelemetryMessage(board, timestamp, values)
+                msg_bytes = bytes(msg)
 
+                try:
                     writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
                     await writer.drain()
-
                     values_sent += len(msg.values)
                 except ConnectionAbortedError:
                     print(f"Connection to client {addr} manually aborted")
                     self.tcp_aborted = True
                     break
-                # except Exception as error:
-                #     print(
-                #         f"Client {addr} disconnected with error {type(error)}"
-                #     )
-                #     self.tcp_disconnected = True
-                #     break
+
             if self.tcp_aborted:
                 break
 
