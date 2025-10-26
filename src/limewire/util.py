@@ -55,24 +55,33 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     load_dotenv()
 
     # TODO: Add log statement when using default credentials
+    SYNNAX_HOST = os.getenv("SYNNAX_HOST") or "localhost"
+    SYNNAX_PORT = int(os.getenv("SYNNAX_PORT") or 9090)
+    SYNNAX_USERNAME = os.getenv("SYNNAX_USERNAME") or "synnax"
+    SYNNAX_PASSWORD = os.getenv("SYNNAX_PASSWORD") or "seldon"
+    SYNNAX_SECURE = bool(os.getenv("SYNNAX_SECURE") or False)
+    LIMEWIRE_DEV_SYNNAX = bool(os.getenv("LIMEWIRE_DEV_SYNNAX") or False)
 
     client = sy.Synnax(
-        host=os.getenv("SYNNAX_HOST") or "localhost",
-        port=int(os.getenv("SYNNAX_PORT") or 9090),
-        username=os.getenv("SYNNAX_USERNAME") or "synnax",
-        password=os.getenv("SYNNAX_PASSWORD") or "seldon",
-        secure=bool(os.getenv("SYNNAX_SECURE") or False),
+        host=SYNNAX_HOST,
+        port=SYNNAX_PORT,
+        username=SYNNAX_USERNAME,
+        password=SYNNAX_PASSWORD,
+        secure=SYNNAX_SECURE,
+    )
+
+    print(
+        f"Connected to Synnax at {SYNNAX_HOST}:{SYNNAX_PORT} (LIMEWIRE_DEV_SYNNAX={LIMEWIRE_DEV_SYNNAX})"
     )
 
     channels_file = Path(__file__).parent / "data" / "channels.json"
     with channels_file.open() as f:
         channels: dict[str, list[str]] = json.load(f)
 
-    # If the DEV_SYNNAX environment variable is set, then Limewire will only
-    # create the fc_timestamp channels in order to stay under the 50-channel
-    # limit imposed by Synnax.
-    DEV_SYNNAX = bool(os.getenv("LIMEWIRE_DEV_SYNNAX"))
-    if DEV_SYNNAX:
+    # If LIMEWIRE_DEV_SYNNAX is set, then Limewire will only create the
+    # fc_timestamp channels in order to stay under the 50-channel limit
+    # imposed by Synnax.
+    if LIMEWIRE_DEV_SYNNAX:
         channels = {"fc_timestamp": channels["fc_timestamp"]}
 
     index_channels: list[sy.Channel] = []
