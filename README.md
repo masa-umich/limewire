@@ -57,8 +57,7 @@ uv tool upgrade limewire
 
 Although Limewire is meant to run on the DAQ PC connected to the flight
 computer via Ethernet, there are three alternate configurations you can use
-that make it easier to test Limewire since the flight computer TCP firmware
-has yet to be written (as of Jan 15, 2024). In order from easiest/least
+that make it easier to test Limewire. In order from easiest/least
 realistic to hardest/most realistic, they are:
 
 1. Limewire, Synnax, and FC Simulator running on your development machine
@@ -123,9 +122,7 @@ incoming network connections. Make sure this option is enabled.
 
 If you're running Limewire on the DAQ PC:
 
-1. Use `ssh` to access the DAQ PC. Then, switch to PowerShell (it's just
-   better, fight me 😤)
-
+1. Use `ssh` to access the DAQ PC, then enter PowerShell. 
    ```shell
    ssh [username]@[daq-pc-ip-address]
    powershell
@@ -140,16 +137,30 @@ If you're running Limewire on the DAQ PC:
    uv tool upgrade limewire
    ```
 
-3. Set the environment variables needed to run Limewire. These are contained
-   in a file called `limewire_env.ps1` in the DAQ PC's home directory. If
-   you haven't already, make sure you're in PowerShell by typing
-   `powershell` at the command prompt.
+   > [!NOTE]
+   > If you're working on Limewire in a development branch, you can uninstall
+   > the mainline version and install Limewire from your development branch.
+   > 
+   > ```shell
+   > uv tool uninstall limewire
+   > uv tool install git+https://github.com/masa-umich/limewire.git@your-branch-name
+   > ```
+   > After pointing the Limewire installation to the development branch, if you
+   > add new commits to your branch, you can easily upgrade Limewire using the
+   > following: 
+   > ```shell
+   > uv tool upgrade limewire
+   > ```
+   > 
+   > If you install a development version of Limewire, you MUST restore the 
+   > mainline version of Limewire after you're done.
+   >
+   > ```shell
+   > uv tool uninstall limewire
+   > uv tool install git+https://github.com/masa-umich/limewire.git
+   > ```
 
-   ```pwsh-console
-   .\limewire_env.ps1
-   ```
-
-4. Run Limewire.
+3. Run Limewire.
 
    ```shell
    limewire [ip-address]:8888
@@ -163,37 +174,25 @@ If you're running Limewire on your local machine:
    I recommend using the Docker container method, but feel free to use any
    method that works well on your system.
 
-2. Open another terminal window and set the environment variables needed to
-   authenticate with Synnax.
+2. Set `LIMEWIRE_DEV_SYNNAX=1`. 
+
+   Synnax has a limit of 50 channels without getting a license key,
+   so `LIMEWIRE_DEV_SYNNAX` tells Limewire to only creates channels associated
+   with the flight computer to avoid hitting that limit in order to enable
+   local testing.
 
    On macOS/Linux:
 
    ```shell
-   export SYNNAX_HOST="localhost"
-   export SYNNAX_PORT="9090"
-   export SYNNAX_USERNAME="<insert-synnax-username-here>"
-   export SYNNAX_PASSWORD="<insert-synnax-password-here>"
-   # If SYNNAX_SECURE should be on:
-   export SYNNAX_SECURE=1
    export LIMEWIRE_DEV_SYNNAX=1
    ```
 
    On Windows (make sure you're using PowerShell):
 
    ```pwsh-console
-   $Env:SYNNAX_HOST="localhost"
-   $Env:SYNNAX_PORT="9090"
-   $Env:SYNNAX_USERNAME="<insert-synnax-username-here>"
-   $Env:SYNNAX_PASSWORD="<insert-synnax-password-here>"
-   # If SYNNAX_SECURE should be on:
-   $Env:SYNNAX_SECURE="1"
    $Env:LIMEWIRE_DEV_SYNNAX="1"
    ```
 
-   NOTE: Synnax has a limit of 50 channels without getting a license key,
-   so the `LIMEWIRE_DEV_SYNNAX` only creates channels associated with the
-   flight computer to avoid hitting that limit in order to enable local
-   testing.
 
 3. Run Limewire.
 
