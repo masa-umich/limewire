@@ -54,6 +54,8 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
 
     load_dotenv()
 
+    # TODO: Add log statement when using default credentials
+
     client = sy.Synnax(
         host=os.getenv("SYNNAX_HOST") or "localhost",
         port=int(os.getenv("SYNNAX_PORT") or 9090),
