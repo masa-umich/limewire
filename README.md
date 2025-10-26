@@ -10,7 +10,7 @@ Project Lead: Rohan Satapathy
 ## Installation
 
 How you install Limewire will depend on whether you're installing it in a
-development environment or on the DAQ PC. 
+development environment or on the DAQ PC.
 
 ### Development Installation
 
@@ -21,7 +21,7 @@ development environment or on the DAQ PC.
    with Homebrew using `brew install uv`.
 
 3. Clone the repository and `cd` into the project directory.
-   
+
    ```shell
    git clone https://github.com/masa-umich/limewire.git
    cd limewire
@@ -31,15 +31,16 @@ development environment or on the DAQ PC.
 
    ```shell
    uv sync
+   uv pip install -e .
    ```
 
 5. Install [Ruff](https://github.com/astral-sh/ruff), a linter and code
    formatter for Python projects. If you use VS Code, you can install the
    [VS Code Ruff Extension](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff).
-   
+
    All code submitted to this project should be formatted using Ruff before
    being merged into `main`. An easy way to do this is configure your editor
-   to enable "Format on Save". 
+   to enable "Format on Save".
 
 ### DAQ PC Installation
 
@@ -79,15 +80,14 @@ address will be `localhost`.
 If you're connecting to the DAQ PC via WiFi (Configuration 2):
 
 1. Make sure you're connected to the University of Michigan WiFi. If you
-   aren't on campus, you can use the 
+   aren't on campus, you can use the
    [UMVPN](https://its.umich.edu/enterprise/wifi-networks/vpn/getting-started)
    service. If you need help getting this set up properly, contact Rohan
    Satapathy on Slack.
-   
 2. Find your public IP address. The method to do this varies based on your
    operating system, but you should end up with a IPv4 address that looks
    like `35.X.X.X`. On macOS, the command to do this is `ipconfig getifaddr
-   en0`.
+en0`.
 
 If you're connecting to the DAQ PC via Ethernet (Configuration 3):
 
@@ -96,11 +96,11 @@ If you're connecting to the DAQ PC via Ethernet (Configuration 3):
 
 2. Find your development machine's network settings and ensure that the
    subnet mask matches and that the your computer's IP address is valid for
-   that subnet mask. 
+   that subnet mask.
 
    On macOS, this can be done by going to Settings > Network > Ethernet >
    Details > TCP/IP, set "Configure IPv4" to "Manually", then change the IP
-   address and subnet mask. 
+   address and subnet mask.
 
    A simple strategy for making sure the IP address is valid is to take the
    IP address of the DAQ PC and incrementing the last octet by 1. Since
@@ -130,6 +130,7 @@ If you're running Limewire on the DAQ PC:
    ssh [username]@[daq-pc-ip-address]
    powershell
    ```
+
    To get the username and IP address of the DAQ PC, contact Rohan Satapathy
    on Slack.
 
@@ -147,10 +148,9 @@ If you're running Limewire on the DAQ PC:
    ```pwsh-console
    .\limewire_env.ps1
    ```
-   
 
 4. Run Limewire.
-   
+
    ```shell
    limewire [ip-address]:8888
    ```
@@ -164,9 +164,10 @@ If you're running Limewire on your local machine:
    method that works well on your system.
 
 2. Open another terminal window and set the environment variables needed to
-   authenticate with Synnax. 
+   authenticate with Synnax.
 
    On macOS/Linux:
+
    ```shell
    export SYNNAX_HOST="localhost"
    export SYNNAX_PORT="9090"
@@ -178,6 +179,7 @@ If you're running Limewire on your local machine:
    ```
 
    On Windows (make sure you're using PowerShell):
+
    ```pwsh-console
    $Env:SYNNAX_HOST="localhost"
    $Env:SYNNAX_PORT="9090"
@@ -208,4 +210,3 @@ This repository currently contains three packages in the `src` directory:
 - `fc_simulator`: The Flight Computer Simulator, a TCP server that acts
   as a stand-in for the Flight Computer while its Ethernet issues are being
   debugged, enabling testing of Limewire.
-
