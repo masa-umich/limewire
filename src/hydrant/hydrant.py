@@ -50,9 +50,9 @@ def main_page():
                         options=list(commands_available.keys()),
                     ).classes('w-full')
 
-                    async def send_command():
-
-                        # Send the command to the board
+                    def send_after_confirm(): 
+                        "Function to send command to board after it has been confirmed"
+                        dialog.close()
                         selected_board_name = board_select.value
                         selected_command_name = command_select.value
 
@@ -62,12 +62,31 @@ def main_page():
                         msg = DeviceCommandMessage(board, command)
                         msg_bytes = bytes(msg)
 
-                        # TODO: Send to rocket
                         print(f"Sending {selected_command_name} to board {selected_board_name}")
                         fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
                         fc_writer.flush()
+                        dialog.close()
 
-                        # TODO: Update command history
+                        # TODO: Write command to history log
+
+                    # Creates dialog to use for popup
+                    with ui.dialog() as dialog, ui.card(): 
+                        confirm_label = ui.label('')
+                        with ui.row(): 
+                            ui.button('YES', on_click=lambda:send_after_confirm())
+                            ui.button('NO', on_click=lambda:dialog.close())
+                    
+                    def send_command():
+                        "Function to send the command to the board"
+                        selected_board_name = board_select.value
+                        selected_command_name = command_select.value
+
+                        confirm_label.text = (
+                            f"Are you sure you want to send command '{selected_command_name}' "
+                            f"to board '{selected_board_name}'?"
+                        )
+                    
+                        dialog.open()
 
                     # SEND BUTTON
                     ui.button('SEND', on_click=send_command).classes('w-half bg-blue-600 text-white hover:bg-blue-700')
