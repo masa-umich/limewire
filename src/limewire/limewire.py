@@ -44,6 +44,7 @@ class Limewire:
             self.synnax_writer = await self._open_synnax_writer(
                 sy.TimeStamp.now()
             )
+            await asyncio.sleep(0.5)
             print("Done init")
 
             self.tcp_reader, self.tcp_writer = await self._connect_fc(*fc_addr)
@@ -109,6 +110,8 @@ class Limewire:
             return await asyncio.open_connection(ip_addr, port)
         except ConnectionRefusedError:
             # Give a more descriptive error message
+            # TODO: Retry + detect when FC is disconnected and retry instead of killing - tcpkeepalive with cross platform
+            # TODO: what exception gets thrown nwhen tcp keep alive has an unsuccessful ping
             raise ConnectionRefusedError(
                 f"Unable to connect to flight computer at {ip_addr}:{port}."
             )
