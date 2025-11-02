@@ -172,6 +172,7 @@ class Limewire:
                 self.synnax_writer = await self._open_synnax_writer(
                     msg.timestamp
                 )
+            print("Writing synnax data")
             self.synnax_writer.write(frame)
 
             self.queue.task_done()
