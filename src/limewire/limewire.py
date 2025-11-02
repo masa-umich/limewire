@@ -40,18 +40,18 @@ class Limewire:
                 await self.stop()
 
         async with lifespan():
+            print("Intializing Synnax Writer")
+            self.synnax_writer = await self._open_synnax_writer(
+                sy.TimeStamp.now()
+            )
+            print("Done init")
+
             self.tcp_reader, self.tcp_writer = await self._connect_fc(*fc_addr)
 
             peername = self.tcp_writer.get_extra_info("peername")
             print(
                 f"Connected to flight computer at {peername[0]}:{peername[1]}."
             )
-
-            print("Intializing Synnax Writer")
-            self.synnax_writer = await self._open_synnax_writer(
-                sy.TimeStamp.now()
-            )
-            print("Done init")
 
             # Set up async tasks
             self.start_time = asyncio.get_event_loop().time()
