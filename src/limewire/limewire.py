@@ -47,9 +47,11 @@ class Limewire:
                 f"Connected to flight computer at {peername[0]}:{peername[1]}."
             )
 
+            print("Intializing Synnax Writer")
             self.synnax_writer = await self._open_synnax_writer(
                 sy.TimeStamp.now()
             )
+            print("Done init")
 
             # Set up async tasks
             self.start_time = asyncio.get_event_loop().time()
@@ -163,6 +165,7 @@ class Limewire:
                 frame = self._build_valve_state_frame(msg)
 
             if self.synnax_writer is None:
+                print("Unreachable")
                 self.synnax_writer = await self._open_synnax_writer(
                     msg.timestamp
                 )
