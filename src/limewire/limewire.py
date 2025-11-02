@@ -47,6 +47,10 @@ class Limewire:
                 f"Connected to flight computer at {peername[0]}:{peername[1]}."
             )
 
+            self.synnax_writer = await self._open_synnax_writer(
+                sy.TimeStamp.now()
+            )
+
             # Set up async tasks
             self.start_time = asyncio.get_event_loop().time()
 
