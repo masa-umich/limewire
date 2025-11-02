@@ -149,6 +149,7 @@ class Limewire:
 
     async def _synnax_write(self) -> None:
         """Write telemetry data and valve state data to Synnax."""
+        cnt = 0
         while True:
             # Parse message bytes into TelemetryMessage
             msg_bytes = await self.queue.get()
@@ -172,7 +173,8 @@ class Limewire:
                 self.synnax_writer = await self._open_synnax_writer(
                     msg.timestamp
                 )
-            print("Writing synnax data")
+            print(f"Writing synnax data, iteration: {cnt}")
+            cnt += 1
             self.synnax_writer.write(frame)
 
             self.queue.task_done()
