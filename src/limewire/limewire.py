@@ -40,12 +40,10 @@ class Limewire:
                 await self.stop()
 
         async with lifespan():
-            print("Intializing Synnax Writer")
             self.synnax_writer = await self._open_synnax_writer(
                 sy.TimeStamp.now()
             )
             await asyncio.sleep(0.5)
-            print("Done init")
 
             self.tcp_reader, self.tcp_writer = await self._connect_fc(*fc_addr)
 
@@ -110,8 +108,6 @@ class Limewire:
             return await asyncio.open_connection(ip_addr, port)
         except ConnectionRefusedError:
             # Give a more descriptive error message
-            # TODO: Retry + detect when FC is disconnected and retry instead of killing - tcpkeepalive with cross platform
-            # TODO: what exception gets thrown nwhen tcp keep alive has an unsuccessful ping
             raise ConnectionRefusedError(
                 f"Unable to connect to flight computer at {ip_addr}:{port}."
             )
@@ -149,7 +145,6 @@ class Limewire:
 
     async def _synnax_write(self) -> None:
         """Write telemetry data and valve state data to Synnax."""
-        cnt = 0
         while True:
             # Parse message bytes into TelemetryMessage
             msg_bytes = await self.queue.get()
@@ -169,12 +164,9 @@ class Limewire:
                 frame = self._build_valve_state_frame(msg)
 
             if self.synnax_writer is None:
-                print("Unreachable")
                 self.synnax_writer = await self._open_synnax_writer(
                     msg.timestamp
                 )
-            print(f"Writing synnax data, iteration: {cnt}")
-            cnt += 1
             self.synnax_writer.write(frame)
 
             self.queue.task_done()
