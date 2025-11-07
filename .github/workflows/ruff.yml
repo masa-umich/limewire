@@ -1,0 +1,21 @@
+name: Ruff Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Ruff
+        uses: astral-sh/ruff-action@v3
+
+      - name: Check formatting
+        run: ruff format --check
+
+      - name: Check linting
+        run: ruff check

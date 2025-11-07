@@ -7,7 +7,7 @@ __all__ = [
     "DeviceCommandMessage",
 ]
 
+from .command import DeviceCommandMessage
 from .telemetry import TelemetryMessage
 from .util import Board, Valve
 from .valve import ValveCommandMessage, ValveStateMessage
-from .command import DeviceCommandMessage

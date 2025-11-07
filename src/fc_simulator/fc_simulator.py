@@ -1,7 +1,6 @@
 import asyncio
 import random
 import socket
-import time
 from functools import partial
 from typing import Tuple
 
@@ -9,10 +8,10 @@ import synnax as sy
 
 from limewire.messages import (
     Board,
+    DeviceCommandMessage,
     TelemetryMessage,
     ValveCommandMessage,
     ValveStateMessage,
-    DeviceCommandMessage,
 )
 from limewire.messages.util import DeviceCommand
 
