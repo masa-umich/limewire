@@ -10,6 +10,7 @@ from .messages import (
     Valve,
     ValveCommandMessage,
     ValveStateMessage,
+    HeartbeatMessage,
 )
 from .util import get_write_time_channel_name, synnax_init
 
@@ -40,28 +41,66 @@ class Limewire:
                 await self.stop()
 
         async with lifespan():
-            self.tcp_reader, self.tcp_writer = await self._connect_fc(*fc_addr)
-
-            peername = self.tcp_writer.get_extra_info("peername")
-            print(
-                f"Connected to flight computer at {peername[0]}:{peername[1]}."
+            self.synnax_writer = await self._open_synnax_writer(
+                sy.TimeStamp.now()
             )
+            await asyncio.sleep(0.5)
 
-            # Set up async tasks
-            self.start_time = asyncio.get_event_loop().time()
+            self.connected = False
+            while True:
+                try:
+                    self.tcp_reader, self.tcp_writer = await self._connect_fc(
+                        *fc_addr
+                    )
+                except ConnectionRefusedError as e:
+                    # Continue and try again after a delay
+                    print(e)
+                    self.connected = False
+                    await asyncio.sleep(3)
+                    continue
 
-            try:
-                async with asyncio.TaskGroup() as tg:
-                    tg.create_task(self._tcp_read())
-                    tg.create_task(self._synnax_write())
-                    tg.create_task(self._relay_valve_cmds())
-            except* Exception as eg:
-                print("=" * 60)
-                print(f"Tasks failed with {len(eg.exceptions)} error(s)")
-                for exc in eg.exceptions:
+                self.connected = True
+                peername = self.tcp_writer.get_extra_info("peername")
+                print(
+                    f"Connected to flight computer at {peername[0]}:{peername[1]}."
+                )
+
+                # Set up async tasks
+                self.start_time = asyncio.get_event_loop().time()
+
+                try:
+                    async with asyncio.TaskGroup() as tg:
+                        tg.create_task(self._tcp_read())
+                        tg.create_task(self._synnax_write())
+                        tg.create_task(self._relay_valve_cmds())
+                        # TODO: Add this task, find what error is thrown when disconnected and continue in that catch
+                        tg.create_task(self._check_connection())
+                except* Exception as eg:
                     print("=" * 60)
-                    traceback.print_exception(type(exc), exc, exc.__traceback__)
-                print("=" * 60)
+                    print(f"Tasks failed with {len(eg.exceptions)} error(s)")
+                    for exc in eg.exceptions:
+                        print("=" * 60)
+                        traceback.print_exception(
+                            type(exc), exc, exc.__traceback__
+                        )
+                    print("=" * 60)
+
+    async def _check_connection(self):
+        """Check if we're still connected"""
+        HEARTBEAT_INTERVAL = 5  # 5 Second heartbeat interval
+        try:
+            # Set ack to false initially
+            msg = HeartbeatMessage(False)
+            msg_bytes = bytes(msg)
+
+            self.tcp_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
+            await self.tcp_writer.drain()
+            await asyncio.sleep(HEARTBEAT_INTERVAL)
+        except Exception as e:
+            print("ERROR IN CHECK CONNECTION", e)
+
+        # except (ConnectionAbortedError, ConnectionRefusedError) as e:
+        #     raise e
 
     async def stop(self):
         """Run shutdown code."""
@@ -133,6 +172,8 @@ class Limewire:
                 case ValveStateMessage.MSG_ID:
                     await self.queue.put(msg_bytes)
                     self.values_processed += 1
+                case HeartbeatMessage.MSG_ID:
+                    self.values_processed += 1
                 case _:
                     raise ValueError(
                         f"Received invalid LMP message identifier: 0x{msg_id:X}"
@@ -174,10 +215,11 @@ class Limewire:
         """
 
         # Check if index channel is loaded
-        if msg.index_channel not in self.channels:
-            raise KeyError(
-                f"Channel {msg.index_channel} not active! Is LIMEWIRE_DEV_SYNNAX enabled?"
-            )
+        # TODO: CHANGE BACK
+        # if msg.index_channel not in self.channels:
+        #     raise KeyError(
+        #         f"Channel {msg.index_channel} not active! Is LIMEWIRE_DEV_SYNNAX enabled?"
+        #     )
 
         data_channels = self.channels[msg.index_channel].copy()
         limewire_write_time_channel = get_write_time_channel_name(
