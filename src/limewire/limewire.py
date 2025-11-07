@@ -40,6 +40,11 @@ class Limewire:
                 await self.stop()
 
         async with lifespan():
+            self.synnax_writer = await self._open_synnax_writer(
+                sy.TimeStamp.now()
+            )
+            await asyncio.sleep(0.5)
+
             self.tcp_reader, self.tcp_writer = await self._connect_fc(*fc_addr)
 
             peername = self.tcp_writer.get_extra_info("peername")
