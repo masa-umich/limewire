@@ -77,7 +77,7 @@ def main_page():
                             ui.button('NO', on_click=lambda:dialog.close())
                     
                     def send_command():
-                        "Function to send the command to the board"
+                        """Send command to the board."""
                         selected_board_name = board_select.value
                         selected_command_name = command_select.value
 
