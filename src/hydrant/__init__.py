@@ -5,7 +5,6 @@ def main():
     print("! HYDRANT RUNNING !")
 
     hydrant = Hydrant()
-    hydrant.main_page()
 
     ui.run(hydrant.main_page, show=False, reload=False)
 
