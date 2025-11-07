@@ -1,10 +1,11 @@
 import asyncio
+
 import click
 
 from limewire.util import SocketAddress
 
-from .fc_simulator import FCSimulator
 from . import errors
+from .fc_simulator import FCSimulator
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})

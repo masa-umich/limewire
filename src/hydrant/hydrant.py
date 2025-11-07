@@ -1,7 +1,10 @@
-from nicegui import ui
-from limewire.messages.util import Board, DeviceCommand
-from limewire.messages import DeviceCommandMessage
 import socket
+
+from nicegui import ui
+
+from limewire.messages import DeviceCommandMessage
+from limewire.messages.util import Board, DeviceCommand
+
 
 def main_page():
     fc_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

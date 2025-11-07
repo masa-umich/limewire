@@ -1,5 +1,7 @@
 from nicegui import ui
+
 from .hydrant import main_page
+
 
 def main():
     print("! HYDRANT RUNNING !")
