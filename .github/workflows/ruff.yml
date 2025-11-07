@@ -13,3 +13,5 @@ jobs:
 
       - name: Run Ruff format check
         uses: astral-sh/ruff-action@v3
+        run: ruff check
+        run: ruff format --check
