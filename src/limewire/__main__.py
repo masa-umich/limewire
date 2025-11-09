@@ -8,10 +8,13 @@ from limewire.util import SocketAddress
 
 
 @click.command(context_settings={"help_option_names": ["--help", "-h"]})
-@click.argument("fc_address", type=SocketAddress())
+@click.argument(
+    "fc_address",
+    type=SocketAddress(),
+    default="141.212.192.170:5000",
+)
 def main(fc_address: tuple[str, int]):
     """Run Limewire."""
-
     limewire = Limewire()
 
     try:
