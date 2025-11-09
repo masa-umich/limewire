@@ -1,6 +1,3 @@
-import struct
-
-
 class HeartbeatMessage:
     """A class to represent heartbeat messages"""
 
