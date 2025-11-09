@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 import synnax as sy
 
 from .messages import (
+    HeartbeatMessage,
     TelemetryMessage,
     Valve,
     ValveCommandMessage,
@@ -45,28 +46,65 @@ class Limewire:
             )
             await asyncio.sleep(0.5)
 
-            self.tcp_reader, self.tcp_writer = await self._connect_fc(*fc_addr)
+            self.connected = False
+            while True:
+                try:
+                    print(
+                        f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
+                    )
 
-            peername = self.tcp_writer.get_extra_info("peername")
-            print(
-                f"Connected to flight computer at {peername[0]}:{peername[1]}."
-            )
+                    self.tcp_reader, self.tcp_writer = await self._connect_fc(
+                        *fc_addr
+                    )
+                    self.connected = True
+                except ConnectionRefusedError:
+                    await asyncio.sleep(1)
+                    continue
 
-            # Set up async tasks
-            self.start_time = asyncio.get_event_loop().time()
+                peername = self.tcp_writer.get_extra_info("peername")
+                print(
+                    f"Connected to flight computer at {peername[0]}:{peername[1]}."
+                )
 
-            try:
-                async with asyncio.TaskGroup() as tg:
-                    tg.create_task(self._tcp_read())
-                    tg.create_task(self._synnax_write())
-                    tg.create_task(self._relay_valve_cmds())
-            except* Exception as eg:
-                print("=" * 60)
-                print(f"Tasks failed with {len(eg.exceptions)} error(s)")
-                for exc in eg.exceptions:
+                # Set up async tasks
+                self.start_time = asyncio.get_event_loop().time()
+                # Track whether you need to reconnect
+                reconnect = False
+                try:
+                    async with asyncio.TaskGroup() as tg:
+                        tg.create_task(self._tcp_read())
+                        tg.create_task(self._synnax_write())
+                        tg.create_task(self._relay_valve_cmds())
+                        tg.create_task(self._send_heartbeat())
+                except* ConnectionResetError:
+                    print("Connection to flight computer lost")
+                    reconnect = True
+                except* Exception as eg:
                     print("=" * 60)
-                    traceback.print_exception(type(exc), exc, exc.__traceback__)
-                print("=" * 60)
+                    print(f"Tasks failed with {len(eg.exceptions)} error(s)")
+                    for exc in eg.exceptions:
+                        print("=" * 60)
+                        traceback.print_exception(
+                            type(exc), exc, exc.__traceback__
+                        )
+                    print("=" * 60)
+                if reconnect:
+                    continue
+                else:
+                    break
+
+    async def _send_heartbeat(self):
+        HEARTBEAT_INTERVAL = 1
+        while True:
+            try:
+                msg = HeartbeatMessage()
+                msg_bytes = bytes(msg)
+
+                self.tcp_writer.write(msg_bytes)
+                await self.tcp_writer.drain()
+                await asyncio.sleep(HEARTBEAT_INTERVAL)
+            except ConnectionResetError as err:
+                raise err
 
     async def stop(self):
         """Run shutdown code."""

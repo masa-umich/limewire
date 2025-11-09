@@ -5,9 +5,11 @@ __all__ = [
     "ValveCommandMessage",
     "ValveStateMessage",
     "DeviceCommandMessage",
+    "HeartbeatMessage",
 ]
 
 from .command import DeviceCommandMessage
+from .heartbeat import HeartbeatMessage
 from .telemetry import TelemetryMessage
 from .util import Board, Valve
 from .valve import ValveCommandMessage, ValveStateMessage
