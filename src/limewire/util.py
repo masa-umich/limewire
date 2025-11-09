@@ -5,13 +5,12 @@ Utility classes and functions for both Limewire and the FC simulator.
 import json
 import os
 import re
+import sys
 from pathlib import Path
 from typing import override
-import sys
 
 import click
 import synnax as sy
-import freighter
 from dotenv import load_dotenv
 
 
