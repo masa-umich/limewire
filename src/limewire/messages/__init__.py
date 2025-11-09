@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 from .command import DeviceCommandMessage
+from .heartbeat import HeartbeatMessage
 from .telemetry import TelemetryMessage
 from .util import Board, Valve
 from .valve import ValveCommandMessage, ValveStateMessage
-from .heartbeat import HeartbeatMessage
