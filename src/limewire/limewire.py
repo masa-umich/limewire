@@ -41,10 +41,10 @@ class Limewire:
                 await self.stop()
 
         async with lifespan():
-            self.synnax_writer = await self._open_synnax_writer(
-                sy.TimeStamp.now()
-            )
-            await asyncio.sleep(0.5)
+            # self.synnax_writer = await self._open_synnax_writer(
+            #     sy.TimeStamp.now()
+            # )
+            # await asyncio.sleep(0.5)
 
             self.connected = False
             while True:
@@ -52,6 +52,11 @@ class Limewire:
                     print(
                         f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
                     )
+                    # Recreate new synnax writer and queue to prevent stale values from last connection
+                    self.synnax_writer = await self._open_synnax_writer(
+                        sy.TimeStamp.now()
+                    )
+                    self.queue = asyncio.Queue()
 
                     self.tcp_reader, self.tcp_writer = await self._connect_fc(
                         *fc_addr
