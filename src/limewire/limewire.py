@@ -53,9 +53,11 @@ class Limewire:
                         f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
                     )
 
+                    print("Running _connect_fc...")
                     self.tcp_reader, self.tcp_writer = await self._connect_fc(
                         *fc_addr
                     )
+                    print("Done.")
                     self.connected = True
                 except ConnectionRefusedError:
                     await asyncio.sleep(1)
@@ -150,6 +152,9 @@ class Limewire:
             raise ConnectionRefusedError(
                 f"Unable to connect to flight computer at {ip_addr}:{port}."
             )
+        except Exception as err:
+            print(err)
+            raise err
 
     async def _tcp_read(self):
         """Handle incoming data from the TCP connection.
