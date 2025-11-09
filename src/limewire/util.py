@@ -7,9 +7,11 @@ import os
 import re
 from pathlib import Path
 from typing import override
+import sys
 
 import click
 import synnax as sy
+import freighter
 from dotenv import load_dotenv
 
 
@@ -62,13 +64,27 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     SYNNAX_SECURE = bool(os.getenv("SYNNAX_SECURE") or False)
     LIMEWIRE_DEV_SYNNAX = bool(os.getenv("LIMEWIRE_DEV_SYNNAX") or False)
 
-    client = sy.Synnax(
-        host=SYNNAX_HOST,
-        port=SYNNAX_PORT,
-        username=SYNNAX_USERNAME,
-        password=SYNNAX_PASSWORD,
-        secure=SYNNAX_SECURE,
-    )
+    try:
+        client = sy.Synnax(
+            host=SYNNAX_HOST,
+            port=SYNNAX_PORT,
+            username=SYNNAX_USERNAME,
+            password=SYNNAX_PASSWORD,
+            secure=SYNNAX_SECURE,
+        )
+    except Exception as err:
+        print("Failed to connect to Synnax (Is Synnax running?)")
+        print("==== Env Vars Dump ====")
+        print("Host: ", SYNNAX_HOST)
+        print("Port: ", SYNNAX_PORT)
+        print("Username: ", SYNNAX_USERNAME)
+        print("Password: ", SYNNAX_PASSWORD)
+        print("Secure enabled?: ", SYNNAX_SECURE)
+        print("Dev mode enabled?", LIMEWIRE_DEV_SYNNAX)
+        print("========================")
+        print()
+        print("Error: ", err)
+        sys.exit(1)
 
     print(
         f"Connected to Synnax at {SYNNAX_HOST}:{SYNNAX_PORT} (LIMEWIRE_DEV_SYNNAX={LIMEWIRE_DEV_SYNNAX})"
