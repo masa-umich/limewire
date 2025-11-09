@@ -105,7 +105,6 @@ class Limewire:
                 await asyncio.sleep(HEARTBEAT_INTERVAL)
             except ConnectionResetError as err:
                 raise err
-                # print(err)
 
     async def stop(self):
         """Run shutdown code."""
