@@ -6,14 +6,14 @@ from typing import Tuple
 
 import synnax as sy
 
-from limewire.messages import (
+from lmp import (
     Board,
     DeviceCommandMessage,
     TelemetryMessage,
     ValveCommandMessage,
     ValveStateMessage,
 )
-from limewire.messages.util import DeviceCommand
+from lmp.util import DeviceCommand
 
 
 def format_socket_address(addr: Tuple[str, int]) -> str:
