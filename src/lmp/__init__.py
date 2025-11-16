@@ -8,7 +8,7 @@ __all__ = [
     "HeartbeatMessage",
 ]
 
-from .command import DeviceCommandMessage
+from .device_command import DeviceCommandMessage
 from .heartbeat import HeartbeatMessage
 from .telemetry import TelemetryMessage
 from .util import Board, Valve
