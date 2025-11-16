@@ -14,6 +14,9 @@ dependencies = [
     "seaborn>=0.13.2",
     "synnax>=0.46,<0.47",
 ]
+packages = [
+    { include = "lmp", from = "src" }
+]
 name = "limewire"
 version = "0.1.0"
 description = "A driver to facilitate communication between Synnax and Limelight"
