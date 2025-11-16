@@ -3,6 +3,7 @@ Utility classes and functions for both Limewire and the FC simulator.
 """
 
 import json
+import logging
 import os
 import re
 from pathlib import Path
@@ -70,8 +71,11 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
         secure=SYNNAX_SECURE,
     )
 
-    print(
-        f"Connected to Synnax at {SYNNAX_HOST}:{SYNNAX_PORT} (LIMEWIRE_DEV_SYNNAX={LIMEWIRE_DEV_SYNNAX})"
+    logger = logging.getLogger("limeweire")
+
+    logger.info(
+        f"Connected to Synnax at {SYNNAX_HOST}:{SYNNAX_PORT} (LIMEWIRE_DEV_SYNNAX={LIMEWIRE_DEV_SYNNAX})",
+        extra={"error_code": "0009"},
     )
 
     channels_file = Path(__file__).parent / "data" / "channels.json"

@@ -28,6 +28,11 @@ class Limewire:
 
         self.logger: logging.Logger = logging.getLogger("limewire")
 
+        self.logger.critical(
+            "Limewire started",
+            extra={"error_code": "0007"},
+        )
+
     async def start(self, fc_addr: tuple[str, int]) -> None:
         """Open a connection to the flight computer and start Limewire.
 
@@ -43,6 +48,10 @@ class Limewire:
             try:
                 yield
             finally:
+                self.logger.critical(
+                    "Limewire stopped",
+                    extra={"error_code": "0008"},
+                )
                 await self.stop()
 
         async with lifespan():
@@ -84,26 +93,27 @@ class Limewire:
                         tg.create_task(self._relay_valve_cmds())
                         tg.create_task(self._send_heartbeat())
                 except* ConnectionResetError:
-                    self.logger.info(
+                    self.logger.error(
                         "Connection to flight computer lost",
                         extra={"error_code": "0002"},
                     )
                     reconnect = True
                 except* Exception as eg:
-                    print("=" * 60)
+                    # print("LIMEWIRE TASKS EXCEPTIONS BELOW")
                     self.logger.error(
                         f"Tasks failed with {len(eg.exceptions)} error(s)",
                         extra={"error_code": "0003"},
                     )
                     for exc in eg.exceptions:
-                        print("=" * 60)
                         self.logger.exception(
                             "Exception raised with type %s: %s", type(exc), exc
                         )
                         # traceback.print_exception(
                         #     type(exc), exc, exc.__traceback__
                         # )
-                    print("=" * 60)
+                    # print(
+                    #     "=" * 15 + "LIMEWIRE TASKS EXCEPTIONS BELOW" + "=" * 15
+                    # )
                 if reconnect:
                     continue
                 else:
@@ -133,7 +143,7 @@ class Limewire:
             self.synnax_writer.close()
 
         # Print statistics
-        print()  # Add extra newline after Ctrl+C
+        # print()  # Add extra newline after Ctrl+C
         runtime = asyncio.get_event_loop().time() - self.start_time
         if self.values_processed == 0:
             self.logger.warning(
@@ -142,9 +152,12 @@ class Limewire:
             )
         else:
             self.logger.info(
-                f"Processed {self.values_processed} values in {runtime:.2f} sec ({self.values_processed / runtime:.2f} values/sec)",
+                f"Processed {self.values_processed} values in {runtime:.2f} sec ({self.values_processed / runtime:.2f} values/sec)\n"
+                + "=" * 60,
                 extra={"error_code": "0005"},
             )
+
+        # print("=" * 60)
 
     async def _connect_fc(
         self, ip_addr: str, port: int
