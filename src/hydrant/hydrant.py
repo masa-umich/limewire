@@ -2,8 +2,8 @@ import socket
 
 from nicegui import ui
 
-from limewire.messages import DeviceCommandMessage
-from limewire.messages.util import Board, DeviceCommand
+from lmp import DeviceCommandMessage
+from lmp.util import Board, DeviceCommand
 
 
 def main_page():

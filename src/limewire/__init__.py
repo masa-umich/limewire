@@ -1,8 +1,7 @@
-from . import errors, messages
+from . import errors
 from .limewire import Limewire
 
 __all__ = [
     "errors",
-    "messages",
     "Limewire",
 ]

@@ -5,13 +5,14 @@ from contextlib import asynccontextmanager
 
 import synnax as sy
 
-from .messages import (
+from lmp import (
     HeartbeatMessage,
     TelemetryMessage,
     Valve,
     ValveCommandMessage,
     ValveStateMessage,
 )
+
 from .util import get_write_time_channel_name, synnax_init
 
 

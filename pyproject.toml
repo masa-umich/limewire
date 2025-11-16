@@ -30,7 +30,10 @@ dev = [
 ]
 
 [tool.pdm.build]
-includes = ["src/limewire"]
+includes = [
+    "src/limewire",
+    "src/lmp"
+]
 
 
 [tool.ruff]
