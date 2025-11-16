@@ -21,7 +21,7 @@ class ErrorCodeFormatter(logging.Formatter):
 
 
 def setup_logging(verbosity: str):
-    # TODO: confirm this
+    # TODO: confirm this directory name
     log_dir = user_log_dir("limewire", "masa")
     os.makedirs(log_dir, exist_ok=True)
     log_path = os.path.join(log_dir, "limewire.log")
@@ -55,14 +55,17 @@ def setup_logging(verbosity: str):
 
 
 @click.command(context_settings={"help_option_names": ["--help", "-h"]})
-@click.argument("fc_address", type=SocketAddress())
 # debug, normal, sparse
 @click.argument("verbosity", type=str, required=False)
+@click.argument(
+    "fc_address",
+    type=SocketAddress(),
+    default="141.212.192.170:5000",
+)
 def main(fc_address: tuple[str, int], verbosity: str = "normal"):
     """Run Limewire."""
-
-    setup_logging(verbosity)
-
+    setup_loggin(verbosity)
+      
     limewire = Limewire()
 
     try:
