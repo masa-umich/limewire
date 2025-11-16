@@ -1,5 +1,7 @@
 import asyncio
-import traceback
+import logging
+
+# import traceback
 from asyncio.streams import StreamReader, StreamWriter
 from contextlib import asynccontextmanager
 
@@ -22,6 +24,8 @@ class Limewire:
         self.synnax_client, self.channels = synnax_init()
         self.synnax_writer = None
         self.queue: asyncio.Queue[bytes] = asyncio.Queue()
+
+        self.logger: logging.Logger = logging.getLogger("limewire")
 
     async def start(self, fc_addr: tuple[str, int]) -> None:
         """Open a connection to the flight computer and start Limewire.
@@ -49,8 +53,9 @@ class Limewire:
             self.connected = False
             while True:
                 try:
-                    print(
-                        f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
+                    self.logger.info(
+                        f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}...",
+                        extra={"error_code": "0000"},
                     )
 
                     self.tcp_reader, self.tcp_writer = await self._connect_fc(
@@ -62,8 +67,9 @@ class Limewire:
                     continue
 
                 peername = self.tcp_writer.get_extra_info("peername")
-                print(
-                    f"Connected to flight computer at {peername[0]}:{peername[1]}."
+                self.logger.info(
+                    f"Connected to flight computer at {peername[0]}:{peername[1]}.",
+                    extra={"error_code": "0001"},
                 )
 
                 # Set up async tasks
@@ -77,16 +83,25 @@ class Limewire:
                         tg.create_task(self._relay_valve_cmds())
                         tg.create_task(self._send_heartbeat())
                 except* ConnectionResetError:
-                    print("Connection to flight computer lost")
+                    self.logger.info(
+                        "Connection to flight computer lost",
+                        extra={"error_code": "0002"},
+                    )
                     reconnect = True
                 except* Exception as eg:
                     print("=" * 60)
-                    print(f"Tasks failed with {len(eg.exceptions)} error(s)")
+                    self.logger.error(
+                        f"Tasks failed with {len(eg.exceptions)} error(s)",
+                        extra={"error_code": "0003"},
+                    )
                     for exc in eg.exceptions:
                         print("=" * 60)
-                        traceback.print_exception(
-                            type(exc), exc, exc.__traceback__
+                        self.logger.exception(
+                            "Exception raised with type %s: %s", type(exc), exc
                         )
+                        # traceback.print_exception(
+                        #     type(exc), exc, exc.__traceback__
+                        # )
                     print("=" * 60)
                 if reconnect:
                     continue
@@ -120,10 +135,14 @@ class Limewire:
         print()  # Add extra newline after Ctrl+C
         runtime = asyncio.get_event_loop().time() - self.start_time
         if self.values_processed == 0:
-            print("Unable to receive data from flight computer!")
+            self.logger.warning(
+                "Unable to receive data from flight computer!",
+                extra={"error_code": "0004"},
+            )
         else:
-            print(
-                f"Processed {self.values_processed} values in {runtime:.2f} sec ({self.values_processed / runtime:.2f} values/sec)"
+            self.logger.info(
+                f"Processed {self.values_processed} values in {runtime:.2f} sec ({self.values_processed / runtime:.2f} values/sec)",
+                extra={"error_code": "0005"},
             )
 
     async def _connect_fc(
@@ -195,7 +214,7 @@ class Limewire:
                 try:
                     frame = self._build_telemetry_frame(msg)
                 except KeyError as err:
-                    print(str(err))
+                    self.logger.error(str(err), extra={"error_code": "0006"})
                     self.queue.task_done()
                     continue
             else:
