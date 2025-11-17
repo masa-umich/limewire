@@ -1,47 +1,11 @@
-"""
-Utility classes and functions for both Limewire and the FC simulator.
-"""
-
 import json
+import logging
 import os
-import re
 import sys
 from pathlib import Path
-from typing import override
 
-import click
 import synnax as sy
 from dotenv import load_dotenv
-
-
-class SocketAddress(click.ParamType):
-    """A class to enable click to parse socket addresses with nice error messages."""
-
-    name: str = "address:port"
-    _pattern: re.Pattern[str] = re.compile(r"^(?:\d{1,3}\.){3}\d{1,3}:\d{1,5}$")
-
-    @override
-    def convert(
-        self,
-        value: str,
-        param: click.Parameter | None,
-        ctx: click.Context | None,
-    ) -> tuple[str, int]:
-        """Convert a string to an (ip, port) socket address."""
-
-        if not self._pattern.match(value):
-            self.fail(
-                "Address must be of the form [ip-address]:[port]",
-                param,
-                ctx,
-            )
-
-        ip, port = value.rsplit(":", 1)
-        port = int(port)
-        if not (0 <= port <= 65535):
-            self.fail("Port must be between 0 and 65535", param, ctx)
-
-        return ip, port
 
 
 def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
@@ -53,6 +17,7 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
         names to lists of data channels associated with that timestamp channel.
     """
 
+    logger = logging.getLogger("limeweire")
     load_dotenv()
 
     # TODO: Add log statement when using default credentials
@@ -60,7 +25,7 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     SYNNAX_PORT = int(os.getenv("SYNNAX_PORT") or 9090)
     SYNNAX_USERNAME = os.getenv("SYNNAX_USERNAME") or "synnax"
     SYNNAX_PASSWORD = os.getenv("SYNNAX_PASSWORD") or "seldon"
-    SYNNAX_SECURE = bool(os.getenv("SYNNAX_SECURE") or False)
+    SYNNAX_SECURE = False  # bool(os.getenv("SYNNAX_SECURE") or False)
     LIMEWIRE_DEV_SYNNAX = bool(os.getenv("LIMEWIRE_DEV_SYNNAX") or False)
 
     try:
@@ -75,20 +40,23 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
         # Catching on Exception is bad practice, but unavoidable here because
         # freighter doesn't expose freighter.exceptions.Unreachable. We print
         # the specific error type below for debugging purposes.
-        print("ERROR: Failed to connect to Synnax (Is Synnax running?)")
-        print("===== Env Vars Dump =====")
-        print(f"SYNNAX_HOST: {SYNNAX_HOST}")
-        print(f"SYNNAX_PORT: {SYNNAX_PORT}")
-        print(f"SYNNAX_USERNAME: {SYNNAX_USERNAME}")
-        print(f"SYNNAX_PASSWORD: {SYNNAX_PASSWORD}")
-        print(f"SYNNAX_SECURE: {SYNNAX_SECURE}")
-        print(f"LIMEWIRE_DEV_SYNNAX: {LIMEWIRE_DEV_SYNNAX}")
-        print("=========================")
-        print(f"{type(err).__module__}.{type(err).__qualname__}: {err}")
+        logger.error(
+            "ERROR: Failed to connect to Synnax (Is Synnax running?)",
+            extra={"error_code": "0010"},
+        )
+        logger.error(
+            f"Env Vars: SYNNAX_HOST: {SYNNAX_HOST}, SYNNAX_USERNAME: {SYNNAX_USERNAME}, SYNNAX_PASSWORD: {SYNNAX_PASSWORD}, SYNNAX_SECURE: {SYNNAX_SECURE}, LIIMEWIRE_DEV_SYNNAX: {LIMEWIRE_DEV_SYNNAX}",
+            extra={"error_code": "0011"},
+        )
+        logger.error(
+            f"{type(err).__module__}.{type(err).__qualname__}: {err}",
+            extra={"error_code": "0012"},
+        )
         sys.exit(1)
 
-    print(
-        f"Connected to Synnax at {SYNNAX_HOST}:{SYNNAX_PORT} (LIMEWIRE_DEV_SYNNAX={LIMEWIRE_DEV_SYNNAX})"
+    logger.info(
+        f"Connected to Synnax at {SYNNAX_HOST}:{SYNNAX_PORT} (LIMEWIRE_DEV_SYNNAX={LIMEWIRE_DEV_SYNNAX})",
+        extra={"error_code": "0009"},
     )
 
     channels_file = Path(__file__).parent / "data" / "channels.json"

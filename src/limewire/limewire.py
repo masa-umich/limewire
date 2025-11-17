@@ -13,7 +13,7 @@ from lmp import (
     ValveStateMessage,
 )
 
-from .util import get_write_time_channel_name, synnax_init
+from ..utils.util import get_write_time_channel_name, synnax_init
 
 
 class Limewire:

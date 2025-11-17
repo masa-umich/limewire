@@ -4,7 +4,8 @@ import click
 
 from limewire import Limewire
 from limewire.errors import print_limewire_error
-from limewire.util import SocketAddress
+
+from ..utils import SocketAddress
 
 
 @click.command(context_settings={"help_option_names": ["--help", "-h"]})
