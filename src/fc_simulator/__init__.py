@@ -3,7 +3,6 @@ import asyncio
 import click
 
 from ..utils.socket_address import SocketAddress
-
 from . import errors as errors
 from .fc_simulator import FCSimulator
 
