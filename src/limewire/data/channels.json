@@ -39,7 +39,6 @@
         "fc_5V_current",
         "fc_3V3_voltage",
         "fc_3V3_current",
-        "fc_board_temp",
         "fc_limewire_write_time"
     ],
     "fc_vlv1_cmd_timestamp": [
@@ -116,7 +115,6 @@
         "bb1_5V_current",
         "bb1_3V3_voltage",
         "bb1_3V3_current",
-        "bb1_board_temp",
         "bb1_limewire_write_time"
     ],
     "bb1_vlv1_cmd_timestamp": [
@@ -221,7 +219,6 @@
         "bb2_5V_current",
         "bb2_3V3_voltage",
         "bb2_3V3_current",
-        "bb2_board_temp",
         "bb2_limewire_write_time"
     ],
     "bb2_vlv1_cmd_timestamp": [
@@ -326,7 +323,6 @@
         "bb3_5V_current",
         "bb3_3V3_voltage",
         "bb3_3V3_current",
-        "bb3_board_temp",
         "bb3_limewire_write_time"
     ],
     "bb3_vlv1_cmd_timestamp": [
@@ -393,7 +389,6 @@
         "fr_imu2_wy",
         "fr_bar_1",
         "fr_bar_2",
-        "fr_board_temp",
         "fr_limewire_write_time"
     ]
 }
