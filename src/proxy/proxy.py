@@ -9,7 +9,7 @@ import synnax as sy
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 
-from lmp import HeartbeatMessage, TelemetryMessage, ValveStateMessage
+from lmp import TelemetryMessage, ValveStateMessage
 
 
 class Proxy:
