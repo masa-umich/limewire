@@ -2,7 +2,7 @@ import asyncio
 import csv
 import os
 import statistics
-from asyncio import asynccontextmanager
+from contextlib import asynccontextmanager
 
 import seaborn as sns
 import synnax as sy
@@ -23,13 +23,8 @@ class Proxy:
         self.host: str = host
         self.port: int = port
 
-        self.tcp_reader: asyncio.StreamReader | None = None
-        self.tcp_writer: asyncio.StreamWriter | None = None
-        self.source: str = f"{host}:{port}"
-
         self.out_path: str = out_path
         self.out_format: str = out_format
-        self._csv_file = None
         self._csv_writer: csv.DictWriter | None = None
 
         self.diff_values_ns: list[float] = []
@@ -45,11 +40,6 @@ class Proxy:
                 await self.stop()
 
         async with lifespan():
-            self.synnax_writer = await self._open_synnax_writer(
-                sy.TimeStamp.now()
-            )
-            await asyncio.sleep(0.5)
-
             self.connected = False
             while True:
                 try:
@@ -80,8 +70,6 @@ class Proxy:
                 try:
                     async with asyncio.TaskGroup() as tg:
                         tg.create_task(self._tcp_read())
-                        tg.create_task(self._synnax_write())
-                        tg.create_task(self._relay_valve_cmds())
                         tg.create_task(self._send_heartbeat())
                 except* ConnectionResetError:
                     print("Connection to flight computer lost")
@@ -89,11 +77,11 @@ class Proxy:
                 except* Exception as eg:
                     print("=" * 60)
                     print(f"Tasks failed with {len(eg.exceptions)} error(s)")
-                    for exc in eg.exceptions:
-                        print("=" * 60)
-                        # traceback.print_exception(
-                        #     type(exc), exc, exc.__traceback__
-                        # )
+                    # for exc in eg.exceptions:
+                    #     print("=" * 60)
+                    #     # traceback.print_exception(
+                    #     #     type(exc), exc, exc.__traceback__
+                    #     # )
                     print("=" * 60)
                 if reconnect:
                     continue
@@ -105,9 +93,6 @@ class Proxy:
 
         self.tcp_writer.close()
         await self.tcp_writer.wait_closed()
-
-        if self.synnax_writer is not None:
-            self.synnax_writer.close()
 
         # Close CSV file
         self._csv_file.close()
