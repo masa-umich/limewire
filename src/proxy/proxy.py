@@ -70,7 +70,6 @@ class Proxy:
                 try:
                     async with asyncio.TaskGroup() as tg:
                         tg.create_task(self._tcp_read())
-                        tg.create_task(self._send_heartbeat())
                 except* ConnectionResetError:
                     print("Connection to flight computer lost")
                     reconnect = True
