@@ -61,7 +61,7 @@ class Limewire:
                         *fc_addr
                     )
                     self.connected = True
-                except ConnectionRefusedError:
+                except (ConnectionRefusedError, ConnectionResetError):
                     await asyncio.sleep(1)
                     continue
 
