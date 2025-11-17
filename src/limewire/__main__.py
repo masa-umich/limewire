@@ -4,18 +4,17 @@ import click
 
 from limewire import Limewire
 from limewire.errors import print_limewire_error
-from limewire.logging import setup_logging
+from limewire.logging import set_up_logging
 from limewire.util import SocketAddress
 
 
 @click.command(context_settings={"help_option_names": ["--help", "-h"]})
 @click.argument("fc_address", type=SocketAddress())
-# debug, normal, sparse
-@click.argument("verbosity", type=str, required=False)
-def main(fc_address: tuple[str, int], verbosity: str = "normal"):
+@click.option("--debug")
+def main(fc_address: tuple[str, int], debug: bool):
     """Run Limewire."""
 
-    setup_logging(verbosity)
+    set_up_logging(debug)
 
     limewire = Limewire()
 

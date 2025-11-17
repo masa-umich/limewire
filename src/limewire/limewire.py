@@ -1,11 +1,9 @@
 import asyncio
-import logging
-
-# import traceback
 from asyncio.streams import StreamReader, StreamWriter
 from contextlib import asynccontextmanager
 
 import synnax as sy
+from loguru import logger
 
 from lmp import (
     HeartbeatMessage,
@@ -22,16 +20,11 @@ class Limewire:
     """A class to manage Limewire's resources."""
 
     def __init__(self) -> None:
+        logger.info("Limewire started.")
+
         self.synnax_client, self.channels = synnax_init()
         self.synnax_writer = None
         self.queue: asyncio.Queue[bytes] = asyncio.Queue()
-
-        self.logger: logging.Logger = logging.getLogger("limewire")
-
-        self.logger.critical(
-            "Limewire started",
-            extra={"error_code": "0007"},
-        )
 
     async def start(self, fc_addr: tuple[str, int]) -> None:
         """Open a connection to the flight computer and start Limewire.
@@ -48,10 +41,7 @@ class Limewire:
             try:
                 yield
             finally:
-                self.logger.critical(
-                    "Limewire stopped",
-                    extra={"error_code": "0008"},
-                )
+                logger.info("Limewire stopped.")
                 await self.stop()
 
         async with lifespan():
@@ -63,9 +53,8 @@ class Limewire:
             self.connected = False
             while True:
                 try:
-                    self.logger.info(
-                        f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}...",
-                        extra={"error_code": "0000"},
+                    logger.info(
+                        f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
                     )
 
                     self.tcp_reader, self.tcp_writer = await self._connect_fc(
@@ -77,9 +66,8 @@ class Limewire:
                     continue
 
                 peername = self.tcp_writer.get_extra_info("peername")
-                self.logger.info(
-                    f"Connected to flight computer at {peername[0]}:{peername[1]}.",
-                    extra={"error_code": "0001"},
+                logger.info(
+                    f"Connected to flight computer at {peername[0]}:{peername[1]}."
                 )
 
                 # Set up async tasks
@@ -93,27 +81,16 @@ class Limewire:
                         tg.create_task(self._relay_valve_cmds())
                         tg.create_task(self._send_heartbeat())
                 except* ConnectionResetError:
-                    self.logger.error(
-                        "Connection to flight computer lost",
-                        extra={"error_code": "0002"},
-                    )
+                    logger.error("Connection to flight computer lost.")
                     reconnect = True
                 except* Exception as eg:
-                    # print("LIMEWIRE TASKS EXCEPTIONS BELOW")
-                    self.logger.error(
-                        f"Tasks failed with {len(eg.exceptions)} error(s)",
-                        extra={"error_code": "0003"},
+                    logger.error(
+                        f"Tasks failed with {len(eg.exceptions)} error(s)"
                     )
                     for exc in eg.exceptions:
-                        self.logger.exception(
+                        logger.exception(
                             "Exception raised with type %s: %s", type(exc), exc
                         )
-                        # traceback.print_exception(
-                        #     type(exc), exc, exc.__traceback__
-                        # )
-                    # print(
-                    #     "=" * 15 + "LIMEWIRE TASKS EXCEPTIONS BELOW" + "=" * 15
-                    # )
                 if reconnect:
                     continue
                 else:
@@ -146,18 +123,13 @@ class Limewire:
         # print()  # Add extra newline after Ctrl+C
         runtime = asyncio.get_event_loop().time() - self.start_time
         if self.values_processed == 0:
-            self.logger.warning(
-                "Unable to receive data from flight computer!",
-                extra={"error_code": "0004"},
-            )
+            logger.warning("Unable to receive data from flight computer!")
         else:
-            self.logger.info(
-                f"Processed {self.values_processed} values in {runtime:.2f} sec ({self.values_processed / runtime:.2f} values/sec)\n"
-                + "=" * 60,
-                extra={"error_code": "0005"},
+            logger.info(
+                f"Processed {self.values_processed} values in {runtime:.2f} sec ({self.values_processed / runtime:.2f} values/sec)"
             )
 
-        # print("=" * 60)
+        logger.info("=" * 60)
 
     async def _connect_fc(
         self, ip_addr: str, port: int
@@ -228,7 +200,7 @@ class Limewire:
                 try:
                     frame = self._build_telemetry_frame(msg)
                 except KeyError as err:
-                    self.logger.error(str(err), extra={"error_code": "0006"})
+                    logger.error(str(err), extra={"error_code": "0006"})
                     self.queue.task_done()
                     continue
             else:

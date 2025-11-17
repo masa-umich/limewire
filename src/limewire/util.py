@@ -3,15 +3,16 @@ Utility classes and functions for both Limewire and the FC simulator.
 """
 
 import json
-import logging
 import os
 import re
+import sys
 from pathlib import Path
 from typing import override
 
 import click
 import synnax as sy
 from dotenv import load_dotenv
+from loguru import logger
 
 
 class SocketAddress(click.ParamType):
@@ -63,19 +64,27 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     SYNNAX_SECURE = bool(os.getenv("SYNNAX_SECURE") or False)
     LIMEWIRE_DEV_SYNNAX = bool(os.getenv("LIMEWIRE_DEV_SYNNAX") or False)
 
-    client = sy.Synnax(
-        host=SYNNAX_HOST,
-        port=SYNNAX_PORT,
-        username=SYNNAX_USERNAME,
-        password=SYNNAX_PASSWORD,
-        secure=SYNNAX_SECURE,
-    )
-
-    logger = logging.getLogger("limeweire")
+    try:
+        client = sy.Synnax(
+            host=SYNNAX_HOST,
+            port=SYNNAX_PORT,
+            username=SYNNAX_USERNAME,
+            password=SYNNAX_PASSWORD,
+            secure=SYNNAX_SECURE,
+        )
+    except Exception as err:
+        # Catching on Exception is bad practice, but unavoidable here because
+        # freighter doesn't expose freighter.exceptions.Unreachable. We print
+        # the specific error type below for debugging purposes.
+        logger.error("Failed to connect to Synnax (Is Synnax running?)")
+        logger.error(
+            f"Env Vars Dump: SYNNAX_HOST: {SYNNAX_HOST}, SYNNAX_PORT: {SYNNAX_PORT}, SYNNAX_USERNAME: {SYNNAX_USERNAME}, SYNNAX_PASSWORD: {SYNNAX_PASSWORD}, SYNNAX_SECURE: {SYNNAX_SECURE}, LIMEWIRE_DEV_SYNNAX: {LIMEWIRE_DEV_SYNNAX}"
+        )
+        logger.error(f"{type(err).__module__}.{type(err).__qualname__}: {err}")
+        sys.exit(1)
 
     logger.info(
-        f"Connected to Synnax at {SYNNAX_HOST}:{SYNNAX_PORT} (LIMEWIRE_DEV_SYNNAX={LIMEWIRE_DEV_SYNNAX})",
-        extra={"error_code": "0009"},
+        f"Connected to Synnax at {SYNNAX_HOST}:{SYNNAX_PORT} (LIMEWIRE_DEV_SYNNAX={LIMEWIRE_DEV_SYNNAX})"
     )
 
     channels_file = Path(__file__).parent / "data" / "channels.json"
