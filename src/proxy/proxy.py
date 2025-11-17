@@ -194,20 +194,6 @@ class Proxy:
                 f"Unable to connect to flight computer at {ip_addr}:{port}."
             )
 
-    async def _send_heartbeat(self) -> None:
-        HEARTBEAT_INTERVAL = 1
-        assert self.tcp_writer is not None
-        while True:
-            try:
-                msg = HeartbeatMessage()
-                msg_bytes = bytes(msg)
-                # Mirror Limewire: send heartbeat without length prefix
-                self.tcp_writer.write(msg_bytes)
-                await self.tcp_writer.drain()
-                await asyncio.sleep(HEARTBEAT_INTERVAL)
-            except ConnectionResetError as err:
-                raise err
-
     async def _tcp_read(self) -> None:
         """Handle incoming data from the TCP connection.
 
