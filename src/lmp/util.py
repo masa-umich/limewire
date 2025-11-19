@@ -113,19 +113,19 @@ class Valve:
     @property
     def cmd_channel(self) -> str:
         """The Synnax command channel name for this valve."""
-        return f"{self.board.name.lower()}_vlv{self.num}_cmd"
+        return f"{self.board.name.lower()}_vlv_{self.num}"
 
     @property
     def cmd_channel_index(self) -> str:
         """The Synnax index channel name for this valve's command channel."""
-        return f"{self.board.name.lower()}_vlv{self.num}_cmd_timestamp"
+        return f"{self.board.name.lower()}_vlv_{self.num}_timestamp"
 
     @property
     def state_channel(self) -> str:
         """The Synnax state channel name for this valve."""
-        return f"{self.board.name.lower()}_vlv{self.num}_state"
+        return f"{self.board.name.lower()}_state_{self.num}"
 
     @property
     def state_channel_index(self) -> str:
         """The Synnax index channel name for this valve's state channel."""
-        return f"{self.board.name.lower()}_vlv{self.num}_state_timestamp"
+        return f"{self.board.name.lower()}_state_{self.num}_timestamp"
