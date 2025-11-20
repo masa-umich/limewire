@@ -2,7 +2,8 @@ import asyncio
 
 import click
 
-from ..utils.socket_address import SocketAddress
+from limewire.util import SocketAddress
+
 from .proxy import Proxy
 
 
