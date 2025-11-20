@@ -110,6 +110,7 @@ class Proxy:
     def print_latency_stats(self) -> None:
         # Latency stats + histogram
         if len(self.diff_values_ns) > 0:
+            self.diff_values_ns = [x / 10**6 for x in self.diff_values_ns]
             avg_ns = statistics.mean(self.diff_values_ns)
             std_ns = (
                 statistics.stdev(self.diff_values_ns)
@@ -129,7 +130,7 @@ class Proxy:
                 edgecolor="black",
                 alpha=0.85,
             )
-            plt.xlabel("Latency (ns)")
+            plt.xlabel("Latency (ms)")
             plt.ylabel("Count")
             plt.title("Latency Histogram")
             # Overlay mean and ±1σ
