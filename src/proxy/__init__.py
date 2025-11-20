@@ -22,8 +22,16 @@ from .proxy import Proxy
     show_default=True,
     help="Output file path (CSV)",
 )
-def main(endpoint: str | None, host: str, port: int, out_path: str) -> None:
-    proxy = Proxy(host=host, port=port, out_path=out_path, out_format="csv")
+def main(
+    endpoint: str | None, fc_address: tuple[str, int], out_path: str
+) -> None:
+    proxy = Proxy(
+        host=fc_address[0],
+        port=fc_address[1],
+        out_path=out_path,
+        out_format="csv",
+    )
+
     try:
         asyncio.run(proxy.start())
     except KeyboardInterrupt:
