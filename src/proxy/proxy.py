@@ -104,6 +104,7 @@ class Proxy:
                 f"Processed {self.values_processed} values in {runtime:.2f} sec "
                 f"({self.values_processed / runtime:.2f} values/sec)"
             )
+            self.print_latency_stats()
 
     def print_latency_stats(self) -> None:
         # Latency stats + histogram
@@ -277,7 +278,9 @@ class Proxy:
 
     def _init_output(self) -> None:
         # Ensure directory exists
-        os.makedirs(os.path.dirname(self.out_path), exist_ok=True)
+        dirpath = os.path.dirname(self.out_path)
+        if dirpath:
+            os.makedirs(dirpath, exist_ok=True)
         # Open file and create writer
         file_exists = os.path.exists(self.out_path)
         needs_header = not file_exists or os.path.getsize(self.out_path) == 0
