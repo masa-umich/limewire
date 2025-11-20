@@ -16,21 +16,16 @@ from lmp import TelemetryMessage, ValveStateMessage
 class Proxy:
     def __init__(
         self,
-        host: str = "127.0.0.1",
-        port: int = 8888,
         out_path: str = "proxy_log.csv",
         out_format: str = "csv",
     ) -> None:
-        self.host: str = host
-        self.port: int = port
-
         self.out_path: str = out_path
         self.out_format: str = out_format
         self._csv_writer: csv.DictWriter | None = None
 
         self.diff_values_ns: list[float] = []
 
-    async def start(self) -> None:
+    async def start(self, fc_addr: tuple[str, int]) -> None:
         # We need to define an asynccontextmanager to ensure that shutdown
         # code runs after the task is canceled because of e.g. Ctrl+C
         @asynccontextmanager
@@ -45,11 +40,11 @@ class Proxy:
             while True:
                 try:
                     print(
-                        f"Connecting to flight computer at {self.host}:{self.port}..."
+                        f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
                     )
 
                     self.tcp_reader, self.tcp_writer = await self._connect_fc(
-                        self.host, self.port
+                        *fc_addr
                     )
                     self.connected = True
                 except ConnectionRefusedError:
