@@ -2,6 +2,7 @@ import asyncio
 import csv
 import os
 import statistics
+import traceback
 from contextlib import asynccontextmanager
 
 import seaborn as sns
@@ -78,9 +79,9 @@ class Proxy:
                     print(f"Tasks failed with {len(eg.exceptions)} error(s)")
                     for exc in eg.exceptions:
                         print("=" * 60)
-                        # traceback.print_exception(
-                        #     type(exc), exc, exc.__traceback__
-                        # )
+                        traceback.print_exception(
+                            type(exc), exc, exc.__traceback__
+                        )
                     print("=" * 60)
                 if reconnect:
                     continue

@@ -27,7 +27,7 @@ from .proxy import Proxy
 # ) -> None:
 def main() -> None:
     proxy = Proxy(
-        host="141.212.192.140",
+        host="141.212.192.145",
         port=5000,
         # host=fc_address[0],
         # port=fc_address[1],
