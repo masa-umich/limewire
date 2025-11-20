@@ -25,6 +25,7 @@ readme = "README.md"
 limewire = "limewire.__main__:main"
 fc_simulator = "fc_simulator:main"
 hydrant = "hydrant:main"
+proxy = "proxy:main"
 
 [dependency-groups]
 dev = [
@@ -34,7 +35,8 @@ dev = [
 [tool.pdm.build]
 includes = [
     "src/limewire",
-    "src/lmp"
+    "src/lmp",
+    "src/utils"
 ]
 
 
