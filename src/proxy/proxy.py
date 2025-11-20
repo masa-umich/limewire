@@ -76,11 +76,11 @@ class Proxy:
                 except* Exception as eg:
                     print("=" * 60)
                     print(f"Tasks failed with {len(eg.exceptions)} error(s)")
-                    # for exc in eg.exceptions:
-                    #     print("=" * 60)
-                    #     # traceback.print_exception(
-                    #     #     type(exc), exc, exc.__traceback__
-                    #     # )
+                    for exc in eg.exceptions:
+                        print("=" * 60)
+                        # traceback.print_exception(
+                        #     type(exc), exc, exc.__traceback__
+                        # )
                     print("=" * 60)
                 if reconnect:
                     continue
