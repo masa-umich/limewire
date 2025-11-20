@@ -21,11 +21,11 @@ from .proxy import Proxy
     show_default=True,
     help="Output file path (CSV)",
 )
-def main(fc_addr: tuple[str, int], out_path: str) -> None:
+def main(fc_address: tuple[str, int], out_path: str) -> None:
     proxy = Proxy(out_path=out_path)
 
     try:
-        asyncio.run(proxy.start(fc_addr))
+        asyncio.run(proxy.start(fc_address))
     except KeyboardInterrupt:
         # Graceful shutdown on Ctrl+C
         pass
