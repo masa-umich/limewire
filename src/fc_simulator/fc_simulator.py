@@ -138,19 +138,14 @@ class FCSimulator:
 
             case DeviceCommandMessage.MSG_ID:
                 cmd_msg = DeviceCommandMessage.from_bytes(msg_bytes)
+
                 response = DeviceCommandAckMessage(
                     cmd_msg.board, cmd_msg.command
                 )
-                match cmd_msg.command:
-                    case DeviceCommand.RESET_BOARD:
-                        print("Resetting board")
-                    case DeviceCommand.CLEAR_FLASH:
-                        print("Clearing flash")
-                    case DeviceCommand.FLASH_SPACE:
-                        print("Getting flash space")
-                        response.response_msg = "67 bytes remaining lmao"
-                    case _:
-                        print("Not implemented!")
+
+                if cmd_msg.command == DeviceCommand.FLASH_SPACE:
+                    response.response_msg = "67 bytes remaining lmao"
+
                 return response
 
             case _:
