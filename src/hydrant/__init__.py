@@ -1,4 +1,5 @@
 from nicegui import ui
+
 from .hydrant import Hydrant
 
 
