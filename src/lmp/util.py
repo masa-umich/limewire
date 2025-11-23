@@ -32,11 +32,11 @@ class Board(Enum):
     def num_values(self) -> int:
         """The number of telemetry values for this board."""
         NUM_VALUES = {
-            Board.FC: 39,
-            Board.BB1: 52,
-            Board.BB2: 52,
-            Board.BB3: 52,
-            Board.FR: 14,
+            Board.FC: 40,
+            Board.BB1: 53,
+            Board.BB2: 53,
+            Board.BB3: 53,
+            Board.FR: 15,
         }
         return NUM_VALUES[self]
 
@@ -113,19 +113,19 @@ class Valve:
     @property
     def cmd_channel(self) -> str:
         """The Synnax command channel name for this valve."""
-        return f"{self.board.name.lower()}_vlv{self.num}_cmd"
+        return f"{self.board.name.lower()}_vlv_{self.num}"
 
     @property
     def cmd_channel_index(self) -> str:
         """The Synnax index channel name for this valve's command channel."""
-        return f"{self.board.name.lower()}_vlv{self.num}_cmd_timestamp"
+        return f"{self.board.name.lower()}_vlv_{self.num}_timestamp"
 
     @property
     def state_channel(self) -> str:
         """The Synnax state channel name for this valve."""
-        return f"{self.board.name.lower()}_vlv{self.num}_state"
+        return f"{self.board.name.lower()}_state_{self.num}"
 
     @property
     def state_channel_index(self) -> str:
         """The Synnax index channel name for this valve's state channel."""
-        return f"{self.board.name.lower()}_vlv{self.num}_state_timestamp"
+        return f"{self.board.name.lower()}_state_{self.num}_timestamp"
