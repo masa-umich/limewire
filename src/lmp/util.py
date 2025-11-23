@@ -32,11 +32,11 @@ class Board(Enum):
     def num_values(self) -> int:
         """The number of telemetry values for this board."""
         NUM_VALUES = {
-            Board.FC: 39,
-            Board.BB1: 52,
-            Board.BB2: 52,
-            Board.BB3: 52,
-            Board.FR: 14,
+            Board.FC: 40,
+            Board.BB1: 53,
+            Board.BB2: 53,
+            Board.BB3: 53,
+            Board.FR: 15,
         }
         return NUM_VALUES[self]
 
