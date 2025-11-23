@@ -1,17 +1,20 @@
 import asyncio
-import sys
 
 import click
 
 from limewire import Limewire
 from limewire.errors import print_limewire_error
+from limewire.logging import set_up_logging
 from limewire.util import SocketAddress
 
 
 @click.command(context_settings={"help_option_names": ["--help", "-h"]})
 @click.argument("fc_address", type=SocketAddress())
-def main(fc_address: tuple[str, int]):
+@click.option("--debug")
+def main(fc_address: tuple[str, int], debug: bool):
     """Run Limewire."""
+
+    set_up_logging(debug)
 
     limewire = Limewire()
 

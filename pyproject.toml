@@ -9,7 +9,9 @@ authors = [
 requires-python = "<=3.13,>=3.12"
 dependencies = [
     "click>=8.1.8",
+    "loguru>=0.7.3",
     "nicegui>=2.23.2",
+    "platformdirs>=4.5.0",
     "python-dotenv<2.0.0,>=1.0.1",
     "seaborn>=0.13.2",
     "synnax>=0.46,<0.47",
@@ -30,7 +32,10 @@ dev = [
 ]
 
 [tool.pdm.build]
-includes = ["src/limewire"]
+includes = [
+    "src/limewire",
+    "src/lmp"
+]
 
 
 [tool.ruff]
@@ -39,3 +44,4 @@ line-length = 80
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I001"]
 ignore-init-module-imports = true
+ignore = ["E741"]
