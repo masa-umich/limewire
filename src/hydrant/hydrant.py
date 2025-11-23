@@ -1,17 +1,13 @@
-import socket
+import asyncio
 
-from nicegui import ui
+from nicegui import app, background_tasks, ui
 
-from lmp import DeviceCommandMessage
+from lmp import DeviceCommandAckMessage, DeviceCommandMessage
 from lmp.util import Board, DeviceCommand
 
 
 class Hydrant:
     def __init__(self):
-        self.fc_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.fc_socket.connect(("127.0.0.1", 5000))
-
-        self.fc_writer = self.fc_socket.makefile("wb")
         self.boards_available = {board.name: board for board in Board}
         self.commands_available = {cmd.name: cmd for cmd in DeviceCommand}
 
@@ -22,8 +18,50 @@ class Hydrant:
         self.selected_board_name = None
         self.selected_command_name = None
 
+    async def connect_to_fc(self):
+        """Maintain connection to flight computer."""
+        while True:
+            try:
+                self.fc_reader, self.fc_writer = await asyncio.open_connection(
+                    "127.0.0.1", 8888
+                )
+            except ConnectionRefusedError:
+                await asyncio.sleep(1)
+                continue
+
+            fc_listen_task = background_tasks.create(self.listen_for_acks())
+
+            try:
+                await fc_listen_task
+            except Exception:
+                # Connection closed
+                continue
+
+    async def listen_for_acks(self):
+        while True:
+            msg_length = await self.fc_reader.read(1)
+            if not msg_length:
+                break
+
+            msg_length = int.from_bytes(msg_length)
+            msg_bytes = await self.fc_reader.readexactly(msg_length)
+            if not msg_bytes:
+                break
+
+            msg_id = int.from_bytes(msg_bytes[0:1])
+            match msg_id:
+                case DeviceCommandAckMessage.MSG_ID:
+                    msg = DeviceCommandAckMessage.from_bytes(msg_bytes)
+                    with self.main_page_content:
+                        ui.notify(f"{msg}", close_button="OK")
+                case _:
+                    continue
+
     def main_page(self):
         """Generates page outline and GUI"""
+
+        # Register background tasks
+        self.fc_connect_task = background_tasks.create(self.connect_to_fc())
 
         ui.page_title("Hydrant")
         ui.dark_mode().enable()
@@ -38,7 +76,10 @@ class Hydrant:
                 )
 
         # MAIN PAGE CONTENT
-        with ui.column().classes("w-full p-6 gap-4 max-w-7xl mx-auto"):
+        with ui.column().classes(
+            "w-full p-6 gap-4 max-w-7xl mx-auto"
+        ) as main_page_content:
+            self.main_page_content = main_page_content
             # TWO-COLUMN LAYOUT
             with ui.row().classes("w-full gap-4 items-stretch"):
                 # LEFT COLUMN
@@ -134,7 +175,7 @@ class Hydrant:
 
         dialog.open()
 
-    def send_after_confirm(self, dialog):
+    async def send_after_confirm(self, dialog):
         """Send command to board after confirmation"""
         dialog.close()
         self.selected_board_name = self.board_select.value
@@ -150,4 +191,4 @@ class Hydrant:
             f"Sending {self.selected_command_name} to board {self.selected_board_name}"
         )
         self.fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
-        self.fc_writer.flush()
+        await self.fc_writer.drain()
