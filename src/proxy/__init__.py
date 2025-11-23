@@ -13,6 +13,11 @@ from .proxy import Proxy
     type=SocketAddress(),
     default="141.212.192.170:5000",
 )
+@click.argument(
+    "proxy_server_addr",
+    type=SocketAddress(),
+    default="141.212.192.160:1234",  # TODO: Change when port is set
+)
 @click.option(
     "--out",
     "out_path",
@@ -21,8 +26,12 @@ from .proxy import Proxy
     show_default=True,
     help="Output file path (CSV)",
 )
-def main(fc_address: tuple[str, int], out_path: str) -> None:
-    proxy = Proxy(out_path=out_path)
+def main(
+    fc_address: tuple[str, int],
+    proxy_server_addr: tuple[str, int],
+    out_path: str,
+) -> None:
+    proxy = Proxy(out_path=out_path, server_addr=proxy_server_addr)
 
     try:
         asyncio.run(proxy.start(fc_address))
