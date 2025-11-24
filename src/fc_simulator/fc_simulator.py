@@ -143,8 +143,13 @@ class FCSimulator:
                     cmd_msg.board, cmd_msg.command
                 )
 
-                if cmd_msg.command == DeviceCommand.FLASH_SPACE:
-                    response.response_msg = "67 bytes remaining lmao"
+                match cmd_msg.command:
+                    case DeviceCommand.FLASH_SPACE:
+                        response.response_msg = "67 bytes remaining lmao"
+                    case DeviceCommand.FIRMWARE_BUILD_INFO:
+                        response.response_msg = (
+                            "Build 6.7.67 (commit hash deadbeef)"
+                        )
 
                 return response
 
