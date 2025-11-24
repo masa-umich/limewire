@@ -34,6 +34,7 @@ dev = [
 [tool.pdm.build]
 includes = [
     "src/limewire",
+    "src/hydrant"
     "src/lmp"
 ]
 
