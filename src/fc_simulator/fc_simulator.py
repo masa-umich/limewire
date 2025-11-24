@@ -8,6 +8,7 @@ import synnax as sy
 
 from lmp import (
     Board,
+    DeviceCommandAckMessage,
     DeviceCommandMessage,
     TelemetryMessage,
     ValveCommandMessage,
@@ -109,25 +110,51 @@ class FCSimulator:
             if not msg_bytes:
                 break
 
-            msg_id = int.from_bytes(msg_bytes[0:1])
-            match msg_id:
-                case ValveCommandMessage.MSG_ID:
-                    cmd_msg = ValveCommandMessage.from_bytes(msg_bytes)
-                    state_msg = ValveStateMessage(
-                        cmd_msg.valve, cmd_msg.state, int(sy.TimeStamp.now())
-                    )
-                    state_msg_bytes = bytes(state_msg)
-                    writer.write(
-                        len(state_msg_bytes).to_bytes(1) + state_msg_bytes
-                    )
-                    await writer.drain()
-                case DeviceCommandMessage.MSG_ID:
-                    command = DeviceCommandMessage.from_bytes(msg_bytes)
-                    match command.command:
-                        case DeviceCommand.CLEAR_FLASH:
-                            print("Clearing flash")
-                        case _:
-                            print("Not implemented!")
+            response_msg = await self.get_response_msg(msg_bytes)
+
+            response_bytes = bytes(response_msg)
+            writer.write(len(response_bytes).to_bytes(1) + response_bytes)
+            await writer.drain()
+
+    async def get_response_msg(
+        self, msg_bytes: bytes
+    ) -> ValveStateMessage | DeviceCommandAckMessage:
+        """Return the response message associated with the command message.
+
+        Args:
+            msg_bytes: The message from which to generate the response. MUST
+                be either a ValveCommandMessage or DeviceCommandMessge.
+
+        Raises:
+            ValueError: Received a non-command message.
+        """
+        msg_id = int.from_bytes(msg_bytes[0:1])
+        match msg_id:
+            case ValveCommandMessage.MSG_ID:
+                cmd_msg = ValveCommandMessage.from_bytes(msg_bytes)
+                return ValveStateMessage(
+                    cmd_msg.valve, cmd_msg.state, int(sy.TimeStamp.now())
+                )
+
+            case DeviceCommandMessage.MSG_ID:
+                cmd_msg = DeviceCommandMessage.from_bytes(msg_bytes)
+
+                response = DeviceCommandAckMessage(
+                    cmd_msg.board, cmd_msg.command
+                )
+
+                match cmd_msg.command:
+                    case DeviceCommand.FLASH_SPACE:
+                        response.response_msg = "67 bytes remaining lmao"
+                    case DeviceCommand.FIRMWARE_BUILD_INFO:
+                        response.response_msg = (
+                            "Build 6.7.67 (commit hash deadbeef)"
+                        )
+
+                return response
+
+            case _:
+                raise ValueError("Received non-command message.")
 
     async def handle_client(
         self,

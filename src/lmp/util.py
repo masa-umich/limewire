@@ -4,10 +4,14 @@ from enum import Enum
 class DeviceCommand(Enum):
     "A class to represent commands going to the rocket."
 
-    # TODO: Add command definitions
     RESET_BOARD = 0x00
     CLEAR_FLASH = 0x01
     FLASH_SPACE = 0x02
+    PDB_SET_SOURCE_GSE = 0x03
+    PDB_SET_SOURCE_BATTERY = 0x04
+    PDB_3V7_OFF = 0x05
+    PDB_3V7_ON = 0x06
+    FIRMWARE_BUILD_INFO = 0x07
 
     def __str__(self) -> str:
         return repr(self).removeprefix(f"{self.__class__.__name__}.")
