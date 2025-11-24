@@ -56,12 +56,12 @@ class Hydrant:
             except Exception as e:
                 print(f"Got exception: {e}")
 
-                self.fc_writer.close()
-                await self.fc_writer.wait_closed()
-
-                if not fc_listen_task.done():
-                    fc_listen_task.cancel()
-                    await fc_listen_task
+                # self.fc_writer.close()
+                # await self.fc_writer.wait_closed()
+                #
+                # if not fc_listen_task.done():
+                #     fc_listen_task.cancel()
+                #     await fc_listen_task
 
                 continue
 
