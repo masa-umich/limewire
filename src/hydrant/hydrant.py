@@ -109,62 +109,11 @@ class Hydrant:
         ) as main_page_content:
             self.main_page_content = main_page_content
 
-            # DEVICE COMMANDS
-            with ui.card().classes(
-                "w-full bg-gray-900 border border-gray-700 p-6"
-            ):
-                ui.label("DEVICE COMMANDS").classes(
-                    "text-xl font-bold text-white mb-4"
-                )
-                with ui.column().classes("w-full gap-3"):
-                    # BOARD
-                    ui.label("BOARD").classes("text-lg font-bold text-white")
+            self.device_command_card()
 
-                    # Board selector
-                    self.board_select = ui.select(
-                        label="Select a board",
-                        options=list(self.boards_available.keys()),
-                    ).classes("w-full")
-
-                    # Command
-                    ui.label("COMMAND").classes("text-lg font-bold text-white")
-                    self.command_select = ui.select(
-                        label="Select a command",
-                        options=list(self.commands_available.keys()),
-                    ).classes("w-full")
-
-                    # Dialog that is used for popup
-                    with ui.dialog() as dialog, ui.card():
-                        self.confirm_label = ui.label("")
-                        with ui.row():
-                            ui.button(
-                                "YES",
-                                on_click=lambda: self.send_after_confirm(
-                                    dialog
-                                ),
-                            )
-                            ui.button("NO", on_click=lambda: dialog.close())
-
-                    ui.button(
-                        "SEND", on_click=lambda: self.send_command(dialog)
-                    ).classes("w-half bg-blue-600 text-white hover:bg-blue-700")
-
-            # COMMAND HISTORY CARD
             self.command_history_table()
 
-            # ERROR LOG CARD
-            with ui.card().classes(
-                "w-full bg-gray-900 border border-gray-700 p-6"
-            ):
-                ui.label("Error Log").classes(
-                    "text-xl font-bold text-red-400 mb-4"
-                )
-
-                error_column = ui.column().classes("w-full overflow-y-auto")
-                with error_column:
-                    ui.label("Errors will appear here").classes(
-                        "text-gray-500 italic"
-                    )
+            self.firmware_log_table()
 
     def send_command(self, dialog):
         """Initialize send command process on button press"""
@@ -206,6 +155,46 @@ class Hydrant:
         self.device_command_recency[(msg.board, msg.command)] = new_entry
         self.refresh_history_table()
 
+    def device_command_card(self):
+        # DEVICE COMMANDS
+        with ui.card().classes(
+            "w-full bg-gray-900 border border-gray-700 p-6"
+        ) as card:
+            ui.label("DEVICE COMMANDS").classes(
+                "text-xl font-bold text-white mb-4"
+            )
+            with ui.column().classes("w-full gap-3"):
+                # BOARD
+                ui.label("BOARD").classes("text-lg font-bold text-white")
+
+                # Board selector
+                self.board_select = ui.select(
+                    label="Select a board",
+                    options=list(self.boards_available.keys()),
+                ).classes("w-full")
+
+                # Command
+                ui.label("COMMAND").classes("text-lg font-bold text-white")
+                self.command_select = ui.select(
+                    label="Select a command",
+                    options=list(self.commands_available.keys()),
+                ).classes("w-full")
+
+                # Dialog that is used for popup
+                with ui.dialog() as dialog, ui.card():
+                    self.confirm_label = ui.label("")
+                    with ui.row():
+                        ui.button(
+                            "YES",
+                            on_click=lambda: self.send_after_confirm(dialog),
+                        )
+                        ui.button("NO", on_click=lambda: dialog.close())
+
+                ui.button(
+                    "SEND", on_click=lambda: self.send_command(dialog)
+                ).classes("w-half bg-blue-600 text-white hover:bg-blue-700")
+        return card
+
     def refresh_history_table(self):
         self.cmd_history_grid.options["rowData"] = self.history_dict()
         self.cmd_history_grid.update()
@@ -244,3 +233,16 @@ class Hydrant:
 
     def history_dict(self):
         return [entry.to_gui_dict() for entry in self.device_command_history]
+
+    def firmware_log_table(self):
+        with ui.card().classes(
+            "w-full bg-gray-900 border border-gray-700 p-6"
+        ) as card:
+            ui.label("Rocket Firmware Log").classes("text-xl font-bold mb-4")
+
+            error_column = ui.column().classes("w-full overflow-y-auto")
+            with error_column:
+                ui.label("Logs will appear here").classes(
+                    "text-gray-500 italic"
+                )
+        return card
