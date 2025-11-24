@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 
-from nicegui import app, background_tasks, ui
+from nicegui import app, ui
 
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
 from lmp.util import Board, DeviceCommand
@@ -50,6 +50,8 @@ class Hydrant:
                 print("Hydrant cancelled.")
                 break
             except Exception as e:
+                print(f"Got exception: {e}")
+
                 self.fc_writer.close()
                 await self.fc_writer.wait_closed()
 
