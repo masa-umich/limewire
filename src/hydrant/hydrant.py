@@ -10,7 +10,9 @@ from .device_command_history import DeviceCommandHistoryEntry
 
 
 class Hydrant:
-    def __init__(self):
+    def __init__(self, fc_address: tuple[str, int]):
+        self.fc_address = fc_address
+
         self.boards_available = {board.name: board for board in Board}
         self.commands_available = {cmd.name: cmd for cmd in DeviceCommand}
 
@@ -33,9 +35,11 @@ class Hydrant:
         """Maintain connection to flight computer."""
         while True:
             try:
-                print("Connecting to FC at 127.0.0.1:8888...")
+                print(
+                    f"Connecting to FC at {self.fc_address[0]}:{self.fc_address[1]}..."
+                )
                 self.fc_reader, self.fc_writer = await asyncio.open_connection(
-                    "127.0.0.1", 8888
+                    *self.fc_address
                 )
                 print("Connection successful.")
             except ConnectionRefusedError:
