@@ -32,73 +32,142 @@ class Proxy:
         # Latency stats
         self._csv_writer: csv.DictWriter | None = None
         self.diff_values_ns: list[float] = []
+        # Initalize CSV output for diff latencies
+        self._init_output()
 
         # Server information
-        self.server_ip_addr = server_addr[0]
-        self.server_port = server_addr[1]
+        self.server_addr = server_addr
         self.client_writers: set[asyncio.StreamWriter] = set()
 
-    async def start_server(self):
-        server = await asyncio.start_server(
-            partial(self.handle_client),
-            self.server_ip_addr,
-            self.server_port,
-        )
+    # async def start_server(self):
+    #     server = await asyncio.start_server(
+    #         partial(self.handle_client, index=len(self.client_writers)),
+    #         *self.server_addr,
+    #     )
 
-        addr = server.sockets[0].getsockname()
-        print(f"Proxy server serving on {format_socket_address(addr)}.")
+    #     addr = server.sockets[0].getsockname()
+    #     print(f"Proxy server serving on {format_socket_address(addr)}.")
 
-        async with server:
-            await server.serve_forever()
+    #     async with server:
+    #         await server.serve_forever()
+
+    #     print("Exiting somehow?")
 
     async def _broadcast_fc_data(self, msg: bytes) -> None:
         for client in list(self.client_writers):
             client.write(msg)
             await client.drain()
 
+    async def client_read_loop(
+        self,
+        client_reader: asyncio.StreamReader,
+    ):
+        print("hi")
+        while True:
+            # Read the client data
+            msg_length = await client_reader.read(1)
+            if not msg_length:
+                break
+
+            msg_length = int.from_bytes(msg_length)
+            msg_bytes = await client_reader.readexactly(msg_length)
+            if not msg_bytes:
+                break
+
+            if self.connected:
+                self.fc_writer.write(msg_length.to_bytes(1) + msg_bytes)
+                await self.fc_writer.drain()
+            else:
+                break
+        print("client read loop exits")
+
     async def handle_client(
         self,
         client_reader: asyncio.StreamReader,
         client_writer: asyncio.StreamWriter,
+        index: int,
     ):
+        # Reject connections if FC is not connected yet
+        if not self.connected:
+            # Let client know FC is disconnected
+            client_writer.write(b"\x00")
+            await client_writer.drain()
+            client_writer.close()
+            await client_writer.wait_closed()
+            return
+
+        # Let client know FC is disconnected
+        client_writer.write(b"\x01")
+        await client_writer.drain()
+        print("Starting client ", index)
         # Add the writer to the set
         self.client_writers.add(client_writer)
 
-        async def client_read_loop():
-            while True:
-                # Read the client data
-                msg_length = await client_reader.read(1)
-                if not msg_length:
-                    break
+        @asynccontextmanager
+        async def lifespan():
+            try:
+                yield
+            finally:
+                # Clean up on disconnect
+                print("Goodbye to client ", index)
+                self.client_writers.discard(client_writer)
+                client_writer.close()
+                await client_writer.wait_closed()
 
-                msg_length = int.from_bytes(msg_length)
-                msg_bytes = await client_reader.readexactly(msg_length)
-                if not msg_bytes:
-                    break
+        async with lifespan():
+            peername = self.fc_writer.get_extra_info("peername")
+            print(
+                f"Connected to client {index} at {peername[0]}:{peername[1]}."
+            )
 
-                # Write to flight computer
-                self.fc_writer.write(msg_length.to_bytes(1) + msg_bytes)
-                await self.fc_writer.drain()
-
-            # Clean up on loop end
-            self.client_writers.discard(client_writer)
-            client_writer.close()
-            await client_writer.wait_closed()
-
-        asyncio.create_task(client_read_loop())
+            try:
+                await asyncio.create_task(self.client_read_loop(client_reader))
+            except* (
+                ConnectionResetError,
+                ConnectionAbortedError,
+                asyncio.exceptions.IncompleteReadError,
+            ) as err:
+                print(f"Connection to client {index} lost")
+                print("Error type in handle_client", type(err))
+            except* Exception as eg:
+                print("=" * 60)
+                print(f"Tasks failed with {len(eg.exceptions)} error(s)")
+                for exc in eg.exceptions:
+                    print("=" * 60)
+                    traceback.print_exception(type(exc), exc, exc.__traceback__)
+                print("=" * 60)
 
     async def _send_heartbeat(self):
         HEARTBEAT_INTERVAL = 1
+        cnt = 0
         while True:
             try:
+                print("Sending heartbeat", cnt)
+                cnt += 1
                 msg = HeartbeatMessage()
                 msg_bytes = bytes(msg)
 
                 self.fc_writer.write(msg_bytes)
                 await self.fc_writer.drain()
                 await asyncio.sleep(HEARTBEAT_INTERVAL)
-            except ConnectionResetError as err:
+            except (ConnectionResetError, ConnectionAbortedError) as err:
                 raise err
+            # except OSError as err:
+            #     print("yeah in os error")
+            #     # if getattr(err, "WinError", None) == 10053:
+            #     #     raise ConnectionResetError()
+            #     # else:
+            #     #     print("unknown os heartbeat error", err)
+            #     raise err
+            except Exception as err:
+                print("unknown heartbeat error", err)
+
+    async def disconnect_clients(self):
+        for client_writer in self.client_writers:
+            # self.client_writers.discard(client_writer)
+            client_writer.close()
+            await client_writer.wait_closed()
+            # if not client_writer.is_closing():
 
     async def start(self, fc_addr: tuple[str, int]) -> None:
         # We need to define an asynccontextmanager to ensure that shutdown
@@ -111,6 +180,17 @@ class Proxy:
                 await self.stop()
 
         async with lifespan():
+            # Start server here
+            self.server = await asyncio.start_server(
+                partial(self.handle_client, index=len(self.client_writers)),
+                *self.server_addr,
+            )
+
+            addr = self.server.sockets[0].getsockname()
+            print(f"Proxy server serving on {format_socket_address(addr)}.")
+            # Server forever, even if fight computer connection is severed
+            await self.server.start_serving()
+
             self.connected = False
             self.server_started = False
             while True:
@@ -132,9 +212,6 @@ class Proxy:
                     f"Connected to flight computer at {peername[0]}:{peername[1]}."
                 )
 
-                # Initalize CSV output for diff latencies
-                self._init_output()
-
                 # Set up async tasks
                 self.start_time = asyncio.get_event_loop().time()
                 # Track whether you need to reconnect
@@ -143,20 +220,16 @@ class Proxy:
                     async with asyncio.TaskGroup() as tg:
                         tg.create_task(self._fc_read())
                         tg.create_task(self._send_heartbeat())
-                        if not self.server_started:
-                            self.server_started = True
-                            tg.create_task(self.start_server())
-                except* ConnectionResetError:
+                except* (ConnectionResetError, ConnectionAbortedError):
                     print("Connection to flight computer lost")
+                    self.connected = False
                     reconnect = True
                     # Disconnect the clients
-                    for client_writer in self.client_writers:
-                        self.client_writers.discard(client_writer)
-                        client_writer.close()
-                        await client_writer.wait_closed()
-
+                    await self.disconnect_clients()
                 except* Exception as eg:
+                    self.connected = False
                     print("=" * 60)
+                    print("start")
                     print(f"Tasks failed with {len(eg.exceptions)} error(s)")
                     for exc in eg.exceptions:
                         print("=" * 60)
@@ -171,9 +244,19 @@ class Proxy:
 
     async def stop(self) -> None:
         """Run shutdown code."""
+        print("stopping")
+        self.connected = False
 
         self.fc_writer.close()
         await self.fc_writer.wait_closed()
+
+        await self.disconnect_clients()
+        self.client_writers.clear()
+
+        # Disconnect clients and close server
+        # await self.disconnect_clients() Need this?????
+        self.server.close()
+        await self.server.wait_closed()
 
         # Close CSV file
         self._csv_file.close()
@@ -218,11 +301,13 @@ class Proxy:
                         f"Received invalid LMP message identifier: 0x{msg_id:X}"
                     )
             # Broadcast to connected clients
-            await self._broadcast_fc_data(msg_bytes)
+            await self._broadcast_fc_data(msg_length.to_bytes(1) + msg_bytes)
 
     def print_latency_stats(self) -> None:
+        """Print latency stats upon closing the program and write to histogram"""
         # Latency stats + histogram
         if len(self.diff_values_ns) > 0:
+            # CONVERT TO MS
             diff_values_ms = [x / 10**6 for x in self.diff_values_ns]
             avg_ms = statistics.mean(diff_values_ms)
             std_ms = (
@@ -271,7 +356,7 @@ class Proxy:
                     linewidth=1.2,
                     label=f"+1σ = {avg_ms + std_ms:.0f} ns",
                 )
-            # Ensure axis shows plain ns, not scientific offset (e.g., x1e6)
+
             ax.xaxis.set_major_formatter(ScalarFormatter(useOffset=False))
             ax.ticklabel_format(axis="x", style="plain", useOffset=False)
             margin = max((xmax - xmin) * 0.05, 1.0)
@@ -310,6 +395,22 @@ class Proxy:
             )
 
     def _parse_and_record(self, msg_bytes: bytes) -> None:
+        """Write latency data to CSV file"""
+
+        # Write helper
+        def write_row(row: dict) -> None:
+            if self._csv_writer is None:
+                return
+            # Ensure all fields present
+            safe_row = {
+                "now_ns": row.get("now_ns", ""),
+                "msg_ns": row.get("msg_ns", ""),
+                "diff_ns": row.get("diff_ns", ""),
+                "board": row.get("board", ""),
+            }
+            self._csv_writer.writerow(safe_row)
+            self._csv_file.flush()
+
         msg_id = int.from_bytes(msg_bytes[0:1])
         match msg_id:
             case TelemetryMessage.MSG_ID:
@@ -319,7 +420,7 @@ class Proxy:
                 latency_ns = now_ns - fc_ns
 
                 self.diff_values_ns.append(latency_ns)
-                self._write_row(
+                write_row(
                     {
                         "now_ns": now_ns,
                         "msg_ns": fc_ns,
@@ -335,7 +436,7 @@ class Proxy:
                 latency_ns = now_ns - fc_ts_ns
 
                 self.diff_values_ns.append(latency_ns)
-                self._write_row(
+                write_row(
                     {
                         "now_ns": now_ns,
                         "msg_ns": fc_ts_ns,
@@ -345,37 +446,29 @@ class Proxy:
                 )
                 return
             case _:
-                # Unknown message type; mirror Limewire behavior by raising
+                # Unknown message type
                 raise ValueError(
                     f"Received invalid LMP message identifier: 0x{msg_id:X}"
                 )
 
     def _init_output(self) -> None:
+        """Initalize the CSV file to track latency stats"""
         # Ensure directory exists
         dirpath = os.path.dirname(self.out_path)
         if dirpath:
             os.makedirs(dirpath, exist_ok=True)
         # Open file and create writer
-        file_exists = os.path.exists(self.out_path)
-        needs_header = not file_exists or os.path.getsize(self.out_path) == 0
+        needs_header = (
+            not os.path.exists(self.out_path)
+            or os.path.getsize(self.out_path) == 0
+        )
         self._csv_file = open(
             self.out_path, mode="a", newline="", encoding="utf-8"
         )
         fieldnames = ["now_ns", "msg_ns", "diff_ns", "board"]
         self._csv_writer = csv.DictWriter(self._csv_file, fieldnames=fieldnames)
+
+        # Write header if necessary
         if needs_header:
             self._csv_writer.writeheader()
             self._csv_file.flush()
-
-    def _write_row(self, row: dict) -> None:
-        if self._csv_writer is None:
-            return
-        # Ensure all fields present
-        safe_row = {
-            "now_ns": row.get("now_ns", ""),
-            "msg_ns": row.get("msg_ns", ""),
-            "diff_ns": row.get("diff_ns", ""),
-            "board": row.get("board", ""),
-        }
-        self._csv_writer.writerow(safe_row)
-        self._csv_file.flush()
