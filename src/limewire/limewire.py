@@ -50,22 +50,43 @@ class Limewire:
             self.connected = False
             while True:
                 try:
+                    # print(
+                    #     f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
+                    # )
+
                     print(
-                        f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
+                        f"Connecting to proxy at {fc_addr[0]}:{fc_addr[1]}..."
                     )
 
                     self.tcp_reader, self.tcp_writer = await self._connect_fc(
                         *fc_addr
                     )
                     self.connected = True
+                    # Status message should be one byte long
+                    proxy_status = await self.tcp_reader.readexactly(1)
+                    if not proxy_status:
+                        continue
+
+                    if proxy_status == b"\x00":
+                        # print("Connection to proxy failed: FC connection down")
+                        await asyncio.sleep(1)
+                        continue
+                    elif proxy_status == b"\x01":
+                        self.connected = True
+                    else:
+                        print("CRITICAL: Unrecognizable proxy status")
+                        await asyncio.sleep(1)
+                        continue
                 except ConnectionRefusedError:
                     await asyncio.sleep(1)
                     continue
 
                 peername = self.tcp_writer.get_extra_info("peername")
-                print(
-                    f"Connected to flight computer at {peername[0]}:{peername[1]}."
-                )
+                # print(
+                #     f"Connected to flight computer at {peername[0]}:{peername[1]}."
+                # )
+
+                print(f"Connected to proxy at {peername[0]}:{peername[1]}.")
 
                 # Set up async tasks
                 self.start_time = asyncio.get_event_loop().time()
