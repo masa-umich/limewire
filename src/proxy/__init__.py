@@ -1,0 +1,45 @@
+import asyncio
+
+import click
+
+from limewire.util import SocketAddress
+
+from .logging import set_up_logging
+from .proxy import Proxy
+
+
+@click.command(help="Connect to the flight computer and record timestamps")
+@click.argument(
+    "fc_address",
+    type=SocketAddress(),
+    default="141.212.192.170:5000",
+)
+@click.argument(
+    "proxy_server_addr",
+    type=SocketAddress(),
+    default="141.212.192.160:1234",  # TODO: Change when port is set
+)
+@click.option("--debug", is_flag=True)
+@click.option(
+    "--out",
+    "out_path",
+    type=str,
+    default="proxy_log.csv",
+    show_default=True,
+    help="Output file path (CSV)",
+)
+def main(
+    fc_address: tuple[str, int],
+    proxy_server_addr: tuple[str, int],
+    out_path: str,
+    debug: bool,
+) -> None:
+    set_up_logging(debug)
+
+    proxy = Proxy(out_path=out_path, server_addr=proxy_server_addr)
+
+    try:
+        asyncio.run(proxy.start(fc_address))
+    except KeyboardInterrupt:
+        # Graceful shutdown on Ctrl+C
+        pass

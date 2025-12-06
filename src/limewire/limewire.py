@@ -48,7 +48,8 @@ class Limewire:
             self.synnax_writer = await self._open_synnax_writer(
                 sy.TimeStamp.now()
             )
-            await asyncio.sleep(0.5)
+            # NECESSARY
+            await asyncio.sleep(3)
 
             self.connected = False
             while True:
@@ -89,7 +90,7 @@ class Limewire:
                     )
                     for exc in eg.exceptions:
                         logger.exception(
-                            "Exception raised with type %s: %s", type(exc), exc
+                            f"Exception raised with type {type(exc)}: {exc}"
                         )
                 if reconnect:
                     continue
@@ -103,7 +104,7 @@ class Limewire:
                 msg = HeartbeatMessage()
                 msg_bytes = bytes(msg)
 
-                self.tcp_writer.write(msg_bytes)
+                self.tcp_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
                 await self.tcp_writer.drain()
                 await asyncio.sleep(HEARTBEAT_INTERVAL)
             except ConnectionResetError as err:
@@ -211,7 +212,14 @@ class Limewire:
                 self.synnax_writer = await self._open_synnax_writer(
                     msg.timestamp
                 )
-            self.synnax_writer.write(frame)
+
+            try:
+                self.synnax_writer.write(frame)
+            except Exception as exc:
+                logger.error("Unable to write frame to Synnax!")
+                logger.exception(
+                    f"Exception raised with type {type(exc)}: {exc}"
+                )
 
             self.queue.task_done()
 
