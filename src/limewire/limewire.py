@@ -186,7 +186,6 @@ class Limewire:
         """Listen for telemetry messages."""
         while True:
             message = await self.telemetry_framer.receive_message()
-            logger.debug("Received telemetry message")
             await self.queue.put(message)
 
     async def _synnax_write(self) -> None:
@@ -207,7 +206,6 @@ class Limewire:
             if frame is None:
                 self.queue.task_done()
                 continue
-            logger.debug("Built Synnax frame")
 
             if self.synnax_writer is None:
                 self.synnax_writer = await self._open_synnax_writer(
