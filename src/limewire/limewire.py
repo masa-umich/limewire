@@ -93,7 +93,9 @@ class Limewire:
                         and getattr(err, "winerr", None)
                         == WINERROR_SEMAPHORE_TIMEOUT
                     ):
-                        logger.warning("Windows OSError semaphore timeout.")
+                        logger.warning(
+                            f"Connection attempt timed out (Windows OSError: {str(err)})."
+                        )
                         continue
                     else:
                         raise err
