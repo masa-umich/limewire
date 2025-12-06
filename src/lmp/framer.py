@@ -2,15 +2,19 @@ import asyncio
 
 import asyncudp
 
-from lmp import (
-    DeviceCommandAckMessage,
-    DeviceCommandMessage,
-    HeartbeatMessage,
-    LMPMessage,
-    ValveCommandMessage,
-    ValveStateMessage,
+from .device_command import DeviceCommandAckMessage, DeviceCommandMessage
+from .heartbeat import HeartbeatMessage
+from .telemetry import TelemetryMessage
+from .valve import ValveCommandMessage, ValveStateMessage
+
+type LMPMessage = (
+    DeviceCommandAckMessage
+    | DeviceCommandMessage
+    | HeartbeatMessage
+    | TelemetryMessage
+    | ValveCommandMessage
+    | ValveStateMessage
 )
-from lmp.telemetry import TelemetryMessage
 
 
 class FramingError(Exception):
