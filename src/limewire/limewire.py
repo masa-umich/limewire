@@ -114,7 +114,10 @@ class Limewire:
         await self.lmp_framer.close()
 
         if self.synnax_writer is not None:
-            self.synnax_writer.close()
+            try:
+                self.synnax_writer.close()
+            except sy.ValidationError:
+                logger.warning("Ignoring Synnax validation error(s).")
 
         logger.info("=" * 60)
 
