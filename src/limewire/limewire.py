@@ -334,9 +334,11 @@ class Limewire:
             cmd_channels
         ) as streamer:
             async for frame in streamer:
+                logger.debug("Received frame from streamer.")
                 for channel, series in frame.items():
                     valve = Valve.from_channel_name(channel)  # pyright: ignore[reportArgumentType]
                     # For now, let's assume that if multiple values are in the
                     # frame, we only care about the most recent one
+                    logger.debug("Sending ValveCommandMessage.")
                     msg = ValveCommandMessage(valve, bool(series[-1]))
                     await self.lmp_framer.send_message(msg)
