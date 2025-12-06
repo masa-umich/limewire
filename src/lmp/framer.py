@@ -59,6 +59,11 @@ class LMPFramer:
                     f"Received invalid LMP message identifier: 0x{msg_id:X}"
                 )
 
+    async def close(self):
+        """Close the underlying TCP reader and writer."""
+        self.writer.close()
+        await self.writer.wait_closed()
+
 
 class TelemetryFramer:
     """A class to handle framing/unframing telemetry data from a UDP socket."""
