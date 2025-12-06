@@ -1,10 +1,12 @@
 import asyncio
+import platform
 from asyncio.streams import StreamReader, StreamWriter
 from contextlib import asynccontextmanager
 
 import asyncudp
 import synnax as sy
 from loguru import logger
+from scapy.error import Scapy_Exception
 
 from lmp import (
     HeartbeatMessage,
@@ -18,7 +20,14 @@ from lmp import (
 )
 from lmp.framer import FramingError
 
-from .util import get_write_time_channel_name, synnax_init
+from .ntp_sync import send_ntp_sync
+from .util import (
+    get_write_time_channel_name,
+    is_valve_command_channel,
+    synnax_init,
+)
+
+WINERROR_SEMAPHORE_TIMEOUT = 121
 
 
 class Limewire:
@@ -68,13 +77,31 @@ class Limewire:
                         f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
                     )
 
-                    tcp_reader, tcp_writer = await self._connect_fc(*fc_addr)
-                    self.lmp_framer = LMPFramer(tcp_reader, tcp_writer)
-
-                    self.connected = True
+                    async with asyncio.timeout(1):
+                        tcp_reader, tcp_writer = await self._connect_fc(
+                            *fc_addr
+                        )
+                        self.lmp_framer = LMPFramer(tcp_reader, tcp_writer)
+                        self.connected = True
+                except TimeoutError:
+                    logger.warning("Connection attempt timed out.")
+                    continue
                 except ConnectionRefusedError:
+                    logger.warning("Connection refused.")
                     await asyncio.sleep(1)
                     continue
+                except OSError as err:
+                    if (
+                        platform.system() == "Windows"
+                        and getattr(err, "winerr", None)
+                        == WINERROR_SEMAPHORE_TIMEOUT
+                    ):
+                        logger.warning(
+                            f"Connection attempt timed out (Windows OSError: {str(err)})."
+                        )
+                        continue
+                    else:
+                        raise err
 
                 peername = tcp_writer.get_extra_info("peername")
                 logger.info(
@@ -100,9 +127,7 @@ class Limewire:
                         f"Tasks failed with {len(eg.exceptions)} error(s)"
                     )
                     for exc in eg.exceptions:
-                        logger.exception(
-                            "Exception raised with type %s: %s", type(exc), exc
-                        )
+                        logger.opt(exception=exc).error("Traceback: ")
                 if reconnect:
                     continue
                 else:
@@ -219,6 +244,22 @@ class Limewire:
                     f"Synnax validation error '{str(err)}', skipping frame"
                 )
 
+                try:
+                    self.synnax_writer.close()
+                except sy.ValidationError:
+                    # Why oh why must you be this way Synnax :(
+                    pass
+
+                # Writer will get re-initialzed during next loop iteration
+                self.synnax_writer = None
+
+                logger.info("Sending NTP sync.")
+
+                try:
+                    send_ntp_sync()
+                except Scapy_Exception:
+                    logger.warning("NTP sync failed.")
+
             self.queue.task_done()
 
     def _build_synnax_frame(
@@ -282,21 +323,11 @@ class Limewire:
             for ch in data_channels:
                 writer_channels.append(ch)
 
-        authorities = []
-        for channel in writer_channels:
-            # Schematic and/or autosequences should maintain control
-            # of command channels, and Limewire should have absolute
-            # authority of all other channels.
-            if "cmd" in channel:
-                authorities.append(0)
-            else:
-                authorities.append(255)
-
         writer = self.synnax_client.open_writer(
             start=timestamp,
             channels=writer_channels,
             enable_auto_commit=True,
-            authorities=authorities,
+            authorities=0,  # Limewire should never control command channels,
         )
 
         return writer
@@ -305,15 +336,11 @@ class Limewire:
         """Relay valve commands from Synnax to the flight computer."""
 
         # Create a list of all valve command channels
-        cmd_channels = []
-        for data_channels in self.channels.values():
-            for channel in data_channels:
-                if (
-                    "cmd" in channel
-                    and "timestamp" not in channel
-                    and "limewire" not in channel
-                ):
-                    cmd_channels.append(channel)
+        cmd_channels: list[str] = []
+        for data_channel_names in self.channels.values():
+            for channel_name in data_channel_names:
+                if is_valve_command_channel(channel_name):
+                    cmd_channels.append(channel_name)
 
         async with await self.synnax_client.open_async_streamer(
             cmd_channels

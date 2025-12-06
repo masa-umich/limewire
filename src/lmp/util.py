@@ -97,12 +97,12 @@ class Valve:
             ValueError: The channel name passed in is not a valve channel.
         """
 
-        if "vlv" not in name:
+        if "vlv" not in name and "state" not in name:
             raise ValueError(f"Invalid valve channel {name}")
 
         components = name.split("_")
         board_name = components[0]
-        num = int(components[1][-1])
+        num = int(components[2])
 
         return cls(Board[board_name.upper()], num)
 
