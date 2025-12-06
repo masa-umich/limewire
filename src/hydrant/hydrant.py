@@ -1,9 +1,11 @@
 import asyncio
 from datetime import datetime
 
+from loguru import logger
 from nicegui import app, ui
 
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
+from lmp.framer import FramingError, LMPFramer
 from lmp.util import Board, DeviceCommand
 
 from .device_command_history import DeviceCommandHistoryEntry
@@ -11,6 +13,7 @@ from .device_command_history import DeviceCommandHistoryEntry
 
 class Hydrant:
     def __init__(self, fc_address: tuple[str, int]):
+        logger.info("! HYDRANT RUNNING !")
         self.fc_address = fc_address
 
         self.boards_available = {board.name: board for board in Board}
@@ -35,13 +38,15 @@ class Hydrant:
         """Maintain connection to flight computer."""
         while True:
             try:
-                print(
+                logger.info(
                     f"Connecting to FC at {self.fc_address[0]}:{self.fc_address[1]}..."
                 )
                 self.fc_reader, self.fc_writer = await asyncio.open_connection(
                     *self.fc_address
                 )
-                print("Connection successful.")
+
+                self.lmp_framer = LMPFramer(self.fc_reader, self.fc_writer)
+                logger.info("Connection successful.")
             except ConnectionRefusedError:
                 await asyncio.sleep(1)
                 continue
@@ -51,38 +56,32 @@ class Hydrant:
             try:
                 await fc_listen_task
             except asyncio.CancelledError:
-                print("Hydrant cancelled.")
+                logger.info("Hydrant cancelled.")
                 break
             except Exception as e:
-                print(f"Got exception: {e}")
+                logger.error(f"Got exception: {e}")
                 continue
 
     async def listen_for_acks(self):
         while True:
-            msg_length = await self.fc_reader.read(1)
-            if not msg_length:
-                break
+            try:
+                message = await self.lmp_framer.receive_message()
+            except (FramingError, ValueError) as err:
+                logger.error(str(err))
+                logger.opt(exception=err).debug("Traceback", exc_info=True)
+                continue
 
-            msg_length = int.from_bytes(msg_length)
-            msg_bytes = await self.fc_reader.readexactly(msg_length)
-            if not msg_bytes:
-                break
-
-            msg_id = int.from_bytes(msg_bytes[0:1])
-            match msg_id:
-                case DeviceCommandAckMessage.MSG_ID:
-                    msg = DeviceCommandAckMessage.from_bytes(msg_bytes)
-
-                    history_entry = self.device_command_recency.get(
-                        (msg.board, msg.command)
-                    )
-                    if history_entry is None:
-                        continue
-                    history_entry.set_ack(datetime.now(), msg.response_msg)
-
-                    self.refresh_history_table()
-                case _:
+            if not message:
+                continue
+            if type(message) is DeviceCommandAckMessage:
+                history_entry = self.device_command_recency.get(
+                    (message.board, message.command)
+                )
+                if history_entry is None:
                     continue
+                history_entry.set_ack(datetime.now(), message.response_msg)
+
+                self.refresh_history_table()
 
     def main_page(self):
         """Generates page outline and GUI"""
@@ -184,14 +183,12 @@ class Hydrant:
         self.board = self.boards_available[self.selected_board_name]
         self.command = self.commands_available[self.selected_command_name]
 
-        msg = DeviceCommandMessage(self.board, self.command)
-        msg_bytes = bytes(msg)
-
-        print(
+        logger.info(
             f"Sending {self.selected_command_name} to board {self.selected_board_name}"
         )
-        self.fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
-        await self.fc_writer.drain()
+
+        msg = DeviceCommandMessage(self.board, self.command)
+        await self.lmp_framer.send_message(msg)
 
         new_entry = DeviceCommandHistoryEntry(
             board=msg.board,
