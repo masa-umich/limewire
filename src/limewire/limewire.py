@@ -1,4 +1,5 @@
 import asyncio
+import platform
 from asyncio.streams import StreamReader, StreamWriter
 from contextlib import asynccontextmanager
 
@@ -20,6 +21,9 @@ from lmp.framer import FramingError
 
 from .ntp_sync import send_ntp_sync
 from .util import get_write_time_channel_name, synnax_init
+
+
+WINERROR_SEMAPHORE_TIMEOUT = 121
 
 
 class Limewire:
@@ -98,6 +102,16 @@ class Limewire:
                 except* ConnectionResetError:
                     logger.error("Connection to flight computer lost.")
                     reconnect = True
+                except* OSError as err:
+                    if (
+                        platform.system() == "Windows"
+                        and getattr(err, "winerr", None)
+                        == WINERROR_SEMAPHORE_TIMEOUT
+                    ):
+                        logger.error("Connection to flight computer lost.")
+                        reconnect = True
+                    else:
+                        raise err
                 except* Exception as eg:
                     logger.error(
                         f"Tasks failed with {len(eg.exceptions)} error(s)"
