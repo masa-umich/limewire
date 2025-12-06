@@ -264,6 +264,8 @@ class Proxy:
             if not msg_bytes:
                 break
 
+            logger.debug(f"Message received: 0x{msg_bytes.hex(' ')}")
+
             msg_id = int.from_bytes(msg_bytes[0:1])
             match msg_id:
                 case TelemetryMessage.MSG_ID:

@@ -19,6 +19,7 @@ from .proxy import Proxy
     type=SocketAddress(),
     default="141.212.192.160:1234",  # TODO: Change when port is set
 )
+@click.option("--debug", is_flag=True)
 @click.option(
     "--out",
     "out_path",
@@ -31,8 +32,10 @@ def main(
     fc_address: tuple[str, int],
     proxy_server_addr: tuple[str, int],
     out_path: str,
+    debug: bool,
 ) -> None:
-    set_up_logging()
+    set_up_logging(debug)
+
     proxy = Proxy(out_path=out_path, server_addr=proxy_server_addr)
 
     try:
