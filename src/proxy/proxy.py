@@ -9,10 +9,18 @@ from typing import Tuple
 
 import seaborn as sns
 import synnax as sy
+from loguru import logger
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 
-from lmp import HeartbeatMessage, TelemetryMessage, ValveStateMessage
+from lmp import (
+    HeartbeatMessage,
+    TelemetryMessage,
+    ValveStateMessage,
+    ValveCommandMessage,
+    DeviceCommandMessage,
+    DeviceCommandAckMessage,
+)
 
 
 def format_socket_address(addr: Tuple[str, int]) -> str:
@@ -67,7 +75,7 @@ class Proxy:
 
         async with lifespan():
             peername = client_writer.get_extra_info("peername")
-            print(
+            logger.info(
                 f"Connected to client {index} at {peername[0]}:{peername[1]}."
             )
 
@@ -77,14 +85,13 @@ class Proxy:
                 ConnectionResetError,
                 ConnectionAbortedError,
             ):
-                print(f"Connection to client {index} lost")
+                logger.info(f"Connection to client {index} lost")
             except* Exception as eg:
-                print("=" * 60)
-                print(f"Tasks failed with {len(eg.exceptions)} error(s)")
+                logger.error(f"Tasks failed with {len(eg.exceptions)} error(s)")
                 for exc in eg.exceptions:
-                    print("=" * 60)
-                    traceback.print_exception(type(exc), exc, exc.__traceback__)
-                print("=" * 60)
+                    logger.exception(
+                        "Exception raised with type %s: %s", type(exc), exc
+                    )
 
     async def client_read_loop(
         self,
@@ -154,7 +161,7 @@ class Proxy:
             self.connected = False
             while True:
                 try:
-                    print(
+                    logger.info(
                         f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
                     )
 
@@ -173,12 +180,14 @@ class Proxy:
                 )
 
                 addr = self.server.sockets[0].getsockname()
-                print(f"Proxy server serving on {format_socket_address(addr)}.")
+                logger.info(
+                    f"Proxy server serving on {format_socket_address(addr)}."
+                )
                 # Server forever, even if fight computer connection is severed
                 await self.server.start_serving()
 
                 peername = self.fc_writer.get_extra_info("peername")
-                print(
+                logger.info(
                     f"Connected to flight computer at {peername[0]}:{peername[1]}."
                 )
 
@@ -191,7 +200,7 @@ class Proxy:
                         tg.create_task(self._fc_read())
                         tg.create_task(self._send_heartbeat())
                 except* (ConnectionResetError, ConnectionAbortedError):
-                    print("Connection to flight computer lost")
+                    logger.info("Connection to flight computer lost")
                     self.connected = False
                     reconnect = True
                     # Disconnect the clients
@@ -201,15 +210,14 @@ class Proxy:
                     self.server.close()
                     await self.server.wait_closed()
                 except* Exception as eg:
-                    self.connected = False
-                    print("=" * 60)
-                    print(f"Tasks failed with {len(eg.exceptions)} error(s)")
+                    logger.error(
+                        f"Tasks failed with {len(eg.exceptions)} error(s)"
+                    )
                     for exc in eg.exceptions:
-                        print("=" * 60)
-                        traceback.print_exception(
-                            type(exc), exc, exc.__traceback__
+                        logger.exception(
+                            "Exception raised with type %s: %s", type(exc), exc
                         )
-                    print("=" * 60)
+                    self.connected = False
                 if reconnect:
                     continue
                 else:
@@ -230,7 +238,7 @@ class Proxy:
             except (ConnectionResetError, ConnectionAbortedError) as err:
                 raise err
             except Exception as err:
-                print("unknown heartbeat error", err)
+                logger.error("Unknown heartbeat error", err)
 
     async def _fc_read(self) -> None:
         """Handle incoming data from the TCP connection.
@@ -263,8 +271,15 @@ class Proxy:
                 case ValveStateMessage.MSG_ID:
                     self._parse_and_record(msg_bytes)
                     self.values_processed += 1
+                case (
+                    ValveCommandMessage.MSG_ID
+                    | DeviceCommandAckMessage.MSG_ID
+                    | DeviceCommandMessage.MSG_ID
+                    | HeartbeatMessage.MSG_ID
+                ):
+                    self.values_processed += 1
                 case _:
-                    raise ValueError(
+                    logger.error(
                         f"Received invalid LMP message identifier: 0x{msg_id:X}"
                     )
             # Broadcast to connected clients
@@ -272,7 +287,6 @@ class Proxy:
 
     async def stop(self) -> None:
         """Run shutdown code."""
-        print("stopping")
         self.connected = False
 
         self.fc_writer.close()
@@ -289,9 +303,9 @@ class Proxy:
 
         runtime = asyncio.get_event_loop().time() - self.start_time
         if self.values_processed == 0:
-            print("No data received from flight computer.")
+            logger.info("No data received from flight computer.")
         else:
-            print(
+            logger.info(
                 f"Processed {self.values_processed} values in {runtime:.2f} sec "
                 f"({self.values_processed / runtime:.2f} values/sec)"
             )
@@ -309,59 +323,59 @@ class Proxy:
                 if len(diff_values_ms) > 1
                 else 0.0
             )
-            print(f"Average latency (ms): {avg_ms}")
-            print(f"Std latency (ms): {std_ms}")
-            print(f"Max (ms): {max(diff_values_ms)}")
-            sns.set(style="whitegrid")
-            plt.figure(figsize=(9, 5))
-            ax = sns.histplot(
-                diff_values_ms,
-                bins="fd",
-                kde=True,
-                color="#4C78A8",
-                edgecolor="black",
-                alpha=0.85,
-            )
-            plt.xlabel("Latency (ms)")
-            plt.ylabel("Count")
-            plt.title("Latency Histogram")
-            # Overlay mean and ±1σ
-            xmin = min(self.diff_values_ns)
-            xmax = max(self.diff_values_ns)
-            ax.axvline(
-                avg_ms,
-                color="#E45756",
-                linestyle="--",
-                linewidth=1.5,
-                label=f"Mean = {avg_ms:.0f} ns",
-            )
-            if std_ms > 0.0:
-                ax.axvline(
-                    avg_ms - std_ms,
-                    color="#F58518",
-                    linestyle=":",
-                    linewidth=1.2,
-                    label=f"-1σ = {avg_ms - std_ms:.0f} ns",
-                )
-                ax.axvline(
-                    avg_ms + std_ms,
-                    color="#F58518",
-                    linestyle=":",
-                    linewidth=1.2,
-                    label=f"+1σ = {avg_ms + std_ms:.0f} ns",
-                )
+            logger.info(f"Average latency (ms): {avg_ms}")
+            logger.info(f"Std latency (ms): {std_ms}")
+            logger.info(f"Max (ms): {max(diff_values_ms)}")
+            # sns.set(style="whitegrid")
+            # plt.figure(figsize=(9, 5))
+            # ax = sns.histplot(
+            #     diff_values_ms,
+            #     bins="fd",
+            #     kde=True,
+            #     color="#4C78A8",
+            #     edgecolor="black",
+            #     alpha=0.85,
+            # )
+            # plt.xlabel("Latency (ms)")
+            # plt.ylabel("Count")
+            # plt.title("Latency Histogram")
+            # # Overlay mean and ±1σ
+            # xmin = min(self.diff_values_ns)
+            # xmax = max(self.diff_values_ns)
+            # ax.axvline(
+            #     avg_ms,
+            #     color="#E45756",
+            #     linestyle="--",
+            #     linewidth=1.5,
+            #     label=f"Mean = {avg_ms:.0f} ns",
+            # )
+            # if std_ms > 0.0:
+            #     ax.axvline(
+            #         avg_ms - std_ms,
+            #         color="#F58518",
+            #         linestyle=":",
+            #         linewidth=1.2,
+            #         label=f"-1σ = {avg_ms - std_ms:.0f} ns",
+            #     )
+            #     ax.axvline(
+            #         avg_ms + std_ms,
+            #         color="#F58518",
+            #         linestyle=":",
+            #         linewidth=1.2,
+            #         label=f"+1σ = {avg_ms + std_ms:.0f} ns",
+            #     )
 
-            ax.xaxis.set_major_formatter(ScalarFormatter(useOffset=False))
-            ax.ticklabel_format(axis="x", style="plain", useOffset=False)
-            margin = max((xmax - xmin) * 0.05, 1.0)
-            plt.xlim(xmin - margin, xmax + margin)
-            plt.legend()
-            plt.tight_layout()
-            base, _ = os.path.splitext(self.out_path)
-            hist_path = f"{base}_hist.png"
-            plt.savefig(hist_path, dpi=160)
-            plt.close()
-            print(f"Saved histogram: {hist_path}")
+            # ax.xaxis.set_major_formatter(ScalarFormatter(useOffset=False))
+            # ax.ticklabel_format(axis="x", style="plain", useOffset=False)
+            # margin = max((xmax - xmin) * 0.05, 1.0)
+            # plt.xlim(xmin - margin, xmax + margin)
+            # plt.legend()
+            # plt.tight_layout()
+            # base, _ = os.path.splitext(self.out_path)
+            # hist_path = f"{base}_hist.png"
+            # plt.savefig(hist_path, dpi=160)
+            # plt.close()
+            # logger.info(f"Saved histogram: {hist_path}")
 
     def _parse_and_record(self, msg_bytes: bytes) -> None:
         """Write latency data to CSV file"""
