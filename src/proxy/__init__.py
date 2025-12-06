@@ -4,6 +4,7 @@ import click
 
 from limewire.util import SocketAddress
 
+from .logging import set_up_logging
 from .proxy import Proxy
 
 
@@ -26,12 +27,12 @@ from .proxy import Proxy
     show_default=True,
     help="Output file path (CSV)",
 )
-@click.option("--timestamp", "timestamp_option", type=str)
 def main(
     fc_address: tuple[str, int],
     proxy_server_addr: tuple[str, int],
     out_path: str,
 ) -> None:
+    set_up_logging()
     proxy = Proxy(out_path=out_path, server_addr=proxy_server_addr)
 
     try:
