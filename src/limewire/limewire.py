@@ -45,7 +45,8 @@ class Limewire:
             self.synnax_writer = await self._open_synnax_writer(
                 sy.TimeStamp.now()
             )
-            await asyncio.sleep(0.5)
+            # NECESSARY
+            await asyncio.sleep(3)
 
             self.connected = False
             while True:
@@ -62,21 +63,22 @@ class Limewire:
                         *fc_addr
                     )
                     self.connected = True
-                    # Status message should be one byte long
-                    proxy_status = await self.tcp_reader.readexactly(1)
-                    if not proxy_status:
-                        continue
 
-                    if proxy_status == b"\x00":
-                        # print("Connection to proxy failed: FC connection down")
-                        await asyncio.sleep(1)
-                        continue
-                    elif proxy_status == b"\x01":
-                        self.connected = True
-                    else:
-                        print("CRITICAL: Unrecognizable proxy status")
-                        await asyncio.sleep(1)
-                        continue
+                    # Status message should be one byte long
+                    # proxy_status = await self.tcp_reader.readexactly(1)
+                    # if not proxy_status:
+                    #     continue
+
+                    # if proxy_status == b"\x00":
+                    #     # print("Connection to proxy failed: FC connection down")
+                    #     await asyncio.sleep(1)
+                    #     continue
+                    # elif proxy_status == b"\x01":
+                    #     self.connected = True
+                    # else:
+                    #     print("CRITICAL: Unrecognizable proxy status")
+                    #     await asyncio.sleep(1)
+                    #     continue
                 except ConnectionRefusedError:
                     await asyncio.sleep(1)
                     continue
@@ -97,9 +99,9 @@ class Limewire:
                         tg.create_task(self._tcp_read())
                         tg.create_task(self._synnax_write())
                         tg.create_task(self._relay_valve_cmds())
-                        tg.create_task(self._send_heartbeat())
+                        # tg.create_task(self._send_heartbeat())
                 except* ConnectionResetError:
-                    print("Connection to flight computer lost")
+                    print("Connection to proxy lost")
                     reconnect = True
                 except* Exception as eg:
                     print("=" * 60)
@@ -115,18 +117,18 @@ class Limewire:
                 else:
                     break
 
-    async def _send_heartbeat(self):
-        HEARTBEAT_INTERVAL = 1
-        while True:
-            try:
-                msg = HeartbeatMessage()
-                msg_bytes = bytes(msg)
+    # async def _send_heartbeat(self):
+    #     HEARTBEAT_INTERVAL = 1
+    #     while True:
+    #         try:
+    #             msg = HeartbeatMessage()
+    #             msg_bytes = bytes(msg)
 
-                self.tcp_writer.write(msg_bytes)
-                await self.tcp_writer.drain()
-                await asyncio.sleep(HEARTBEAT_INTERVAL)
-            except ConnectionResetError as err:
-                raise err
+    #             self.tcp_writer.write(msg_bytes)
+    #             await self.tcp_writer.drain()
+    #             await asyncio.sleep(HEARTBEAT_INTERVAL)
+    #         except ConnectionResetError as err:
+    #             raise err
 
     async def stop(self):
         """Run shutdown code."""

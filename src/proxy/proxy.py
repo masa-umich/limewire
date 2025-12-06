@@ -39,67 +39,26 @@ class Proxy:
         self.server_addr = server_addr
         self.client_writers: set[asyncio.StreamWriter] = set()
 
-    # async def start_server(self):
-    #     server = await asyncio.start_server(
-    #         partial(self.handle_client, index=len(self.client_writers)),
-    #         *self.server_addr,
-    #     )
-
-    #     addr = server.sockets[0].getsockname()
-    #     print(f"Proxy server serving on {format_socket_address(addr)}.")
-
-    #     async with server:
-    #         await server.serve_forever()
-
-    #     print("Exiting somehow?")
-
-    async def _broadcast_fc_data(self, msg: bytes) -> None:
-        for client in list(self.client_writers):
-            client.write(msg)
-            await client.drain()
-
-    async def client_read_loop(
-        self,
-        client_reader: asyncio.StreamReader,
-    ):
-        print("hi")
-        while True:
-            # Read the client data
-            msg_length = await client_reader.read(1)
-            if not msg_length:
-                break
-
-            msg_length = int.from_bytes(msg_length)
-            msg_bytes = await client_reader.readexactly(msg_length)
-            if not msg_bytes:
-                break
-
-            if self.connected:
-                self.fc_writer.write(msg_length.to_bytes(1) + msg_bytes)
-                await self.fc_writer.drain()
-            else:
-                break
-        print("client read loop exits")
-
     async def handle_client(
         self,
         client_reader: asyncio.StreamReader,
         client_writer: asyncio.StreamWriter,
-        index: int,
     ):
+        index = len(self.client_writers)
         # Reject connections if FC is not connected yet
         if not self.connected:
             # Let client know FC is disconnected
-            client_writer.write(b"\x00")
-            await client_writer.drain()
+            # client_writer.write(b"\x00")
+            # await client_writer.drain()
             client_writer.close()
             await client_writer.wait_closed()
             return
 
+        # TODO: Add this to Hydrant
         # Let client know FC is disconnected
-        client_writer.write(b"\x01")
-        await client_writer.drain()
-        print("Starting client ", index)
+        # client_writer.write(b"\x01")
+        # await client_writer.drain()
+
         # Add the writer to the set
         self.client_writers.add(client_writer)
 
@@ -115,7 +74,7 @@ class Proxy:
                 await client_writer.wait_closed()
 
         async with lifespan():
-            peername = self.fc_writer.get_extra_info("peername")
+            peername = client_writer.get_extra_info("peername")
             print(
                 f"Connected to client {index} at {peername[0]}:{peername[1]}."
             )
@@ -128,7 +87,7 @@ class Proxy:
                 asyncio.exceptions.IncompleteReadError,
             ) as err:
                 print(f"Connection to client {index} lost")
-                print("Error type in handle_client", type(err))
+                print("Error type in handle_client", err.__class__.__name__)
             except* Exception as eg:
                 print("=" * 60)
                 print(f"Tasks failed with {len(eg.exceptions)} error(s)")
@@ -137,37 +96,62 @@ class Proxy:
                     traceback.print_exception(type(exc), exc, exc.__traceback__)
                 print("=" * 60)
 
-    async def _send_heartbeat(self):
-        HEARTBEAT_INTERVAL = 1
-        cnt = 0
+    async def client_read_loop(
+        self,
+        client_reader: asyncio.StreamReader,
+    ):
         while True:
-            try:
-                print("Sending heartbeat", cnt)
-                cnt += 1
-                msg = HeartbeatMessage()
-                msg_bytes = bytes(msg)
+            # Read the client data
+            msg_length = await client_reader.read(1)
+            if not msg_length:
+                break
 
-                self.fc_writer.write(msg_bytes)
+            msg_length = int.from_bytes(msg_length)
+            msg_bytes = await client_reader.readexactly(msg_length)
+            if not msg_bytes:
+                break
+
+            if self.connected:
+                # print("Got client message:", msg_length.to_bytes(1) + msg_bytes)
+                # print("Sending client message")
+                self.fc_writer.write(msg_length.to_bytes(1) + msg_bytes)
                 await self.fc_writer.drain()
-                await asyncio.sleep(HEARTBEAT_INTERVAL)
-            except (ConnectionResetError, ConnectionAbortedError) as err:
-                raise err
-            # except OSError as err:
-            #     print("yeah in os error")
-            #     # if getattr(err, "WinError", None) == 10053:
-            #     #     raise ConnectionResetError()
-            #     # else:
-            #     #     print("unknown os heartbeat error", err)
-            #     raise err
-            except Exception as err:
-                print("unknown heartbeat error", err)
+            else:
+                break
+        print("Client read loop exits")
 
     async def disconnect_clients(self):
+        # Disconnect the clients
         for client_writer in self.client_writers:
-            # self.client_writers.discard(client_writer)
             client_writer.close()
             await client_writer.wait_closed()
-            # if not client_writer.is_closing():
+        # Clear the set
+        self.client_writers.clear()
+
+    async def _connect_fc(
+        self, ip_addr: str, port: int
+    ) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+        """Establish the TCP connection to the flight computer.
+
+        Args:
+            ip_addr: The IP address portion of the flight computer socket
+                address.
+            port: The port at which the flight computer is listening for
+                connections.
+        Returns:
+            A tuple (reader, writer) containing the TCP reader and writer
+            objects, respectively.
+        Raises:
+            ConnectionRefusedError: Limewire was unable to connect to the
+                flight computer at the given socket address.
+        """
+        try:
+            return await asyncio.open_connection(ip_addr, port)
+        except ConnectionRefusedError:
+            # Give a more descriptive error message
+            raise ConnectionRefusedError(
+                f"Unable to connect to flight computer at {ip_addr}:{port}."
+            )
 
     async def start(self, fc_addr: tuple[str, int]) -> None:
         # We need to define an asynccontextmanager to ensure that shutdown
@@ -182,7 +166,7 @@ class Proxy:
         async with lifespan():
             # Start server here
             self.server = await asyncio.start_server(
-                partial(self.handle_client, index=len(self.client_writers)),
+                partial(self.handle_client),
                 *self.server_addr,
             )
 
@@ -229,7 +213,6 @@ class Proxy:
                 except* Exception as eg:
                     self.connected = False
                     print("=" * 60)
-                    print("start")
                     print(f"Tasks failed with {len(eg.exceptions)} error(s)")
                     for exc in eg.exceptions:
                         print("=" * 60)
@@ -242,34 +225,30 @@ class Proxy:
                 else:
                     break
 
-    async def stop(self) -> None:
-        """Run shutdown code."""
-        print("stopping")
-        self.connected = False
+    async def _send_heartbeat(self):
+        HEARTBEAT_INTERVAL = 1
+        cnt = 0
+        while True:
+            try:
+                # print("Sending heartbeat", cnt)
+                cnt += 1
+                msg = HeartbeatMessage()
+                msg_bytes = bytes(msg)
 
-        self.fc_writer.close()
-        await self.fc_writer.wait_closed()
-
-        await self.disconnect_clients()
-        self.client_writers.clear()
-
-        # Disconnect clients and close server
-        # await self.disconnect_clients() Need this?????
-        self.server.close()
-        await self.server.wait_closed()
-
-        # Close CSV file
-        self._csv_file.close()
-
-        runtime = asyncio.get_event_loop().time() - self.start_time
-        if self.values_processed == 0:
-            print("No data received from flight computer.")
-        else:
-            print(
-                f"Processed {self.values_processed} values in {runtime:.2f} sec "
-                f"({self.values_processed / runtime:.2f} values/sec)"
-            )
-            self.print_latency_stats()
+                self.fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
+                await self.fc_writer.drain()
+                await asyncio.sleep(HEARTBEAT_INTERVAL)
+            except (ConnectionResetError, ConnectionAbortedError) as err:
+                raise err
+            # except OSError as err:
+            #     print("yeah in os error")
+            #     # if getattr(err, "WinError", None) == 10053:
+            #     #     raise ConnectionResetError()
+            #     # else:
+            #     #     print("unknown os heartbeat error", err)
+            #     raise err
+            except Exception as err:
+                print("unknown heartbeat error", err)
 
     async def _fc_read(self) -> None:
         """Handle incoming data from the TCP connection.
@@ -277,6 +256,12 @@ class Proxy:
         Returns:
             The number of telemetry values processed.
         """
+
+        async def _broadcast_fc_data(msg: bytes) -> None:
+            for client in list(self.client_writers):
+                client.write(msg)
+                await client.drain()
+
         self.values_processed = 0
         while True:
             msg_length = await self.fc_reader.read(1)
@@ -301,7 +286,34 @@ class Proxy:
                         f"Received invalid LMP message identifier: 0x{msg_id:X}"
                     )
             # Broadcast to connected clients
-            await self._broadcast_fc_data(msg_length.to_bytes(1) + msg_bytes)
+            await _broadcast_fc_data(msg_length.to_bytes(1) + msg_bytes)
+
+    async def stop(self) -> None:
+        """Run shutdown code."""
+        print("stopping")
+        self.connected = False
+
+        self.fc_writer.close()
+        await self.fc_writer.wait_closed()
+
+        await self.disconnect_clients()
+
+        # Disconnect clients and close server
+        self.server.close()
+        await self.server.wait_closed()
+
+        # Close CSV file
+        self._csv_file.close()
+
+        runtime = asyncio.get_event_loop().time() - self.start_time
+        if self.values_processed == 0:
+            print("No data received from flight computer.")
+        else:
+            print(
+                f"Processed {self.values_processed} values in {runtime:.2f} sec "
+                f"({self.values_processed / runtime:.2f} values/sec)"
+            )
+            self.print_latency_stats()
 
     def print_latency_stats(self) -> None:
         """Print latency stats upon closing the program and write to histogram"""
@@ -368,31 +380,6 @@ class Proxy:
             plt.savefig(hist_path, dpi=160)
             plt.close()
             print(f"Saved histogram: {hist_path}")
-
-    async def _connect_fc(
-        self, ip_addr: str, port: int
-    ) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        """Establish the TCP connection to the flight computer.
-
-        Args:
-            ip_addr: The IP address portion of the flight computer socket
-                address.
-            port: The port at which the flight computer is listening for
-                connections.
-        Returns:
-            A tuple (reader, writer) containing the TCP reader and writer
-            objects, respectively.
-        Raises:
-            ConnectionRefusedError: Limewire was unable to connect to the
-                flight computer at the given socket address.
-        """
-        try:
-            return await asyncio.open_connection(ip_addr, port)
-        except ConnectionRefusedError:
-            # Give a more descriptive error message
-            raise ConnectionRefusedError(
-                f"Unable to connect to flight computer at {ip_addr}:{port}."
-            )
 
     def _parse_and_record(self, msg_bytes: bytes) -> None:
         """Write latency data to CSV file"""
