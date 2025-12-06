@@ -341,7 +341,6 @@ class Limewire:
         for data_channel_names in self.channels.values():
             for channel_name in data_channel_names:
                 if is_valve_command_channel(channel_name):
-                    logger.debug(f"Adding command channel '{channel_name}'")
                     cmd_channels.append(channel_name)
 
         async with await self.synnax_client.open_async_streamer(
