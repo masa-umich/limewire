@@ -90,7 +90,7 @@ class Limewire:
                     )
                     for exc in eg.exceptions:
                         logger.exception(
-                            "Exception raised with type %s: %s", type(exc), exc
+                            f"Exception raised with type {type(exc)}: {exc}"
                         )
                 if reconnect:
                     continue
@@ -217,7 +217,7 @@ class Limewire:
                 self.synnax_writer.write(frame)
             except Exception as exc:
                 logger.exception(
-                    "Exception raised with type %s: %s", type(exc), exc
+                    f"Exception raised with type {type(exc)}: {exc}"
                 )
 
             self.queue.task_done()
