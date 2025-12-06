@@ -212,7 +212,13 @@ class Limewire:
                 self.synnax_writer = await self._open_synnax_writer(
                     msg.timestamp
                 )
-            self.synnax_writer.write(frame)
+
+            try:
+                self.synnax_writer.write(frame)
+            except Exception as exc:
+                logger.exception(
+                    "Exception raised with type %s: %s", type(exc), exc
+                )
 
             self.queue.task_done()
 
