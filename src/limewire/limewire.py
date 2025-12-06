@@ -188,7 +188,7 @@ class Limewire:
         while True:
             message = await self.queue.get()
 
-            if not isinstance(message, TelemetryMessage) or isinstance(
+            if not isinstance(message, TelemetryMessage) and not isinstance(
                 message, ValveStateMessage
             ):
                 logger.warning(
