@@ -129,6 +129,7 @@ class Limewire:
             try:
                 await self.lmp_framer.send_message(HeartbeatMessage())
                 await asyncio.sleep(HEARTBEAT_INTERVAL)
+                logger.debug(f"Queue size: {self.queue.qsize()}")
             except ConnectionResetError as err:
                 raise err
                 # print(err)
