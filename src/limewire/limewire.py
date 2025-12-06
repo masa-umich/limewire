@@ -18,6 +18,7 @@ from lmp import (
 )
 from lmp.framer import FramingError
 
+from .ntp_sync import send_ntp_sync
 from .util import get_write_time_channel_name, synnax_init
 
 
@@ -60,6 +61,8 @@ class Limewire:
             )
             self.telemetry_framer = TelemetryFramer(telemetry_socket)
             logger.info("Listening for telemetry on UDP port 6767")
+
+            self.fc_ip_addr = fc_addr[0]
 
             self.connected = False
             while True:
@@ -218,6 +221,8 @@ class Limewire:
                 logger.warning(
                     f"Synnax validation error '{str(err)}', skipping frame"
                 )
+                logger.info("Sending NTP sync...")
+                send_ntp_sync(self.fc_ip_addr)
 
             self.queue.task_done()
 
