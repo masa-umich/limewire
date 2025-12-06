@@ -117,7 +117,9 @@ class Limewire:
             try:
                 self.synnax_writer.close()
             except sy.ValidationError:
-                logger.warning("Ignoring Synnax validation error(s).")
+                logger.warning(
+                    "Ignoring Synnax writer internal validation error(s)."
+                )
 
         logger.info("=" * 60)
 
