@@ -199,6 +199,7 @@ class Limewire:
             if frame is None:
                 self.queue.task_done()
                 continue
+            logger.debug("Built Synnax frame")
 
             if self.synnax_writer is None:
                 self.synnax_writer = await self._open_synnax_writer(
