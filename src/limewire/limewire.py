@@ -75,11 +75,17 @@ class Limewire:
                         f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
                     )
 
-                    tcp_reader, tcp_writer = await self._connect_fc(*fc_addr)
-                    self.lmp_framer = LMPFramer(tcp_reader, tcp_writer)
-
-                    self.connected = True
+                    async with asyncio.timeout(1):
+                        tcp_reader, tcp_writer = await self._connect_fc(
+                            *fc_addr
+                        )
+                        self.lmp_framer = LMPFramer(tcp_reader, tcp_writer)
+                        self.connected = True
+                except TimeoutError:
+                    logger.warning("Connection attempt timed out.")
+                    continue
                 except ConnectionRefusedError:
+                    logger.warning("Connection refused.")
                     continue
                 except OSError as err:
                     if (
@@ -87,6 +93,7 @@ class Limewire:
                         and getattr(err, "winerr", None)
                         == WINERROR_SEMAPHORE_TIMEOUT
                     ):
+                        logger.warning("Windows OSError semaphore timeout.")
                         continue
                     else:
                         raise err
@@ -167,9 +174,7 @@ class Limewire:
                 flight computer at the given socket address.
         """
         try:
-            return await asyncio.open_connection(
-                ip_addr, port, ssl_handshake_timeout=1
-            )
+            return await asyncio.open_connection(ip_addr, port)
         except ConnectionRefusedError:
             # Give a more descriptive error message
             raise ConnectionRefusedError(
