@@ -1,41 +1,113 @@
-import socket
+import asyncio
+from datetime import datetime
 
-from nicegui import ui
+from nicegui import app, ui
 
-from lmp import DeviceCommandMessage
+from lmp import DeviceCommandAckMessage, DeviceCommandMessage
 from lmp.util import Board, DeviceCommand
 
+from .device_command_history import DeviceCommandHistoryEntry
 
-def main_page():
-    fc_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    fc_socket.connect(("127.0.0.1", 5000))
 
-    fc_writer = fc_socket.makefile("wb")
+class Hydrant:
+    def __init__(self, fc_address: tuple[str, int]):
+        self.fc_address = fc_address
 
-    ui.page_title("Hydrant")
-    ui.dark_mode().enable()
+        self.boards_available = {board.name: board for board in Board}
+        self.commands_available = {cmd.name: cmd for cmd in DeviceCommand}
 
-    boards_available = {board.name: board for board in Board}
-    commands_available = {cmd.name: cmd for cmd in DeviceCommand}
+        # Initially not assigned; updates on user input
+        self.board_select = None
+        self.command_select = None
+        self.confirm_label = None
+        self.selected_board_name = None
+        self.selected_command_name = None
 
-    # PAGE SETUP
+        self.device_command_history: list[DeviceCommandHistoryEntry] = []
+        self.device_command_recency: dict[
+            tuple[Board, DeviceCommand],
+            DeviceCommandHistoryEntry,
+        ] = {}
 
-    # HEADER
-    with ui.header().classes(
-        "bg-black text-white px-6 py-4 border-b border-gray-700"
-    ):
-        with ui.row().classes("items-center gap-3"):
-            ui.label("HYDRANT").classes(
-                "text-3xl font-extrabold tracking-wider"
-            )
+        app.on_startup(self.connect_to_fc())
 
-    # MAIN PAGE CONTENT
-    with ui.column().classes("w-full p-6 gap-4 max-w-7xl mx-auto"):
-        # TWO-COLUMN LAYOUT
-        with ui.row().classes("w-full gap-4 items-stretch"):
-            # LEFT COLUMN
+    async def connect_to_fc(self):
+        """Maintain connection to flight computer."""
+        while True:
+            try:
+                print(
+                    f"Connecting to FC at {self.fc_address[0]}:{self.fc_address[1]}..."
+                )
+                self.fc_reader, self.fc_writer = await asyncio.open_connection(
+                    *self.fc_address
+                )
+                print("Connection successful.")
+            except ConnectionRefusedError:
+                await asyncio.sleep(1)
+                continue
+
+            fc_listen_task = asyncio.create_task(self.listen_for_acks())
+
+            try:
+                await fc_listen_task
+            except asyncio.CancelledError:
+                print("Hydrant cancelled.")
+                break
+            except Exception as e:
+                print(f"Got exception: {e}")
+                continue
+
+    async def listen_for_acks(self):
+        while True:
+            msg_length = await self.fc_reader.read(1)
+            if not msg_length:
+                break
+
+            msg_length = int.from_bytes(msg_length)
+            msg_bytes = await self.fc_reader.readexactly(msg_length)
+            if not msg_bytes:
+                break
+
+            msg_id = int.from_bytes(msg_bytes[0:1])
+            match msg_id:
+                case DeviceCommandAckMessage.MSG_ID:
+                    msg = DeviceCommandAckMessage.from_bytes(msg_bytes)
+
+                    history_entry = self.device_command_recency.get(
+                        (msg.board, msg.command)
+                    )
+                    if history_entry is None:
+                        continue
+                    history_entry.set_ack(datetime.now(), msg.response_msg)
+
+                    self.refresh_history_table()
+                case _:
+                    continue
+
+    def main_page(self):
+        """Generates page outline and GUI"""
+
+        ui.page_title("Hydrant")
+        ui.dark_mode().enable()
+
+        # HEADER
+        with ui.header().classes(
+            "bg-black text-white px-6 py-4 border-b border-gray-700"
+        ):
+            with ui.row().classes("items-center gap-3"):
+                ui.label("HYDRANT").classes(
+                    "text-3xl font-extrabold tracking-wider"
+                )
+
+        # MAIN PAGE CONTENT
+        with ui.column().classes(
+            "w-full p-6 gap-4 max-w-7xl mx-auto"
+        ) as main_page_content:
+            self.main_page_content = main_page_content
+
+            # DEVICE COMMANDS
             with ui.card().classes(
-                "flex-1 bg-gray-900 border border-gray-700 p-6"
+                "w-full bg-gray-900 border border-gray-700 p-6"
             ):
                 ui.label("DEVICE COMMANDS").classes(
                     "text-xl font-bold text-white mb-4"
@@ -45,93 +117,126 @@ def main_page():
                     ui.label("BOARD").classes("text-lg font-bold text-white")
 
                     # Board selector
-                    board_select = ui.select(
+                    self.board_select = ui.select(
                         label="Select a board",
-                        options=list(boards_available.keys()),
+                        options=list(self.boards_available.keys()),
                     ).classes("w-full")
 
                     # Command
                     ui.label("COMMAND").classes("text-lg font-bold text-white")
-                    command_select = ui.select(
+                    self.command_select = ui.select(
                         label="Select a command",
-                        options=list(commands_available.keys()),
+                        options=list(self.commands_available.keys()),
                     ).classes("w-full")
 
-                    def send_after_confirm():
-                        "Function to send command to board after it has been confirmed"
-                        dialog.close()
-                        selected_board_name = board_select.value
-                        selected_command_name = command_select.value
-
-                        board = boards_available[selected_board_name]
-                        command = commands_available[selected_command_name]
-
-                        msg = DeviceCommandMessage(board, command)
-                        msg_bytes = bytes(msg)
-
-                        print(
-                            f"Sending {selected_command_name} to board {selected_board_name}"
-                        )
-                        fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
-                        fc_writer.flush()
-                        dialog.close()
-
-                        # TODO: Write command to history log
-
-                    # Creates dialog to use for popup
+                    # Dialog that is used for popup
                     with ui.dialog() as dialog, ui.card():
-                        confirm_label = ui.label("")
+                        self.confirm_label = ui.label("")
                         with ui.row():
                             ui.button(
-                                "YES", on_click=lambda: send_after_confirm()
+                                "YES",
+                                on_click=lambda: self.send_after_confirm(
+                                    dialog
+                                ),
                             )
                             ui.button("NO", on_click=lambda: dialog.close())
 
-                    def send_command():
-                        """Send command to the board."""
-                        selected_board_name = board_select.value
-                        selected_command_name = command_select.value
+                    ui.button(
+                        "SEND", on_click=lambda: self.send_command(dialog)
+                    ).classes("w-half bg-blue-600 text-white hover:bg-blue-700")
 
-                        confirm_label.text = (
-                            f"Are you sure you want to send command '{selected_command_name}' "
-                            f"to board '{selected_board_name}'?"
-                        )
+            # COMMAND HISTORY CARD
+            self.command_history_table()
 
-                        dialog.open()
+            # ERROR LOG CARD
+            with ui.card().classes(
+                "w-full bg-gray-900 border border-gray-700 p-6"
+            ):
+                ui.label("Error Log").classes(
+                    "text-xl font-bold text-red-400 mb-4"
+                )
 
-                    # SEND BUTTON
-                    ui.button("SEND", on_click=send_command).classes(
-                        "w-half bg-blue-600 text-white hover:bg-blue-700"
+                error_column = ui.column().classes("w-full overflow-y-auto")
+                with error_column:
+                    ui.label("Errors will appear here").classes(
+                        "text-gray-500 italic"
                     )
 
-            # RIGHT COLUMN
-            with ui.column().classes("flex-1 gap-4"):
-                # COMMAND HISTORY CARD
-                with ui.card().classes(
-                    "flex-1 bg-gray-900 border border-gray-700 p-6"
-                ):
-                    ui.label("Command History").classes(
-                        "text-xl font-bold text-blue-400 mb-4"
-                    )
+    def send_command(self, dialog):
+        """Initialize send command process on button press"""
 
-                    history_column = ui.column().classes(
-                        "w-full overflow-y-auto"
-                    )
-                    with history_column:
-                        ui.label("Command history will appear here").classes(
-                            "text-gray-500 italic"
-                        )
+        self.selected_board_name = self.board_select.value
+        self.selected_command_name = self.command_select.value
 
-                # ERROR LOG CARD
-                with ui.card().classes(
-                    "flex-1 bg-gray-900 border border-gray-700 p-6"
-                ):
-                    ui.label("Error Log").classes(
-                        "text-xl font-bold text-red-400 mb-4"
-                    )
+        self.confirm_label.text = (
+            f"Are you sure you want to send command '{self.selected_command_name}' "
+            f"to board '{self.selected_board_name}'?"
+        )
 
-                    error_column = ui.column().classes("w-full overflow-y-auto")
-                    with error_column:
-                        ui.label("Errors will appear here").classes(
-                            "text-gray-500 italic"
-                        )
+        dialog.open()
+
+    async def send_after_confirm(self, dialog):
+        """Send command to board after confirmation"""
+        dialog.close()
+        self.selected_board_name = self.board_select.value
+        self.selected_command_name = self.command_select.value
+
+        self.board = self.boards_available[self.selected_board_name]
+        self.command = self.commands_available[self.selected_command_name]
+
+        msg = DeviceCommandMessage(self.board, self.command)
+        msg_bytes = bytes(msg)
+
+        print(
+            f"Sending {self.selected_command_name} to board {self.selected_board_name}"
+        )
+        self.fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
+        await self.fc_writer.drain()
+
+        new_entry = DeviceCommandHistoryEntry(
+            board=msg.board,
+            command=msg.command,
+            send_time=datetime.now(),
+        )
+        self.device_command_history.append(new_entry)
+        self.device_command_recency[(msg.board, msg.command)] = new_entry
+        self.refresh_history_table()
+
+    def refresh_history_table(self):
+        self.cmd_history_grid.options["rowData"] = self.history_dict()
+        self.cmd_history_grid.update()
+
+    def command_history_table(self):
+        with ui.card().classes(
+            "w-full bg-gray-900 border border-gray-700 p-6"
+        ) as card:
+            ui.label("Command History").classes(
+                "text-xl font-bold text-blue-400 mb-4"
+            )
+
+            history_column = ui.column().classes("w-full overflow-y-auto")
+
+            column_defs = []
+            for field in DeviceCommandHistoryEntry.fields():
+                col_def = {"field": field}
+                if field == "Send Time":
+                    col_def["sort"] = "desc"
+                column_defs.append(col_def)
+
+            with history_column:
+                self.cmd_history_grid = ui.aggrid(
+                    {
+                        "columnDefs": column_defs,
+                        "rowData": self.history_dict(),
+                        "defaultColDef": {
+                            "filter": True,
+                            "sortable": True,
+                            "floatingFilter": True,
+                        },
+                    }
+                )
+
+        return card
+
+    def history_dict(self):
+        return [entry.to_gui_dict() for entry in self.device_command_history]

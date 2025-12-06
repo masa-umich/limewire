@@ -1,11 +1,19 @@
+import click
 from nicegui import ui
 
-from .hydrant import main_page
+from limewire.util import SocketAddress
+
+from .hydrant import Hydrant
 
 
-def main():
+@click.command(context_settings={"help_option_names": ["--help", "-h"]})
+@click.argument("fc_address", type=SocketAddress())
+def main(fc_address: tuple[str, int]):
     print("! HYDRANT RUNNING !")
-    ui.run(main_page, show=False, reload=False)
+
+    hydrant = Hydrant(fc_address)
+
+    ui.run(hydrant.main_page, show=False, reload=False)
 
 
 if __name__ == "__main__":
