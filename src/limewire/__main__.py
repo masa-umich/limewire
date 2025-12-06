@@ -10,7 +10,7 @@ from limewire.util import SocketAddress
 
 @click.command(context_settings={"help_option_names": ["--help", "-h"]})
 @click.argument("fc_address", type=SocketAddress())
-@click.option("--debug")
+@click.option("--debug", is_flag=True)
 def main(fc_address: tuple[str, int], debug: bool):
     """Run Limewire."""
 
