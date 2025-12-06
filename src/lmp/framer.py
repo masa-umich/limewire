@@ -1,10 +1,59 @@
+import asyncio
+
 import asyncudp
 
-from .telemetry import TelemetryMessage
+from lmp import (
+    DeviceCommandAckMessage,
+    DeviceCommandMessage,
+    HeartbeatMessage,
+    LMPMessage,
+    ValveCommandMessage,
+    ValveStateMessage,
+)
+from lmp.telemetry import TelemetryMessage
 
 
 class FramingError(Exception):
     pass
+
+
+class LMPFramer:
+    def __init__(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ):
+        self.reader = reader
+        self.writer = writer
+
+    async def send_message(self, message: LMPMessage) -> None:
+        msg_bytes = bytes(message)
+        self.writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
+        await self.writer.drain()
+
+    async def receive_message(self) -> LMPMessage | None:
+        msg_length = await self.reader.read(1)
+        if not msg_length:
+            return None
+
+        msg_bytes = await self.reader.readexactly(int.from_bytes(msg_length))
+        if not msg_bytes:
+            return None
+
+        msg_id = int.from_bytes(msg_bytes[0:1])
+        match msg_id:
+            case DeviceCommandAckMessage.MSG_ID:
+                return DeviceCommandAckMessage.from_bytes(msg_bytes)
+            case DeviceCommandMessage.MSG_ID:
+                return DeviceCommandMessage.from_bytes(msg_bytes)
+            case HeartbeatMessage.MSG_ID:
+                return HeartbeatMessage.from_bytes(msg_bytes)
+            case ValveCommandMessage.MSG_ID:
+                return ValveCommandMessage.from_bytes(msg_bytes)
+            case ValveStateMessage.MSG_ID:
+                return ValveStateMessage.from_bytes(msg_bytes)
+            case _:
+                raise ValueError(
+                    f"Received invalid LMP message identifier: 0x{msg_id:X}"
+                )
 
 
 class TelemetryFramer:

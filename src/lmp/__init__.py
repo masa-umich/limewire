@@ -19,3 +19,12 @@ from .heartbeat import HeartbeatMessage
 from .telemetry import TelemetryMessage
 from .util import Board, Valve
 from .valve import ValveCommandMessage, ValveStateMessage
+
+type LMPMessage = (
+    DeviceCommandAckMessage
+    | DeviceCommandMessage
+    | HeartbeatMessage
+    | TelemetryMessage
+    | ValveCommandMessage
+    | ValveStateMessage
+)
