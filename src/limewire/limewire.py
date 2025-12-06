@@ -203,7 +203,13 @@ class Limewire:
                 self.synnax_writer = await self._open_synnax_writer(
                     message.timestamp
                 )
-            self.synnax_writer.write(frame)
+
+            try:
+                self.synnax_writer.write(frame)
+            except sy.ValidationError as err:
+                logger.warning(
+                    f"Synnax validation error '{str(err)}', skipping frame"
+                )
 
             self.queue.task_done()
 
