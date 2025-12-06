@@ -33,8 +33,8 @@ class FCSimulator:
         self.tcp_port = tcp_port
         self.run_time = run_time
 
-        self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.log_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.log_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.tcp_aborted = False
 
     async def generate_telemetry_data(
@@ -204,6 +204,6 @@ class FCSimulator:
             await server.serve_forever()
 
         while True:
-            self.udp_socket.sendto(
+            self.log_socket.sendto(
                 b"Hello, world!\r\n", ("127.0.0.1", self.UDP_PORT)
             )
