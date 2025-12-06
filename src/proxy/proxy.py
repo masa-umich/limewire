@@ -259,12 +259,14 @@ class Proxy:
             if not msg_length:
                 break
 
+            logger.debug(f"Message length: 0x{msg_length.hex()}")
+
             msg_length = int.from_bytes(msg_length)
             msg_bytes = await self.fc_reader.readexactly(msg_length)
             if not msg_bytes:
                 break
 
-            logger.debug(f"Message received: 0x{msg_bytes.hex(' ')}")
+            logger.debug(f"Message received: {msg_bytes.hex(' ')}")
 
             msg_id = int.from_bytes(msg_bytes[0:1])
             match msg_id:
