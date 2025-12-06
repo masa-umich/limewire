@@ -323,6 +323,7 @@ class Limewire:
         data_channels: list[sy.Channel] = []
         for data_channel_names in self.channels.values():
             for channel_name in data_channel_names:
+                logger.debug(f"Data Channel: {channel_name}")
                 data_channels.append(
                     self.synnax_client.channels.retrieve(channel_name)  # pyright: ignore[reportArgumentType]
                 )
@@ -333,6 +334,7 @@ class Limewire:
                 channel.data_type == sy.DataType.UINT8
                 and "state" not in channel.name
             ):
+                logger.debug(f"Command Channel: {channel.name}")
                 cmd_channels.append(channel)
 
         async with await self.synnax_client.open_async_streamer(
