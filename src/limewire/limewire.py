@@ -80,8 +80,16 @@ class Limewire:
 
                     self.connected = True
                 except ConnectionRefusedError:
-                    await asyncio.sleep(1)
                     continue
+                except OSError as err:
+                    if (
+                        platform.system() == "Windows"
+                        and getattr(err, "winerr", None)
+                        == WINERROR_SEMAPHORE_TIMEOUT
+                    ):
+                        continue
+                    else:
+                        raise err
 
                 peername = tcp_writer.get_extra_info("peername")
                 logger.info(
@@ -102,16 +110,6 @@ class Limewire:
                 except* ConnectionResetError:
                     logger.error("Connection to flight computer lost.")
                     reconnect = True
-                except* OSError as err:
-                    if (
-                        platform.system() == "Windows"
-                        and getattr(err, "winerr", None)
-                        == WINERROR_SEMAPHORE_TIMEOUT
-                    ):
-                        logger.error("Connection to flight computer lost.")
-                        reconnect = True
-                    else:
-                        raise err
                 except* Exception as eg:
                     logger.error(
                         f"Tasks failed with {len(eg.exceptions)} error(s)"
@@ -169,7 +167,9 @@ class Limewire:
                 flight computer at the given socket address.
         """
         try:
-            return await asyncio.open_connection(ip_addr, port)
+            return await asyncio.open_connection(
+                ip_addr, port, ssl_handshake_timeout=1
+            )
         except ConnectionRefusedError:
             # Give a more descriptive error message
             raise ConnectionRefusedError(
