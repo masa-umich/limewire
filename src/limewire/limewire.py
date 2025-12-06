@@ -320,15 +320,20 @@ class Limewire:
         """Relay valve commands from Synnax to the flight computer."""
 
         # Create a list of all valve command channels
+        data_channels: list[sy.Channel] = []
+        for data_channel_names in self.channels.values():
+            for channel_name in data_channel_names:
+                data_channels.append(
+                    self.synnax_client.channels.retrieve(channel_name)  # pyright: ignore[reportArgumentType]
+                )
+
         cmd_channels = []
-        for data_channels in self.channels.values():
-            for channel in data_channels:
-                if (
-                    "cmd" in channel
-                    and "timestamp" not in channel
-                    and "limewire" not in channel
-                ):
-                    cmd_channels.append(channel)
+        for channel in data_channels:
+            if (
+                channel.data_type == sy.DataType.UINT8
+                and "state" not in channel.name
+            ):
+                cmd_channels.append(channel)
 
         async with await self.synnax_client.open_async_streamer(
             cmd_channels
