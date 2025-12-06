@@ -39,18 +39,17 @@ class FCSimulator:
         self.log_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.tcp_aborted = False
 
-    async def generate_telemetry_data(
-        self,
-        addr: Tuple[str, int],
-        writer: asyncio.StreamWriter,
-        run_time: float,
-    ) -> None:
+    async def generate_telemetry_data(self, run_time: float) -> None:
         """Send randomly generated telemetry data to Limewire."""
 
         # Set up telemetry socket
         self.telemetry_socket = await asyncudp.create_socket(
-            ("255.255.255.255", 6767)
+            remote_addr=("255.255.255.255", 6767)
         )
+        self.telemetry_socket._transport.get_extra_info("socket").setsockopt(
+            socket.SOL_SOCKET, socket.SO_BROADCAST, 1
+        )
+        print("Sending telemetry at 255.255.255.255:6767")
 
         self.telemetry_framer = TelemetryFramer(sock=self.telemetry_socket)
 
@@ -164,12 +163,8 @@ class FCSimulator:
 
         self.tcp_aborted = False
 
-        telemetry_task = asyncio.create_task(
-            self.generate_telemetry_data(addr, writer, run_time)
-        )
         valve_task = asyncio.create_task(self.handle_commands(reader, writer))
 
-        await telemetry_task
         await valve_task
 
         if not self.tcp_aborted:
@@ -184,6 +179,12 @@ class FCSimulator:
             ip_addr: The IP address with which to start the TCP server.
             port: The port with which to start the server.
         """
+
+        # Start telemetry task
+        telemetry_task = asyncio.create_task(
+            self.generate_telemetry_data(self.run_time)
+        )
+
         # We have to pass a partial function because asyncio.start_server()
         # expects a function with only two arguments. functools.partial()
         # "fills in" the run_time argument for us and returns a new function
@@ -199,6 +200,8 @@ class FCSimulator:
 
         async with server:
             await server.serve_forever()
+
+        await telemetry_task
 
         while True:
             self.log_socket.sendto(
