@@ -192,7 +192,7 @@ class Limewire:
                 message, ValveStateMessage
             ):
                 logger.warning(
-                    f"Invalid message type '{type(message)}' in queue."
+                    f"Invalid message type '{str(type(message))}' in queue."
                 )
                 self.queue.task_done()
                 continue
