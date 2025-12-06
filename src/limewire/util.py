@@ -12,6 +12,7 @@ from typing import override
 import click
 import synnax as sy
 from dotenv import load_dotenv
+from loguru import logger
 
 
 class SocketAddress(click.ParamType):
@@ -75,19 +76,14 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
         # Catching on Exception is bad practice, but unavoidable here because
         # freighter doesn't expose freighter.exceptions.Unreachable. We print
         # the specific error type below for debugging purposes.
-        print("ERROR: Failed to connect to Synnax (Is Synnax running?)")
-        print("===== Env Vars Dump =====")
-        print(f"SYNNAX_HOST: {SYNNAX_HOST}")
-        print(f"SYNNAX_PORT: {SYNNAX_PORT}")
-        print(f"SYNNAX_USERNAME: {SYNNAX_USERNAME}")
-        print(f"SYNNAX_PASSWORD: {SYNNAX_PASSWORD}")
-        print(f"SYNNAX_SECURE: {SYNNAX_SECURE}")
-        print(f"LIMEWIRE_DEV_SYNNAX: {LIMEWIRE_DEV_SYNNAX}")
-        print("=========================")
-        print(f"{type(err).__module__}.{type(err).__qualname__}: {err}")
+        logger.error("Failed to connect to Synnax (Is Synnax running?)")
+        logger.error(
+            f"Env Vars Dump: SYNNAX_HOST: {SYNNAX_HOST}, SYNNAX_PORT: {SYNNAX_PORT}, SYNNAX_USERNAME: {SYNNAX_USERNAME}, SYNNAX_PASSWORD: {SYNNAX_PASSWORD}, SYNNAX_SECURE: {SYNNAX_SECURE}, LIMEWIRE_DEV_SYNNAX: {LIMEWIRE_DEV_SYNNAX}"
+        )
+        logger.error(f"{type(err).__module__}.{type(err).__qualname__}: {err}")
         sys.exit(1)
 
-    print(
+    logger.info(
         f"Connected to Synnax at {SYNNAX_HOST}:{SYNNAX_PORT} (LIMEWIRE_DEV_SYNNAX={LIMEWIRE_DEV_SYNNAX})"
     )
 

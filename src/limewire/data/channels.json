@@ -1,11 +1,11 @@
 {
     "fc_timestamp": [
-        "fc_vlv1_current",
-        "fc_vlv1_old",
-        "fc_vlv2_current",
-        "fc_vlv2_old",
-        "fc_vlv3_current",
-        "fc_vlv3_old",
+        "fc_vlv_1_current",
+        "fc_vlv_1_old",
+        "fc_vlv_2_current",
+        "fc_vlv_2_old",
+        "fc_vlv_3_current",
+        "fc_vlv_3_old",
         "fc_pt_1",
         "fc_pt_2",
         "fc_pt_3",
@@ -42,42 +42,42 @@
         "fc_board_temp",
         "fc_limewire_write_time"
     ],
-    "fc_vlv1_cmd_timestamp": [
-        "fc_vlv1_cmd"
+    "fc_vlv_1_timestamp": [
+        "fc_vlv_1"
     ],
-    "fc_vlv1_state_timestamp": [
-        "fc_vlv1_state",
-        "fc_vlv1_state_limewire_write_time"
+    "fc_state_1_timestamp": [
+        "fc_state_1",
+        "fc_state_1_limewire_write_time"
     ],
-    "fc_vlv2_cmd_timestamp": [
-        "fc_vlv2_cmd"
+    "fc_vlv_2_timestamp": [
+        "fc_vlv_2"
     ],
-    "fc_vlv2_state_timestamp": [
-        "fc_vlv2_state",
-        "fc_vlv2_state_limewire_write_time"
+    "fc_state_2_timestamp": [
+        "fc_state_2",
+        "fc_state_2_limewire_write_time"
     ],
-    "fc_vlv3_cmd_timestamp": [
-        "fc_vlv3_cmd"
+    "fc_vlv_3_timestamp": [
+        "fc_vlv_3"
     ],
-    "fc_vlv3_state_timestamp": [
-        "fc_vlv3_state",
-        "fc_vlv3_state_limewire_write_time"
+    "fc_state_3_timestamp": [
+        "fc_state_3",
+        "fc_state_3_limewire_write_time"
     ],
     "bb1_timestamp": [
-        "bb1_vlv1_current",
-        "bb1_vlv1_old",
-        "bb1_vlv2_current",
-        "bb1_vlv2_old",
-        "bb1_vlv3_current",
-        "bb1_vlv3_old",
-        "bb1_vlv4_current",
-        "bb1_vlv4_old",
-        "bb1_vlv5_current",
-        "bb1_vlv5_old",
-        "bb1_vlv6_current",
-        "bb1_vlv6_old",
-        "bb1_vlv7_current",
-        "bb1_vlv7_old",
+        "bb1_vlv_1_current",
+        "bb1_vlv_1_old",
+        "bb1_vlv_2_current",
+        "bb1_vlv_2_old",
+        "bb1_vlv_3_current",
+        "bb1_vlv_3_old",
+        "bb1_vlv_4_current",
+        "bb1_vlv_4_old",
+        "bb1_vlv_5_current",
+        "bb1_vlv_5_old",
+        "bb1_vlv_6_current",
+        "bb1_vlv_6_old",
+        "bb1_vlv_7_current",
+        "bb1_vlv_7_old",
         "bb1_pt_1",
         "bb1_pt_2",
         "bb1_pt_3",
@@ -119,70 +119,70 @@
         "bb1_board_temp",
         "bb1_limewire_write_time"
     ],
-    "bb1_vlv1_cmd_timestamp": [
-        "bb1_vlv1_cmd"
+    "bb1_vlv_1_timestamp": [
+        "bb1_vlv_1"
     ],
-    "bb1_vlv1_state_timestamp": [
-        "bb1_vlv1_state",
-        "bb1_vlv1_state_limewire_write_time"
+    "bb1_state_1_timestamp": [
+        "bb1_state_1",
+        "bb1_state_1_limewire_write_time"
     ],
-    "bb1_vlv2_cmd_timestamp": [
-        "bb1_vlv2_cmd"
+    "bb1_vlv_2_timestamp": [
+        "bb1_vlv_2"
     ],
-    "bb1_vlv2_state_timestamp": [
-        "bb1_vlv2_state",
-        "bb1_vlv2_state_limewire_write_time"
+    "bb1_state_2_timestamp": [
+        "bb1_state_2",
+        "bb1_state_2_limewire_write_time"
     ],
-    "bb1_vlv3_cmd_timestamp": [
-        "bb1_vlv3_cmd"
+    "bb1_vlv_3_timestamp": [
+        "bb1_vlv_3"
     ],
-    "bb1_vlv3_state_timestamp": [
-        "bb1_vlv3_state",
-        "bb1_vlv3_state_limewire_write_time"
+    "bb1_state_3_timestamp": [
+        "bb1_state_3",
+        "bb1_state_3_limewire_write_time"
     ],
-    "bb1_vlv4_cmd_timestamp": [
-        "bb1_vlv4_cmd"
+    "bb1_vlv_4_timestamp": [
+        "bb1_vlv_4"
     ],
-    "bb1_vlv4_state_timestamp": [
-        "bb1_vlv4_state",
-        "bb1_vlv4_state_limewire_write_time"
+    "bb1_state_4_timestamp": [
+        "bb1_state_4",
+        "bb1_state_4_limewire_write_time"
     ],
-    "bb1_vlv5_cmd_timestamp": [
-        "bb1_vlv5_cmd"
+    "bb1_vlv_5_timestamp": [
+        "bb1_vlv_5"
     ],
-    "bb1_vlv5_state_timestamp": [
-        "bb1_vlv5_state",
-        "bb1_vlv5_state_limewire_write_time"
+    "bb1_state_5_timestamp": [
+        "bb1_state_5",
+        "bb1_state_5_limewire_write_time"
     ],
-    "bb1_vlv6_cmd_timestamp": [
-        "bb1_vlv6_cmd"
+    "bb1_vlv_6_timestamp": [
+        "bb1_vlv_6"
     ],
-    "bb1_vlv6_state_timestamp": [
-        "bb1_vlv6_state",
-        "bb1_vlv6_state_limewire_write_time"
+    "bb1_state_6_timestamp": [
+        "bb1_state_6",
+        "bb1_state_6_limewire_write_time"
     ],
-    "bb1_vlv7_cmd_timestamp": [
-        "bb1_vlv7_cmd"
+    "bb1_vlv_7_timestamp": [
+        "bb1_vlv_7"
     ],
-    "bb1_vlv7_state_timestamp": [
-        "bb1_vlv7_state",
-        "bb1_vlv7_state_limewire_write_time"
+    "bb1_state_7_timestamp": [
+        "bb1_state_7",
+        "bb1_state_7_limewire_write_time"
     ],
     "bb2_timestamp": [
-        "bb2_vlv1_current",
-        "bb2_vlv1_old",
-        "bb2_vlv2_current",
-        "bb2_vlv2_old",
-        "bb2_vlv3_current",
-        "bb2_vlv3_old",
-        "bb2_vlv4_current",
-        "bb2_vlv4_old",
-        "bb2_vlv5_current",
-        "bb2_vlv5_old",
-        "bb2_vlv6_current",
-        "bb2_vlv6_old",
-        "bb2_vlv7_current",
-        "bb2_vlv7_old",
+        "bb2_vlv_1_current",
+        "bb2_vlv_1_old",
+        "bb2_vlv_2_current",
+        "bb2_vlv_2_old",
+        "bb2_vlv_3_current",
+        "bb2_vlv_3_old",
+        "bb2_vlv_4_current",
+        "bb2_vlv_4_old",
+        "bb2_vlv_5_current",
+        "bb2_vlv_5_old",
+        "bb2_vlv_6_current",
+        "bb2_vlv_6_old",
+        "bb2_vlv_7_current",
+        "bb2_vlv_7_old",
         "bb2_pt_1",
         "bb2_pt_2",
         "bb2_pt_3",
@@ -224,70 +224,70 @@
         "bb2_board_temp",
         "bb2_limewire_write_time"
     ],
-    "bb2_vlv1_cmd_timestamp": [
-        "bb2_vlv1_cmd"
+    "bb2_vlv_1_timestamp": [
+        "bb2_vlv_1"
     ],
-    "bb2_vlv1_state_timestamp": [
-        "bb2_vlv1_state",
-        "bb2_vlv1_state_limewire_write_time"
+    "bb2_state_1_timestamp": [
+        "bb2_state_1",
+        "bb2_state_1_limewire_write_time"
     ],
-    "bb2_vlv2_cmd_timestamp": [
-        "bb2_vlv2_cmd"
+    "bb2_vlv_2_timestamp": [
+        "bb2_vlv_2"
     ],
-    "bb2_vlv2_state_timestamp": [
-        "bb2_vlv2_state",
-        "bb2_vlv2_state_limewire_write_time"
+    "bb2_state_2_timestamp": [
+        "bb2_state_2",
+        "bb2_state_2_limewire_write_time"
     ],
-    "bb2_vlv3_cmd_timestamp": [
-        "bb2_vlv3_cmd"
+    "bb2_vlv_3_timestamp": [
+        "bb2_vlv_3"
     ],
-    "bb2_vlv3_state_timestamp": [
-        "bb2_vlv3_state",
-        "bb2_vlv3_state_limewire_write_time"
+    "bb2_state_3_timestamp": [
+        "bb2_state_3",
+        "bb2_state_3_limewire_write_time"
     ],
-    "bb2_vlv4_cmd_timestamp": [
-        "bb2_vlv4_cmd"
+    "bb2_vlv_4_timestamp": [
+        "bb2_vlv_4"
     ],
-    "bb2_vlv4_state_timestamp": [
-        "bb2_vlv4_state",
-        "bb2_vlv4_state_limewire_write_time"
+    "bb2_state_4_timestamp": [
+        "bb2_state_4",
+        "bb2_state_4_limewire_write_time"
     ],
-    "bb2_vlv5_cmd_timestamp": [
-        "bb2_vlv5_cmd"
+    "bb2_vlv_5_timestamp": [
+        "bb2_vlv_5"
     ],
-    "bb2_vlv5_state_timestamp": [
-        "bb2_vlv5_state",
-        "bb2_vlv5_state_limewire_write_time"
+    "bb2_state_5_timestamp": [
+        "bb2_state_5",
+        "bb2_state_5_limewire_write_time"
     ],
-    "bb2_vlv6_cmd_timestamp": [
-        "bb2_vlv6_cmd"
+    "bb2_vlv_6_timestamp": [
+        "bb2_vlv_6"
     ],
-    "bb2_vlv6_state_timestamp": [
-        "bb2_vlv6_state",
-        "bb2_vlv6_state_limewire_write_time"
+    "bb2_state_6_timestamp": [
+        "bb2_state_6",
+        "bb2_state_6_limewire_write_time"
     ],
-    "bb2_vlv7_cmd_timestamp": [
-        "bb2_vlv7_cmd"
+    "bb2_vlv_7_timestamp": [
+        "bb2_vlv_7"
     ],
-    "bb2_vlv7_state_timestamp": [
-        "bb2_vlv7_state",
-        "bb2_vlv7_state_limewire_write_time"
+    "bb2_state_7_timestamp": [
+        "bb2_state_7",
+        "bb2_state_7_limewire_write_time"
     ],
     "bb3_timestamp": [
-        "bb3_vlv1_current",
-        "bb3_vlv1_old",
-        "bb3_vlv2_current",
-        "bb3_vlv2_old",
-        "bb3_vlv3_current",
-        "bb3_vlv3_old",
-        "bb3_vlv4_current",
-        "bb3_vlv4_old",
-        "bb3_vlv5_current",
-        "bb3_vlv5_old",
-        "bb3_vlv6_current",
-        "bb3_vlv6_old",
-        "bb3_vlv7_current",
-        "bb3_vlv7_old",
+        "bb3_vlv_1_current",
+        "bb3_vlv_1_old",
+        "bb3_vlv_2_current",
+        "bb3_vlv_2_old",
+        "bb3_vlv_3_current",
+        "bb3_vlv_3_old",
+        "bb3_vlv_4_current",
+        "bb3_vlv_4_old",
+        "bb3_vlv_5_current",
+        "bb3_vlv_5_old",
+        "bb3_vlv_6_current",
+        "bb3_vlv_6_old",
+        "bb3_vlv_7_current",
+        "bb3_vlv_7_old",
         "bb3_pt_1",
         "bb3_pt_2",
         "bb3_pt_3",
@@ -329,54 +329,54 @@
         "bb3_board_temp",
         "bb3_limewire_write_time"
     ],
-    "bb3_vlv1_cmd_timestamp": [
-        "bb3_vlv1_cmd"
+    "bb3_vlv_1_timestamp": [
+        "bb3_vlv_1"
     ],
-    "bb3_vlv1_state_timestamp": [
-        "bb3_vlv1_state",
-        "bb3_vlv1_state_limewire_write_time"
+    "bb3_state_1_timestamp": [
+        "bb3_state_1",
+        "bb3_state_1_limewire_write_time"
     ],
-    "bb3_vlv2_cmd_timestamp": [
-        "bb3_vlv2_cmd"
+    "bb3_vlv_2_timestamp": [
+        "bb3_vlv_2"
     ],
-    "bb3_vlv2_state_timestamp": [
-        "bb3_vlv2_state",
-        "bb3_vlv2_state_limewire_write_time"
+    "bb3_state_2_timestamp": [
+        "bb3_state_2",
+        "bb3_state_2_limewire_write_time"
     ],
-    "bb3_vlv3_cmd_timestamp": [
-        "bb3_vlv3_cmd"
+    "bb3_vlv_3_timestamp": [
+        "bb3_vlv_3"
     ],
-    "bb3_vlv3_state_timestamp": [
-        "bb3_vlv3_state",
-        "bb3_vlv3_state_limewire_write_time"
+    "bb3_state_3_timestamp": [
+        "bb3_state_3",
+        "bb3_state_3_limewire_write_time"
     ],
-    "bb3_vlv4_cmd_timestamp": [
-        "bb3_vlv4_cmd"
+    "bb3_vlv_4_timestamp": [
+        "bb3_vlv_4"
     ],
-    "bb3_vlv4_state_timestamp": [
-        "bb3_vlv4_state",
-        "bb3_vlv4_state_limewire_write_time"
+    "bb3_state_4_timestamp": [
+        "bb3_state_4",
+        "bb3_state_4_limewire_write_time"
     ],
-    "bb3_vlv5_cmd_timestamp": [
-        "bb3_vlv5_cmd"
+    "bb3_vlv_5_timestamp": [
+        "bb3_vlv_5"
     ],
-    "bb3_vlv5_state_timestamp": [
-        "bb3_vlv5_state",
-        "bb3_vlv5_state_limewire_write_time"
+    "bb3_state_5_timestamp": [
+        "bb3_state_5",
+        "bb3_state_5_limewire_write_time"
     ],
-    "bb3_vlv6_cmd_timestamp": [
-        "bb3_vlv6_cmd"
+    "bb3_vlv_6_timestamp": [
+        "bb3_vlv_6"
     ],
-    "bb3_vlv6_state_timestamp": [
-        "bb3_vlv6_state",
-        "bb3_vlv6_state_limewire_write_time"
+    "bb3_state_6_timestamp": [
+        "bb3_state_6",
+        "bb3_state_6_limewire_write_time"
     ],
-    "bb3_vlv7_cmd_timestamp": [
-        "bb3_vlv7_cmd"
+    "bb3_vlv_7_timestamp": [
+        "bb3_vlv_7"
     ],
-    "bb3_vlv7_state_timestamp": [
-        "bb3_vlv7_state",
-        "bb3_vlv7_state_limewire_write_time"
+    "bb3_state_7_timestamp": [
+        "bb3_state_7",
+        "bb3_state_7_limewire_write_time"
     ],
     "fr_timestamp": [
         "fr_imu1_x",
@@ -397,4 +397,3 @@
         "fr_limewire_write_time"
     ]
 }
-

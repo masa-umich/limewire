@@ -4,10 +4,14 @@ from enum import Enum
 class DeviceCommand(Enum):
     "A class to represent commands going to the rocket."
 
-    # TODO: Add command definitions
     RESET_BOARD = 0x00
     CLEAR_FLASH = 0x01
     FLASH_SPACE = 0x02
+    PDB_SET_SOURCE_GSE = 0x03
+    PDB_SET_SOURCE_BATTERY = 0x04
+    PDB_3V7_OFF = 0x05
+    PDB_3V7_ON = 0x06
+    FIRMWARE_BUILD_INFO = 0x07
 
     def __str__(self) -> str:
         return repr(self).removeprefix(f"{self.__class__.__name__}.")
@@ -113,19 +117,19 @@ class Valve:
     @property
     def cmd_channel(self) -> str:
         """The Synnax command channel name for this valve."""
-        return f"{self.board.name.lower()}_vlv{self.num}_cmd"
+        return f"{self.board.name.lower()}_vlv_{self.num}"
 
     @property
     def cmd_channel_index(self) -> str:
         """The Synnax index channel name for this valve's command channel."""
-        return f"{self.board.name.lower()}_vlv{self.num}_cmd_timestamp"
+        return f"{self.board.name.lower()}_vlv_{self.num}_timestamp"
 
     @property
     def state_channel(self) -> str:
         """The Synnax state channel name for this valve."""
-        return f"{self.board.name.lower()}_vlv{self.num}_state"
+        return f"{self.board.name.lower()}_state_{self.num}"
 
     @property
     def state_channel_index(self) -> str:
         """The Synnax index channel name for this valve's state channel."""
-        return f"{self.board.name.lower()}_vlv{self.num}_state_timestamp"
+        return f"{self.board.name.lower()}_state_{self.num}_timestamp"
