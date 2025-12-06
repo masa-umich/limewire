@@ -240,7 +240,7 @@ class Limewire:
                 logger.warning(
                     f"Synnax validation error '{str(err)}', skipping frame"
                 )
-                logger.info("Sending NTP sync...")
+                # logger.info("Sending NTP sync...")
                 # TODO: Move this to Hydrant
                 # send_ntp_sync()
 
