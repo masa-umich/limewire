@@ -2,16 +2,21 @@ import asyncio
 from asyncio.streams import StreamReader, StreamWriter
 from contextlib import asynccontextmanager
 
+import asyncudp
 import synnax as sy
 from loguru import logger
 
 from lmp import (
     HeartbeatMessage,
+    LMPFramer,
+    LMPMessage,
+    TelemetryFramer,
     TelemetryMessage,
     Valve,
     ValveCommandMessage,
     ValveStateMessage,
 )
+from lmp.framer import FramingError
 
 from .util import get_write_time_channel_name, synnax_init
 
@@ -24,7 +29,7 @@ class Limewire:
 
         self.synnax_client, self.channels = synnax_init()
         self.synnax_writer = None
-        self.queue: asyncio.Queue[bytes] = asyncio.Queue()
+        self.queue: asyncio.Queue[LMPMessage] = asyncio.Queue()
 
     async def start(self, fc_addr: tuple[str, int]) -> None:
         """Open a connection to the flight computer and start Limewire.
@@ -50,6 +55,12 @@ class Limewire:
             )
             await asyncio.sleep(0.5)
 
+            telemetry_socket = await asyncudp.create_socket(
+                local_addr=("0.0.0.0", 6767)
+            )
+            self.telemetry_framer = TelemetryFramer(telemetry_socket)
+            logger.info("Listening for telemetry on UDP port 6767")
+
             self.connected = False
             while True:
                 try:
@@ -57,15 +68,15 @@ class Limewire:
                         f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
                     )
 
-                    self.tcp_reader, self.tcp_writer = await self._connect_fc(
-                        *fc_addr
-                    )
+                    tcp_reader, tcp_writer = await self._connect_fc(*fc_addr)
+                    self.lmp_framer = LMPFramer(tcp_reader, tcp_writer)
+
                     self.connected = True
                 except ConnectionRefusedError:
                     await asyncio.sleep(1)
                     continue
 
-                peername = self.tcp_writer.get_extra_info("peername")
+                peername = tcp_writer.get_extra_info("peername")
                 logger.info(
                     f"Connected to flight computer at {peername[0]}:{peername[1]}."
                 )
@@ -76,7 +87,8 @@ class Limewire:
                 reconnect = False
                 try:
                     async with asyncio.TaskGroup() as tg:
-                        tg.create_task(self._tcp_read())
+                        tg.create_task(self._fc_tcp_read())
+                        tg.create_task(self._fc_telemetry_listen())
                         tg.create_task(self._synnax_write())
                         tg.create_task(self._relay_valve_cmds())
                         tg.create_task(self._send_heartbeat())
@@ -96,40 +108,31 @@ class Limewire:
                 else:
                     break
 
+    async def stop(self):
+        """Run shutdown code."""
+
+        await self.lmp_framer.close()
+
+        if self.synnax_writer is not None:
+            try:
+                self.synnax_writer.close()
+            except sy.ValidationError:
+                logger.warning(
+                    "Ignoring Synnax writer internal validation error(s)."
+                )
+
+        logger.info("=" * 60)
+
     async def _send_heartbeat(self):
         HEARTBEAT_INTERVAL = 1
         while True:
             try:
-                msg = HeartbeatMessage()
-                msg_bytes = bytes(msg)
-
-                self.tcp_writer.write(msg_bytes)
-                await self.tcp_writer.drain()
+                await self.lmp_framer.send_message(HeartbeatMessage())
                 await asyncio.sleep(HEARTBEAT_INTERVAL)
+                logger.debug(f"Queue size: {self.queue.qsize()}")
             except ConnectionResetError as err:
                 raise err
                 # print(err)
-
-    async def stop(self):
-        """Run shutdown code."""
-
-        self.tcp_writer.close()
-        await self.tcp_writer.wait_closed()
-
-        if self.synnax_writer is not None:
-            self.synnax_writer.close()
-
-        # Print statistics
-        # print()  # Add extra newline after Ctrl+C
-        runtime = asyncio.get_event_loop().time() - self.start_time
-        if self.values_processed == 0:
-            logger.warning("Unable to receive data from flight computer!")
-        else:
-            logger.info(
-                f"Processed {self.values_processed} values in {runtime:.2f} sec ({self.values_processed / runtime:.2f} values/sec)"
-            )
-
-        logger.info("=" * 60)
 
     async def _connect_fc(
         self, ip_addr: str, port: int
@@ -156,64 +159,81 @@ class Limewire:
                 f"Unable to connect to flight computer at {ip_addr}:{port}."
             )
 
-    async def _tcp_read(self):
+    async def _fc_tcp_read(self):
         """Handle incoming data from the TCP connection.
 
         Returns:
             The number of telemetry values processed.
         """
-        self.values_processed = 0
         while True:
-            msg_length = await self.tcp_reader.read(1)
-            if not msg_length:
+            try:
+                message = await self.lmp_framer.receive_message()
+            except (FramingError, ValueError) as err:
+                logger.error(str(err))
+                logger.opt(exception=err).debug("Traceback: ", exc_info=True)
+                continue
+
+            if message is None:
                 break
 
-            msg_length = int.from_bytes(msg_length)
-            msg_bytes = await self.tcp_reader.readexactly(msg_length)
-            if not msg_bytes:
-                break
+            if type(message) is ValveStateMessage:
+                await self.queue.put(message)
+            else:
+                pass
+                # TODO: log warning
 
-            msg_id = int.from_bytes(msg_bytes[0:1])
-            match msg_id:
-                case TelemetryMessage.MSG_ID:
-                    await self.queue.put(msg_bytes)
-                    num_values = (len(msg_bytes) - 1 - 1 - 8) // 4
-                    self.values_processed += num_values
-                case ValveStateMessage.MSG_ID:
-                    await self.queue.put(msg_bytes)
-                    self.values_processed += 1
-                case _:
-                    raise ValueError(
-                        f"Received invalid LMP message identifier: 0x{msg_id:X}"
-                    )
+    async def _fc_telemetry_listen(self):
+        """Listen for telemetry messages."""
+        while True:
+            message = await self.telemetry_framer.receive_message()
+            await self.queue.put(message)
 
     async def _synnax_write(self) -> None:
         """Write telemetry data and valve state data to Synnax."""
         while True:
-            # Parse message bytes into TelemetryMessage
-            msg_bytes = await self.queue.get()
-            msg_id = int.from_bytes(msg_bytes[0:1])
+            message = await self.queue.get()
 
-            if msg_id == TelemetryMessage.MSG_ID:
-                msg = TelemetryMessage.from_bytes(msg_bytes)
+            if not isinstance(message, TelemetryMessage) and not isinstance(
+                message, ValveStateMessage
+            ):
+                logger.warning(
+                    f"Invalid message type '{str(type(message))}' in queue."
+                )
+                self.queue.task_done()
+                continue
 
-                try:
-                    frame = self._build_telemetry_frame(msg)
-                except KeyError as err:
-                    logger.error(str(err), extra={"error_code": "0006"})
-                    self.queue.task_done()
-                    continue
-            else:
-                msg = ValveStateMessage.from_bytes(msg_bytes)
-                frame = self._build_valve_state_frame(msg)
+            frame = self._build_synnax_frame(message)
+            if frame is None:
+                self.queue.task_done()
+                continue
 
             if self.synnax_writer is None:
                 self.synnax_writer = await self._open_synnax_writer(
-                    msg.timestamp
+                    message.timestamp
                 )
-            self.synnax_writer.write(frame)
+
+            try:
+                self.synnax_writer.write(frame)
+            except sy.ValidationError as err:
+                logger.warning(
+                    f"Synnax validation error '{str(err)}', skipping frame"
+                )
 
             self.queue.task_done()
+
+    def _build_synnax_frame(
+        self, msg: TelemetryMessage | ValveStateMessage
+    ) -> dict | None:
+        if isinstance(msg, TelemetryMessage):
+            try:
+                frame = self._build_telemetry_frame(msg)
+            except KeyError as err:
+                logger.error(str(err), extra={"error_code": "0006"})
+                return None
+        else:
+            frame = self._build_valve_state_frame(msg)
+
+        return frame
 
     def _build_telemetry_frame(self, msg: TelemetryMessage) -> dict:
         """Construct a frame to write to Synnax from a telemetry message.
@@ -304,9 +324,4 @@ class Limewire:
                     # For now, let's assume that if multiple values are in the
                     # frame, we only care about the most recent one
                     msg = ValveCommandMessage(valve, bool(series[-1]))
-                    msg_bytes = bytes(msg)
-
-                    self.tcp_writer.write(
-                        len(msg_bytes).to_bytes(1) + msg_bytes
-                    )
-                    await self.tcp_writer.drain()
+                    await self.lmp_framer.send_message(msg)

@@ -136,6 +136,15 @@ wheels = [
 ]
 
 [[package]]
+name = "asyncudp"
+version = "0.11.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/0b/b94c42d75e2bd018727e625fa3147447cdfb26603e7b0892a4fdfcd2154d/asyncudp-0.11.0.tar.gz", hash = "sha256:c8ab6459f4dc8ebc42f401d3bd72c2a6c6808d10e42231f39e0c433ac646abf9", size = 3986, upload-time = "2023-07-24T14:45:31.664Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/17/fe/77f4a24264e728fd95542e53f026a91249b51d1611087b8c82d3a033ea97/asyncudp-0.11.0-py3-none-any.whl", hash = "sha256:96d859d86471e3ed30cf9f05cb38e96920156e3a9fe70ee916096ba758ea316e", size = 3538, upload-time = "2023-07-24T14:45:30.411Z" },
+]
+
+[[package]]
 name = "attrs"
 version = "25.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -713,6 +722,7 @@ name = "limewire"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "asyncudp" },
     { name = "click" },
     { name = "loguru" },
     { name = "nicegui" },
@@ -729,6 +739,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "asyncudp", specifier = ">=0.11.0" },
     { name = "click", specifier = ">=8.1.8" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "nicegui", specifier = ">=2.23.2" },

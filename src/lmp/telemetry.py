@@ -2,11 +2,11 @@ import struct
 
 from .util import Board
 
-TELEM_VALUE_SIZE: int = 4
-
 
 class TelemetryMessage:
     """A class to represent a telemetry message."""
+
+    TELEM_VALUE_SIZE: int = 4
 
     # Class variables
     MSG_ID: int = 0x00
@@ -44,7 +44,9 @@ class TelemetryMessage:
         )
 
         obj.values = []
-        for chunk in iterate_chunks(msg_bytes[10:], TELEM_VALUE_SIZE):
+        for chunk in iterate_chunks(
+            msg_bytes[10:], TelemetryMessage.TELEM_VALUE_SIZE
+        ):
             data: float = struct.unpack(">f", chunk)[0]
             obj.values.append(data)
 
