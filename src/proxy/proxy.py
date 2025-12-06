@@ -44,22 +44,15 @@ class Proxy:
         client_reader: asyncio.StreamReader,
         client_writer: asyncio.StreamWriter,
     ):
-        index = len(self.client_writers)
         # Reject connections if FC is not connected yet
         if not self.connected:
-            # Let client know FC is disconnected
-            # client_writer.write(b"\x00")
-            # await client_writer.drain()
             client_writer.close()
             await client_writer.wait_closed()
             return
 
-        # TODO: Add this to Hydrant
-        # Let client know FC is disconnected
-        # client_writer.write(b"\x01")
-        # await client_writer.drain()
-
         # Add the writer to the set
+        index = len(self.client_writers)
+
         self.client_writers.add(client_writer)
 
         @asynccontextmanager
@@ -68,7 +61,6 @@ class Proxy:
                 yield
             finally:
                 # Clean up on disconnect
-                print("Goodbye to client ", index)
                 self.client_writers.discard(client_writer)
                 client_writer.close()
                 await client_writer.wait_closed()
@@ -84,10 +76,8 @@ class Proxy:
             except* (
                 ConnectionResetError,
                 ConnectionAbortedError,
-                asyncio.exceptions.IncompleteReadError,
-            ) as err:
+            ):
                 print(f"Connection to client {index} lost")
-                print("Error type in handle_client", err.__class__.__name__)
             except* Exception as eg:
                 print("=" * 60)
                 print(f"Tasks failed with {len(eg.exceptions)} error(s)")
@@ -112,13 +102,10 @@ class Proxy:
                 break
 
             if self.connected:
-                # print("Got client message:", msg_length.to_bytes(1) + msg_bytes)
-                # print("Sending client message")
                 self.fc_writer.write(msg_length.to_bytes(1) + msg_bytes)
                 await self.fc_writer.drain()
             else:
                 break
-        print("Client read loop exits")
 
     async def disconnect_clients(self):
         # Disconnect the clients
@@ -164,19 +151,7 @@ class Proxy:
                 await self.stop()
 
         async with lifespan():
-            # Start server here
-            self.server = await asyncio.start_server(
-                partial(self.handle_client),
-                *self.server_addr,
-            )
-
-            addr = self.server.sockets[0].getsockname()
-            print(f"Proxy server serving on {format_socket_address(addr)}.")
-            # Server forever, even if fight computer connection is severed
-            await self.server.start_serving()
-
             self.connected = False
-            self.server_started = False
             while True:
                 try:
                     print(
@@ -190,6 +165,17 @@ class Proxy:
                 except ConnectionRefusedError:
                     await asyncio.sleep(1)
                     continue
+
+                # Start server here
+                self.server = await asyncio.start_server(
+                    partial(self.handle_client),
+                    *self.server_addr,
+                )
+
+                addr = self.server.sockets[0].getsockname()
+                print(f"Proxy server serving on {format_socket_address(addr)}.")
+                # Server forever, even if fight computer connection is severed
+                await self.server.start_serving()
 
                 peername = self.fc_writer.get_extra_info("peername")
                 print(
@@ -210,6 +196,10 @@ class Proxy:
                     reconnect = True
                     # Disconnect the clients
                     await self.disconnect_clients()
+
+                    # Close server
+                    self.server.close()
+                    await self.server.wait_closed()
                 except* Exception as eg:
                     self.connected = False
                     print("=" * 60)
@@ -230,7 +220,6 @@ class Proxy:
         cnt = 0
         while True:
             try:
-                # print("Sending heartbeat", cnt)
                 cnt += 1
                 msg = HeartbeatMessage()
                 msg_bytes = bytes(msg)
@@ -240,13 +229,6 @@ class Proxy:
                 await asyncio.sleep(HEARTBEAT_INTERVAL)
             except (ConnectionResetError, ConnectionAbortedError) as err:
                 raise err
-            # except OSError as err:
-            #     print("yeah in os error")
-            #     # if getattr(err, "WinError", None) == 10053:
-            #     #     raise ConnectionResetError()
-            #     # else:
-            #     #     print("unknown os heartbeat error", err)
-            #     raise err
             except Exception as err:
                 print("unknown heartbeat error", err)
 
