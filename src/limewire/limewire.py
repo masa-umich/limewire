@@ -20,7 +20,11 @@ from lmp import (
 from lmp.framer import FramingError
 
 from .ntp_sync import send_ntp_sync
-from .util import get_write_time_channel_name, synnax_init
+from .util import (
+    get_write_time_channel_name,
+    is_valve_command_channel,
+    synnax_init,
+)
 
 
 WINERROR_SEMAPHORE_TIMEOUT = 121
@@ -320,22 +324,12 @@ class Limewire:
         """Relay valve commands from Synnax to the flight computer."""
 
         # Create a list of all valve command channels
-        data_channels: list[sy.Channel] = []
+        cmd_channels: list[str] = []
         for data_channel_names in self.channels.values():
             for channel_name in data_channel_names:
-                logger.debug(f"Data Channel: {channel_name}")
-                data_channels.append(
-                    self.synnax_client.channels.retrieve(channel_name)  # pyright: ignore[reportArgumentType]
-                )
-
-        cmd_channels = []
-        for channel in data_channels:
-            if (
-                channel.data_type == sy.DataType.UINT8
-                and "state" not in channel.name
-            ):
-                logger.debug(f"Command Channel: {channel.name}")
-                cmd_channels.append(channel)
+                if is_valve_command_channel(channel_name):
+                    logger.debug(f"Adding command channel '{channel_name}'")
+                    cmd_channels.append(channel_name)
 
         async with await self.synnax_client.open_async_streamer(
             cmd_channels
