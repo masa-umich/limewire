@@ -216,6 +216,7 @@ class Limewire:
             try:
                 self.synnax_writer.write(frame)
             except Exception as exc:
+                logger.error("Unable to write frame to Synnax!")
                 logger.exception(
                     f"Exception raised with type {type(exc)}: {exc}"
                 )
