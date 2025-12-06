@@ -241,7 +241,8 @@ class Limewire:
                     f"Synnax validation error '{str(err)}', skipping frame"
                 )
                 logger.info("Sending NTP sync...")
-                send_ntp_sync()
+                # TODO: Move this to Hydrant
+                # send_ntp_sync()
 
             self.queue.task_done()
 
