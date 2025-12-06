@@ -191,7 +191,9 @@ class Limewire:
             if not isinstance(message, TelemetryMessage) or isinstance(
                 message, ValveStateMessage
             ):
-                logger.warning("Invalid message type in queue.")
+                logger.warning(
+                    f"Invalid message type '{type(message)}' in queue."
+                )
                 self.queue.task_done()
                 continue
 
