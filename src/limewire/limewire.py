@@ -51,10 +51,6 @@ class Limewire:
             self.connected = False
             while True:
                 try:
-                    # print(
-                    #     f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
-                    # )
-
                     print(
                         f"Connecting to proxy at {fc_addr[0]}:{fc_addr[1]}..."
                     )
@@ -63,30 +59,11 @@ class Limewire:
                         *fc_addr
                     )
                     self.connected = True
-
-                    # Status message should be one byte long
-                    # proxy_status = await self.tcp_reader.readexactly(1)
-                    # if not proxy_status:
-                    #     continue
-
-                    # if proxy_status == b"\x00":
-                    #     # print("Connection to proxy failed: FC connection down")
-                    #     await asyncio.sleep(1)
-                    #     continue
-                    # elif proxy_status == b"\x01":
-                    #     self.connected = True
-                    # else:
-                    #     print("CRITICAL: Unrecognizable proxy status")
-                    #     await asyncio.sleep(1)
-                    #     continue
                 except ConnectionRefusedError:
                     await asyncio.sleep(1)
                     continue
 
                 peername = self.tcp_writer.get_extra_info("peername")
-                # print(
-                #     f"Connected to flight computer at {peername[0]}:{peername[1]}."
-                # )
 
                 print(f"Connected to proxy at {peername[0]}:{peername[1]}.")
 
@@ -99,7 +76,7 @@ class Limewire:
                         tg.create_task(self._tcp_read())
                         tg.create_task(self._synnax_write())
                         tg.create_task(self._relay_valve_cmds())
-                        # tg.create_task(self._send_heartbeat())
+                        tg.create_task(self._send_heartbeat())
                 except* ConnectionResetError:
                     print("Connection to proxy lost")
                     reconnect = True
@@ -117,18 +94,18 @@ class Limewire:
                 else:
                     break
 
-    # async def _send_heartbeat(self):
-    #     HEARTBEAT_INTERVAL = 1
-    #     while True:
-    #         try:
-    #             msg = HeartbeatMessage()
-    #             msg_bytes = bytes(msg)
+    async def _send_heartbeat(self):
+        HEARTBEAT_INTERVAL = 1
+        while True:
+            try:
+                msg = HeartbeatMessage()
+                msg_bytes = bytes(msg)
 
-    #             self.tcp_writer.write(msg_bytes)
-    #             await self.tcp_writer.drain()
-    #             await asyncio.sleep(HEARTBEAT_INTERVAL)
-    #         except ConnectionResetError as err:
-    #             raise err
+                self.tcp_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
+                await self.tcp_writer.drain()
+                await asyncio.sleep(HEARTBEAT_INTERVAL)
+            except ConnectionResetError as err:
+                raise err
 
     async def stop(self):
         """Run shutdown code."""
