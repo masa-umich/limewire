@@ -11,6 +11,7 @@ from lmp import (
     Board,
     DeviceCommandAckMessage,
     DeviceCommandMessage,
+    HeartbeatMessage,
     TelemetryFramer,
     TelemetryMessage,
     ValveCommandMessage,
@@ -64,6 +65,7 @@ class FCSimulator:
         ]
 
         values_sent = 0
+        loop_counter = 0
         while True:
             loop_start_time = asyncio.get_running_loop().time()
             for board in boards:
@@ -71,7 +73,12 @@ class FCSimulator:
                     i * random.uniform(0, 1) for i in range(board.num_values)
                 ]
 
-                timestamp = sy.TimeStamp.now()
+                # Send a 0-timestamped telemetry message every 100 messages
+                if loop_counter % 100 == 0:
+                    timestamp = loop_counter
+                else:
+                    timestamp = sy.TimeStamp.now()
+
                 msg = TelemetryMessage(board, timestamp, values)
                 self.telemetry_framer.send_message(msg)
 
@@ -86,6 +93,8 @@ class FCSimulator:
                 asyncio.get_running_loop().time() - loop_start_time
             )
             await asyncio.sleep(max(0, 1 / DATA_RATE - loop_elapsed_time))
+
+            loop_counter += 1
 
         actual_run_time = asyncio.get_running_loop().time() - start_time
 
@@ -148,9 +157,10 @@ class FCSimulator:
                         )
 
                 return response
-
+            case HeartbeatMessage.MSG_ID:
+                pass
             case _:
-                raise ValueError("Received non-command message.")
+                print(f"Received non-command message (header 0x{msg_id:X}).")
 
     async def handle_client(
         self,

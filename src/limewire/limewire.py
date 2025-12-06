@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 import asyncudp
 import synnax as sy
 from loguru import logger
+from scapy.error import Scapy_Exception
 
 from lmp import (
     HeartbeatMessage,
@@ -88,6 +89,7 @@ class Limewire:
                     continue
                 except ConnectionRefusedError:
                     logger.warning("Connection refused.")
+                    await asyncio.sleep(1)
                     continue
                 except OSError as err:
                     if (
@@ -126,9 +128,7 @@ class Limewire:
                         f"Tasks failed with {len(eg.exceptions)} error(s)"
                     )
                     for exc in eg.exceptions:
-                        logger.exception(
-                            "Exception raised with type %s: %s", type(exc), exc
-                        )
+                        logger.opt(exception=exc).error(f"Traceback: ")
                 if reconnect:
                     continue
                 else:
@@ -244,9 +244,22 @@ class Limewire:
                 logger.warning(
                     f"Synnax validation error '{str(err)}', skipping frame"
                 )
-                # logger.info("Sending NTP sync...")
-                # TODO: Move this to Hydrant
-                # send_ntp_sync()
+
+                try:
+                    self.synnax_writer.close()
+                except sy.ValidationError:
+                    # Why oh why must you be this way Synnax :(
+                    pass
+
+                # Writer will get re-initialzed during next loop iteration
+                self.synnax_writer = None
+
+                logger.info("Sending NTP sync.")
+
+                try:
+                    send_ntp_sync()
+                except Scapy_Exception:
+                    logger.warning("NTP sync failed.")
 
             self.queue.task_done()
 
