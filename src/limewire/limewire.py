@@ -27,7 +27,6 @@ from .util import (
     synnax_init,
 )
 
-
 WINERROR_SEMAPHORE_TIMEOUT = 121
 
 
@@ -128,7 +127,7 @@ class Limewire:
                         f"Tasks failed with {len(eg.exceptions)} error(s)"
                     )
                     for exc in eg.exceptions:
-                        logger.opt(exception=exc).error(f"Traceback: ")
+                        logger.opt(exception=exc).error("Traceback: ")
                 if reconnect:
                     continue
                 else:
