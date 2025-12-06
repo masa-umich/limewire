@@ -307,21 +307,11 @@ class Limewire:
             for ch in data_channels:
                 writer_channels.append(ch)
 
-        authorities = []
-        for channel in writer_channels:
-            # Schematic and/or autosequences should maintain control
-            # of command channels, and Limewire should have absolute
-            # authority of all other channels.
-            if "cmd" in channel:
-                authorities.append(0)
-            else:
-                authorities.append(255)
-
         writer = self.synnax_client.open_writer(
             start=timestamp,
             channels=writer_channels,
             enable_auto_commit=True,
-            authorities=authorities,
+            authorities=0,  # Limewire should never control command channels,
         )
 
         return writer
