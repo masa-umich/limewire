@@ -4,12 +4,14 @@ import socket
 from functools import partial
 from typing import Tuple
 
+import asyncudp
 import synnax as sy
 
 from lmp import (
     Board,
     DeviceCommandAckMessage,
     DeviceCommandMessage,
+    TelemetryFramer,
     TelemetryMessage,
     ValveCommandMessage,
     ValveStateMessage,
@@ -45,6 +47,13 @@ class FCSimulator:
     ) -> None:
         """Send randomly generated telemetry data to Limewire."""
 
+        # Set up telemetry socket
+        self.telemetry_socket = await asyncudp.create_socket(
+            ("255.255.255.255", 6767)
+        )
+
+        self.telemetry_framer = TelemetryFramer(sock=self.telemetry_socket)
+
         start_time = asyncio.get_running_loop().time()
 
         boards = [
@@ -65,21 +74,9 @@ class FCSimulator:
 
                 timestamp = sy.TimeStamp.now()
                 msg = TelemetryMessage(board, timestamp, values)
-                msg_bytes = bytes(msg)
+                self.telemetry_framer.send_message(msg)
 
-                try:
-                    writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
-                    await writer.drain()
-                    values_sent += len(msg.values)
-                except ConnectionAbortedError:
-                    print(
-                        f"Connection to client {format_socket_address(addr)} manually aborted"
-                    )
-                    self.tcp_aborted = True
-                    break
-
-            if self.tcp_aborted:
-                break
+                values_sent += len(msg.values)
 
             if asyncio.get_running_loop().time() - start_time > run_time:
                 break
