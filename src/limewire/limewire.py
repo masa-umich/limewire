@@ -2,11 +2,13 @@ import asyncio
 from asyncio.streams import StreamReader, StreamWriter
 from contextlib import asynccontextmanager
 
+import asyncudp
 import synnax as sy
 from loguru import logger
 
 from lmp import (
     HeartbeatMessage,
+    TelemetryFramer,
     TelemetryMessage,
     Valve,
     ValveCommandMessage,
@@ -50,6 +52,12 @@ class Limewire:
             )
             await asyncio.sleep(0.5)
 
+            telemetry_socket = await asyncudp.create_socket(
+                local_addr=("0.0.0.0", 6767)
+            )
+            self.telemetry_framer = TelemetryFramer(telemetry_socket)
+            logger.info("Listening for telemetry on UDP port 6767")
+
             self.connected = False
             while True:
                 try:
@@ -76,7 +84,8 @@ class Limewire:
                 reconnect = False
                 try:
                     async with asyncio.TaskGroup() as tg:
-                        tg.create_task(self._tcp_read())
+                        tg.create_task(self._fc_tcp_read())
+                        tg.create_task(self._fc_telemetry_listen())
                         tg.create_task(self._synnax_write())
                         tg.create_task(self._relay_valve_cmds())
                         tg.create_task(self._send_heartbeat())
@@ -95,20 +104,6 @@ class Limewire:
                     continue
                 else:
                     break
-
-    async def _send_heartbeat(self):
-        HEARTBEAT_INTERVAL = 1
-        while True:
-            try:
-                msg = HeartbeatMessage()
-                msg_bytes = bytes(msg)
-
-                self.tcp_writer.write(msg_bytes)
-                await self.tcp_writer.drain()
-                await asyncio.sleep(HEARTBEAT_INTERVAL)
-            except ConnectionResetError as err:
-                raise err
-                # print(err)
 
     async def stop(self):
         """Run shutdown code."""
@@ -130,6 +125,20 @@ class Limewire:
             )
 
         logger.info("=" * 60)
+
+    async def _send_heartbeat(self):
+        HEARTBEAT_INTERVAL = 1
+        while True:
+            try:
+                msg = HeartbeatMessage()
+                msg_bytes = bytes(msg)
+
+                self.tcp_writer.write(msg_bytes)
+                await self.tcp_writer.drain()
+                await asyncio.sleep(HEARTBEAT_INTERVAL)
+            except ConnectionResetError as err:
+                raise err
+                # print(err)
 
     async def _connect_fc(
         self, ip_addr: str, port: int
@@ -156,7 +165,7 @@ class Limewire:
                 f"Unable to connect to flight computer at {ip_addr}:{port}."
             )
 
-    async def _tcp_read(self):
+    async def _fc_tcp_read(self):
         """Handle incoming data from the TCP connection.
 
         Returns:
@@ -186,6 +195,11 @@ class Limewire:
                     raise ValueError(
                         f"Received invalid LMP message identifier: 0x{msg_id:X}"
                     )
+
+    async def _fc_telemetry_listen(self):
+        """Listen for telemetry messages."""
+        while True:
+            message = await self.telemetry_framer.receive_message()
 
     async def _synnax_write(self) -> None:
         """Write telemetry data and valve state data to Synnax."""
