@@ -180,6 +180,7 @@ class Limewire:
         """Listen for telemetry messages."""
         while True:
             message = await self.telemetry_framer.receive_message()
+            logger.debug("Received telemetry message")
             await self.queue.put(message)
 
     async def _synnax_write(self) -> None:
