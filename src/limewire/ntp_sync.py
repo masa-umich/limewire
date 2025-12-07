@@ -1,6 +1,6 @@
 from scapy.all import IP, UDP, send
-from scapy.layers.ntp import NTPHeader
 from scapy.error import Scapy_Exception
+from scapy.layers.ntp import NTPHeader
 
 
 def send_ntp_sync(logger=None):
