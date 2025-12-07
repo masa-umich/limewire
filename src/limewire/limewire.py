@@ -33,7 +33,9 @@ class Limewire:
     """A class to manage Limewire's resources."""
 
     def __init__(self, overwrite_timestamps: bool = False) -> None:
-        logger.info("Limewire started.")
+        logger.info(
+            f"Limewire started (overwrite_timestamps={overwrite_timestamps})."
+        )
 
         self.synnax_client, self.channels = synnax_init()
         self.synnax_writer = None
