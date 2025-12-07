@@ -236,9 +236,16 @@ class Limewire:
                 continue
 
             if self.synnax_writer is None:
-                self.synnax_writer = await self._open_synnax_writer(
-                    message.timestamp
-                )
+                try:
+                    self.synnax_writer = await self._open_synnax_writer(
+                        message.timestamp
+                    )
+                except sy.ValidationError as err:
+                    logger.warning(
+                        f"Synnax validation error '{str(err)}', skipping frame"
+                    )
+                    send_ntp_sync(logger)
+                    continue
 
             try:
                 self.synnax_writer.write(frame)
