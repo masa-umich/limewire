@@ -37,6 +37,7 @@ class Limewire:
 
         self.synnax_client, self.channels = synnax_init()
         self.synnax_writer = None
+        self.lmp_framer = None
         self.queue: asyncio.Queue[LMPMessage] = asyncio.Queue()
 
     async def start(self, fc_addr: tuple[str, int]) -> None:
@@ -139,7 +140,8 @@ class Limewire:
     async def stop(self):
         """Run shutdown code."""
 
-        await self.lmp_framer.close()
+        if self.lmp_framer is not None:
+            await self.lmp_framer.close()
 
         if self.synnax_writer is not None:
             try:
