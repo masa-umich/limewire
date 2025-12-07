@@ -81,7 +81,7 @@ class Limewire:
                         f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
                     )
 
-                    async with asyncio.timeout(1):
+                    async with asyncio.timeout(5):
                         tcp_reader, tcp_writer = await self._connect_fc(
                             *fc_addr
                         )
