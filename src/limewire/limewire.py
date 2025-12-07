@@ -32,13 +32,14 @@ WINERROR_SEMAPHORE_TIMEOUT = 121
 class Limewire:
     """A class to manage Limewire's resources."""
 
-    def __init__(self) -> None:
+    def __init__(self, overwrite_timestamps: bool = False) -> None:
         logger.info("Limewire started.")
 
         self.synnax_client, self.channels = synnax_init()
         self.synnax_writer = None
         self.lmp_framer = None
         self.queue: asyncio.Queue[LMPMessage] = asyncio.Queue()
+        self.overwrite_timestamps = overwrite_timestamps
 
     async def start(self, fc_addr: tuple[str, int]) -> None:
         """Open a connection to the flight computer and start Limewire.
@@ -216,6 +217,10 @@ class Limewire:
         """Listen for telemetry messages."""
         while True:
             message = await self.telemetry_framer.receive_message()
+
+            if self.overwrite_timestamps:
+                message.timestamp = sy.TimeStamp.now()
+
             await self.queue.put(message)
 
     async def _synnax_write(self) -> None:
