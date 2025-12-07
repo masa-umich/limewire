@@ -129,6 +129,18 @@ class Limewire:
                 except* ConnectionResetError:
                     logger.error("Connection to flight computer lost.")
                     reconnect = True
+                except* OSError as err:
+                    if (
+                        platform.system() == "Windows"
+                        and getattr(err, "winerr", None)
+                        == WINERROR_SEMAPHORE_TIMEOUT
+                    ):
+                        logger.warning(
+                            f"Connection attempt timed out (Windows OSError: {str(err)})."
+                        )
+                        reconnect = True
+                    else:
+                        raise err
                 except* Exception as eg:
                     logger.error(
                         f"Tasks failed with {len(eg.exceptions)} error(s)"
