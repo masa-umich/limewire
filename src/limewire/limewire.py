@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 import asyncudp
 import synnax as sy
 from loguru import logger
-from scapy.error import Scapy_Exception
 
 from lmp import (
     HeartbeatMessage,
@@ -72,6 +71,10 @@ class Limewire:
 
             self.connected = False
             while True:
+                # Send NTP sync before connecting to ensure correct
+                # telemetry message timestamps.
+                send_ntp_sync(logger)
+
                 try:
                     logger.info(
                         f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
@@ -253,12 +256,7 @@ class Limewire:
                 # Writer will get re-initialzed during next loop iteration
                 self.synnax_writer = None
 
-                logger.info("Sending NTP sync.")
-
-                try:
-                    send_ntp_sync()
-                except Scapy_Exception:
-                    logger.warning("NTP sync failed.")
+                send_ntp_sync(logger)
 
             self.queue.task_done()
 
