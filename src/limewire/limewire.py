@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 import asyncudp
 import synnax as sy
 from loguru import logger
-from scapy.error import Scapy_Exception
 
 from lmp import (
     HeartbeatMessage,
@@ -33,12 +32,16 @@ WINERROR_SEMAPHORE_TIMEOUT = 121
 class Limewire:
     """A class to manage Limewire's resources."""
 
-    def __init__(self) -> None:
-        logger.info("Limewire started.")
+    def __init__(self, overwrite_timestamps: bool = False) -> None:
+        logger.info(
+            f"Limewire started (overwrite_timestamps={overwrite_timestamps})."
+        )
 
         self.synnax_client, self.channels = synnax_init()
         self.synnax_writer = None
+        self.lmp_framer = None
         self.queue: asyncio.Queue[LMPMessage] = asyncio.Queue()
+        self.overwrite_timestamps = overwrite_timestamps
 
     async def start(self, fc_addr: tuple[str, int]) -> None:
         """Open a connection to the flight computer and start Limewire.
@@ -72,12 +75,16 @@ class Limewire:
 
             self.connected = False
             while True:
+                # Send NTP sync before connecting to ensure correct
+                # telemetry message timestamps.
+                send_ntp_sync(logger)
+
                 try:
                     logger.info(
                         f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
                     )
 
-                    async with asyncio.timeout(1):
+                    async with asyncio.timeout(5):
                         tcp_reader, tcp_writer = await self._connect_fc(
                             *fc_addr
                         )
@@ -122,6 +129,19 @@ class Limewire:
                 except* ConnectionResetError:
                     logger.error("Connection to flight computer lost.")
                     reconnect = True
+                except* OSError as eg:
+                    for err in eg.exceptions:
+                        if (
+                            platform.system() == "Windows"
+                            and getattr(err, "winerr", None)
+                            == WINERROR_SEMAPHORE_TIMEOUT
+                        ):
+                            logger.warning(
+                                f"Connection attempt timed out (Windows OSError: {str(err)})."
+                            )
+                            reconnect = True
+                    else:
+                        raise eg
                 except* Exception as eg:
                     logger.error(
                         f"Tasks failed with {len(eg.exceptions)} error(s)"
@@ -136,7 +156,8 @@ class Limewire:
     async def stop(self):
         """Run shutdown code."""
 
-        await self.lmp_framer.close()
+        if self.lmp_framer is not None:
+            await self.lmp_framer.close()
 
         if self.synnax_writer is not None:
             try:
@@ -211,6 +232,10 @@ class Limewire:
         """Listen for telemetry messages."""
         while True:
             message = await self.telemetry_framer.receive_message()
+
+            if self.overwrite_timestamps:
+                message.timestamp = sy.TimeStamp.now()
+
             await self.queue.put(message)
 
     async def _synnax_write(self) -> None:
@@ -233,9 +258,16 @@ class Limewire:
                 continue
 
             if self.synnax_writer is None:
-                self.synnax_writer = await self._open_synnax_writer(
-                    message.timestamp
-                )
+                try:
+                    self.synnax_writer = await self._open_synnax_writer(
+                        message.timestamp
+                    )
+                except sy.ValidationError as err:
+                    logger.warning(
+                        f"Synnax validation error '{str(err)}', skipping frame"
+                    )
+                    send_ntp_sync(logger)
+                    continue
 
             try:
                 self.synnax_writer.write(frame)
@@ -253,12 +285,7 @@ class Limewire:
                 # Writer will get re-initialzed during next loop iteration
                 self.synnax_writer = None
 
-                logger.info("Sending NTP sync.")
-
-                try:
-                    send_ntp_sync()
-                except Scapy_Exception:
-                    logger.warning("NTP sync failed.")
+                send_ntp_sync(logger)
 
             self.queue.task_done()
 
