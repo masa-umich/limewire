@@ -63,6 +63,18 @@ class Board(Enum):
 
     def __str__(self) -> str:
         return repr(self).removeprefix(f"{self.__class__.__name__}.")
+    
+    @property
+    def pretty_name(self) -> str:
+        """The pretty name for this board, used for Hydrant UIs"""
+        P_NAMES = {
+            Board.FC: "Flight Computer",
+            Board.BB1: "Bay Board 1 (Press)",
+            Board.BB2: "Bay Board 2 (Intertank)",
+            Board.BB3: "Bay Board 3 (Engine)",
+            Board.FR: "Flight Recorder",
+        }
+        return P_NAMES[self]
 
 
 class Valve:

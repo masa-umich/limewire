@@ -13,7 +13,7 @@ class Hydrant:
     def __init__(self, fc_address: tuple[str, int]):
         self.fc_address = fc_address
 
-        self.boards_available = {board.name: board for board in Board}
+        self.boards_available = {board.pretty_name: board for board in Board}
         self.commands_available = {cmd.name: cmd for cmd in DeviceCommand}
 
         # Initially not assigned; updates on user input
@@ -22,6 +22,8 @@ class Hydrant:
         self.confirm_label = None
         self.selected_board_name = None
         self.selected_command_name = None
+        
+        self.start_fc_connection_status = False
 
         self.device_command_history: list[DeviceCommandHistoryEntry] = []
         self.device_command_recency: dict[
@@ -35,6 +37,11 @@ class Hydrant:
         """Maintain connection to flight computer."""
         while True:
             try:
+                self.start_fc_connection_status = False
+                self.fc_connection_status.set_visibility(True)
+            except AttributeError:
+                pass
+            try:
                 print(
                     f"Connecting to FC at {self.fc_address[0]}:{self.fc_address[1]}..."
                 )
@@ -42,10 +49,16 @@ class Hydrant:
                     *self.fc_address
                 )
                 print("Connection successful.")
-            except ConnectionRefusedError:
+            except (ConnectionRefusedError, TimeoutError):
                 await asyncio.sleep(1)
                 continue
-
+            
+            try:
+                self.start_fc_connection_status = True
+                self.fc_connection_status.set_visibility(False)
+            except AttributeError:
+                pass
+            
             fc_listen_task = asyncio.create_task(self.listen_for_acks())
 
             try:
@@ -86,7 +99,7 @@ class Hydrant:
 
     def main_page(self):
         """Generates page outline and GUI"""
-
+            
         ui.page_title("Hydrant")
         ui.dark_mode().enable()
 
@@ -98,73 +111,93 @@ class Hydrant:
                 ui.label("HYDRANT").classes(
                     "text-3xl font-extrabold tracking-wider"
                 )
-
+                
         # MAIN PAGE CONTENT
-        with ui.column().classes(
-            "w-full p-6 gap-4 max-w-7xl mx-auto"
-        ) as main_page_content:
+        with ui.row().classes("w-full mx-auto no-wrap") as main_page_content:
             self.main_page_content = main_page_content
-
-            # DEVICE COMMANDS
-            with ui.card().classes(
-                "w-full bg-gray-900 border border-gray-700 p-6"
+            
+            # DEVICE COMMANDS & SYSTEM CONFIGURATION
+            with ui.column().classes(
+                "w-full p-6 gap-4"
             ):
-                ui.label("DEVICE COMMANDS").classes(
-                    "text-xl font-bold text-white mb-4"
-                )
-                with ui.column().classes("w-full gap-3"):
-                    # BOARD
-                    ui.label("BOARD").classes("text-lg font-bold text-white")
+                with ui.tabs().classes('w-full') as tabs:
+                    devicecmds = ui.tab('Device Commands').classes("normal-case")
+                    systemconf = ui.tab('System Configuration').classes("normal-case")
+                with ui.tab_panels(tabs, value=devicecmds).classes("w-full bg-[#121212]"):
+                    with ui.tab_panel(devicecmds).classes("p-0"):
+                        # DEVICE COMMANDS
+                        with ui.row().classes("w-full mx-auto no-wrap"):
+                            with ui.column().classes("w-full"):
+                                with ui.card().classes(
+                                    "w-full bg-gray-900 border border-gray-700 p-6"
+                                ):
+                                    ui.label("DEVICE COMMANDS").classes(
+                                        "text-xl font-bold text-white mb-4"
+                                    )
+                                    with ui.column().classes("w-full gap-3"):
+                                        # BOARD
+                                        ui.label("BOARD").classes("text-lg font-bold text-white")
+                                        # Board selector
+                                        self.board_select = ui.select(
+                                            label="Select a board",
+                                            options=list(self.boards_available.keys()),
+                                        ).classes("w-full")
+                                        # Command
+                                        ui.label("COMMAND").classes("text-lg font-bold text-white")
+                                        self.command_select = ui.select(
+                                            label="Select a command",
+                                            options=list(self.commands_available.keys()),
+                                        ).classes("w-full")
+                                        # Dialog that is used for popup
+                                        with ui.dialog() as dialog, ui.card():
+                                            self.confirm_label = ui.label("")
+                                            with ui.row():
+                                                ui.button(
+                                                    "YES",
+                                                    on_click=lambda: self.send_after_confirm(
+                                                        dialog
+                                                    ),
+                                                )
+                                                ui.button("NO", on_click=lambda: dialog.close())
+                                        ui.button(
+                                            "SEND", on_click=lambda: self.send_command(dialog)
+                                        ).classes("w-half bg-blue-600 text-white hover:bg-blue-700")
+                            with ui.column().classes("w-full"):
+                                # ERROR LOG
+                                with ui.column().classes("w-full gap-4"):
+                                    # ERROR LOG CARD
+                                    with ui.card().classes(
+                                        "w-full bg-gray-900 border border-gray-700 p-6"
+                                    ):
+                                        ui.label("Error Log").classes(
+                                            "text-xl font-bold text-red-400 mb-4"
+                                        )
 
-                    # Board selector
-                    self.board_select = ui.select(
-                        label="Select a board",
-                        options=list(self.boards_available.keys()),
-                    ).classes("w-full")
+                                        error_column = ui.column().classes("w-full overflow-y-auto")
+                                        with error_column:
+                                            ui.label("Errors will appear here").classes(
+                                                "text-gray-500 italic"
+                                            )
+                                            ui.image('lebron.png').classes('w-64 h-auto rounded-lg')
+                        with ui.row().classes("w-full mx-auto no-wrap"):
+                            # COMMAND HISTORY CARD
+                            self.command_history_table()
+                    with ui.tab_panel(systemconf).classes("p-0"):
+                        pass
+                        
+        with ui.element('div').style('position: fixed; right: 1.5rem; bottom: 1.5rem; z-index: 1000;') as fc_conn_stat:
+            self.fc_connection_status = fc_conn_stat
+            fc_conn_stat.set_visibility(self.start_fc_connection_status == False)
+            with ui.card().classes('bg-black text-white p-6 shadow-lg'):
+                ui.label('Flight Computer disconnected').classes("text-bold")
+                ui.label('Trying to reconnect...')
 
-                    # Command
-                    ui.label("COMMAND").classes("text-lg font-bold text-white")
-                    self.command_select = ui.select(
-                        label="Select a command",
-                        options=list(self.commands_available.keys()),
-                    ).classes("w-full")
 
-                    # Dialog that is used for popup
-                    with ui.dialog() as dialog, ui.card():
-                        self.confirm_label = ui.label("")
-                        with ui.row():
-                            ui.button(
-                                "YES",
-                                on_click=lambda: self.send_after_confirm(
-                                    dialog
-                                ),
-                            )
-                            ui.button("NO", on_click=lambda: dialog.close())
-
-                    ui.button(
-                        "SEND", on_click=lambda: self.send_command(dialog)
-                    ).classes("w-half bg-blue-600 text-white hover:bg-blue-700")
-
-            # COMMAND HISTORY CARD
-            self.command_history_table()
-
-            # ERROR LOG CARD
-            with ui.card().classes(
-                "w-full bg-gray-900 border border-gray-700 p-6"
-            ):
-                ui.label("Error Log").classes(
-                    "text-xl font-bold text-red-400 mb-4"
-                )
-
-                error_column = ui.column().classes("w-full overflow-y-auto")
-                with error_column:
-                    ui.label("Errors will appear here").classes(
-                        "text-gray-500 italic"
-                    )
 
     def send_command(self, dialog):
         """Initialize send command process on button press"""
-
+        
+        if(self.board_select.value == None or self.command_select.value == None): return
         self.selected_board_name = self.board_select.value
         self.selected_command_name = self.command_select.value
 
@@ -219,8 +252,17 @@ class Hydrant:
             column_defs = []
             for field in DeviceCommandHistoryEntry.fields():
                 col_def = {"field": field}
+                col_def["tooltipField"] = field
                 if field == "Send Time":
                     col_def["sort"] = "desc"
+                
+                if field == "ACK?":
+                    col_def["width"] = 100
+                    col_def["maxWidth"] = 100
+                elif field == "ACK Message":
+                    pass
+                else:
+                    col_def["maxWidth"] = 210
                 column_defs.append(col_def)
 
             with history_column:
