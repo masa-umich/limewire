@@ -24,6 +24,9 @@ class Hydrant:
         self.selected_command_name = None
         
         self.start_fc_connection_status = False
+        
+        self.fc_writer = None
+        self.fc_reader = None
 
         self.device_command_history: list[DeviceCommandHistoryEntry] = []
         self.device_command_recency: dict[
@@ -36,6 +39,8 @@ class Hydrant:
     async def connect_to_fc(self):
         """Maintain connection to flight computer."""
         while True:
+            self.fc_reader = None
+            self.fc_writer = None
             try:
                 self.start_fc_connection_status = False
                 self.fc_connection_status.set_visibility(True)
@@ -72,6 +77,8 @@ class Hydrant:
 
     async def listen_for_acks(self):
         while True:
+            while self.fc_reader is None:
+                await asyncio.sleep(0.5)
             msg_length = await self.fc_reader.read(1)
             if not msg_length:
                 break
@@ -216,23 +223,23 @@ class Hydrant:
 
         self.board = self.boards_available[self.selected_board_name]
         self.command = self.commands_available[self.selected_command_name]
+        if(self.fc_writer):
+            msg = DeviceCommandMessage(self.board, self.command)
+            msg_bytes = bytes(msg)
 
-        msg = DeviceCommandMessage(self.board, self.command)
-        msg_bytes = bytes(msg)
+            print(
+                f"Sending {self.selected_command_name} to board {self.selected_board_name}"
+            )
+            self.fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
+            await self.fc_writer.drain()
 
-        print(
-            f"Sending {self.selected_command_name} to board {self.selected_board_name}"
-        )
-        self.fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
-        await self.fc_writer.drain()
-
-        new_entry = DeviceCommandHistoryEntry(
-            board=msg.board,
-            command=msg.command,
-            send_time=datetime.now(),
-        )
-        self.device_command_history.append(new_entry)
-        self.device_command_recency[(msg.board, msg.command)] = new_entry
+            new_entry = DeviceCommandHistoryEntry(
+                board=msg.board,
+                command=msg.command,
+                send_time=datetime.now(),
+            )
+            self.device_command_history.append(new_entry)
+            self.device_command_recency[(msg.board, msg.command)] = new_entry
         self.refresh_history_table()
 
     def refresh_history_table(self):
