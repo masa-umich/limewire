@@ -24,7 +24,7 @@ description = "A driver to facilitate communication between Synnax and Limelight
 readme = "README.md"
 
 [project.scripts]
-limewire = "limewire.__main__:main"
+limewire = "limewire:main"
 fc_simulator = "fc_simulator:main"
 hydrant = "hydrant:main"
 
