@@ -4,7 +4,6 @@ import click
 
 from limewire.util import SocketAddress
 
-from . import errors as errors
 from .fc_simulator import FCSimulator
 
 

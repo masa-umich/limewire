@@ -280,6 +280,12 @@ class Limewire:
                     self.synnax_writer.close()
                 except sy.ValidationError:
                     # Why oh why must you be this way Synnax :(
+                    #
+                    # (For context, if a ValidationError occurs, the
+                    # error state doesn't get cleared from the writer, so
+                    # when we try to close the writer it will re-raise the
+                    # error which is why we have to handle it a second time
+                    # here.)
                     pass
 
                 # Writer will get re-initialzed during next loop iteration
@@ -296,7 +302,7 @@ class Limewire:
             try:
                 frame = self._build_telemetry_frame(msg)
             except KeyError as err:
-                logger.error(str(err), extra={"error_code": "0006"})
+                logger.error(str(err))
                 return None
         else:
             frame = self._build_valve_state_frame(msg)

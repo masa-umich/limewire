@@ -2,7 +2,6 @@ import asyncio
 import random
 import socket
 from functools import partial
-from typing import Tuple
 
 import asyncudp
 import synnax as sy
@@ -20,7 +19,7 @@ from lmp import (
 from lmp.util import DeviceCommand
 
 
-def format_socket_address(addr: Tuple[str, int]) -> str:
+def format_socket_address(addr: tuple[str, int]) -> str:
     """Format of addr: [address, port]"""
 
     return addr[0] + ":" + str(addr[1])
@@ -116,6 +115,8 @@ class FCSimulator:
                 break
 
             response_msg = await self.get_response_msg(msg_bytes)
+            if not response_msg:
+                continue
 
             response_bytes = bytes(response_msg)
             writer.write(len(response_bytes).to_bytes(1) + response_bytes)
@@ -123,7 +124,7 @@ class FCSimulator:
 
     async def get_response_msg(
         self, msg_bytes: bytes
-    ) -> ValveStateMessage | DeviceCommandAckMessage:
+    ) -> ValveStateMessage | DeviceCommandAckMessage | None:
         """Return the response message associated with the command message.
 
         Args:
@@ -155,6 +156,8 @@ class FCSimulator:
                         response.response_msg = (
                             "Build 6.7.67 (commit hash deadbeef)"
                         )
+                    case _:
+                        pass
 
                 return response
             case HeartbeatMessage.MSG_ID:
