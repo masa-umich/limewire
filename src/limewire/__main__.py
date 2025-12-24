@@ -1,6 +1,7 @@
 import asyncio
 
 import click
+from loguru import logger
 
 from limewire import Limewire
 from limewire.errors import print_limewire_error
@@ -25,8 +26,6 @@ def main(fc_address: tuple[str, int], debug: bool, overwrite_timestamps: bool):
         asyncio.run(limewire.start(fc_address))  # pyright: ignore[reportPrivateLocalImportUsage]
     except KeyboardInterrupt:
         pass
-    except ConnectionRefusedError as err:
-        print_limewire_error(err)
 
 
 if __name__ == "__main__":
