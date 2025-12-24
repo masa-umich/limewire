@@ -302,7 +302,7 @@ class Limewire:
             try:
                 frame = self._build_telemetry_frame(msg)
             except KeyError as err:
-                logger.error(str(err), extra={"error_code": "0006"})
+                logger.error(str(err))
                 return None
         else:
             frame = self._build_valve_state_frame(msg)
