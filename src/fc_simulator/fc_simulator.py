@@ -2,7 +2,6 @@ import asyncio
 import random
 import socket
 from functools import partial
-from typing import Tuple
 
 import asyncudp
 import synnax as sy
@@ -20,7 +19,7 @@ from lmp import (
 from lmp.util import DeviceCommand
 
 
-def format_socket_address(addr: Tuple[str, int]) -> str:
+def format_socket_address(addr: tuple[str, int]) -> str:
     """Format of addr: [address, port]"""
 
     return addr[0] + ":" + str(addr[1])
