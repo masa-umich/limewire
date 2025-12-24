@@ -280,6 +280,12 @@ class Limewire:
                     self.synnax_writer.close()
                 except sy.ValidationError:
                     # Why oh why must you be this way Synnax :(
+                    #
+                    # (For context, if a ValidationError occurs, the
+                    # error state doesn't get cleared from the writer, so
+                    # when we try to close the writer it will re-raise the
+                    # error which is why we have to handle it a second time
+                    # here.)
                     pass
 
                 # Writer will get re-initialzed during next loop iteration
