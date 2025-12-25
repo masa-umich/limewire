@@ -12,11 +12,14 @@ dependencies = [
     "click>=8.1.8",
     "loguru>=0.7.3",
     "nicegui>=2.23.2",
+    "openpyxl>=3.1.5",
+    "pandas>=2.3.3",
     "platformdirs>=4.5.0",
     "python-dotenv<2.0.0,>=1.0.1",
     "scapy>=2.6.1",
     "seaborn>=0.13.2",
-    "synnax>=0.46,<0.47",
+    "synnax==0.46.0",
+    "tftpy==0.8.5",
 ]
 name = "limewire"
 version = "0.1.0"

@@ -8,6 +8,9 @@ from lmp.util import Board, DeviceCommand
 
 from .device_command_history import DeviceCommandHistoryEntry
 
+from .hydrant_ui import IP_Address_UI, FC_Config_UI, BB_Config_UI, FR_Config_UI, Event_Log_UI, System_Config_UI
+
+from .hydrant_system_config import *
 
 class Hydrant:
     def __init__(self, fc_address: tuple[str, int]):
@@ -134,7 +137,9 @@ class Hydrant:
             
             # DEVICE COMMANDS & SYSTEM CONFIGURATION
             with ui.column().classes("w-full p-6 gap-4"):
-                main_page_toggle = ui.toggle({1: "Device Commands", 2: "System Configuration", 3: "Event Log"}, value=1).classes("self-center border-2 border-[#2f2d63]").props('toggle-color="purple"')
+                with ui.row().classes("w-full no-wrap justify-center relative"):
+                    main_page_toggle = ui.toggle({1: "Device Commands", 2: "System Configuration", 3: "Event Log"}, value=1).classes("self-center border-2 border-[#2f2d63]").props('toggle-color="purple"')
+                    ui.button("Reset", on_click=self.warn_restore_defaults).classes("absolute right-0").bind_visibility_from(main_page_toggle, "value", backward=lambda v: v == 2)
                 with ui.tab_panels().classes("w-full bg-[#121212]").props('animated="false"').bind_value_from(main_page_toggle, "value"):
                     with ui.tab_panel(1).classes("p-0"):
                         # DEVICE COMMANDS
@@ -178,12 +183,7 @@ class Hydrant:
                                 # ERROR LOG
                                 with ui.column().classes("w-full gap-4"):
                                     # ERROR LOG CARD
-                                    with ui.card().classes("w-full bg-gray-900 border border-gray-700 p-6"):
-                                        ui.label("Error Log").classes("text-xl font-bold text-red-400 mb-4")
-                                        error_column = ui.column().classes("w-full overflow-y-auto")
-                                        with error_column:
-                                            ui.label("Errors will appear here").classes("text-gray-500 italic")
-                                            ui.image('lebron.png').classes('w-64 h-auto rounded-lg')
+                                    Event_Log_UI()
                         with ui.row().classes("w-full mx-auto no-wrap"):
                             # COMMAND HISTORY CARD
                             self.command_history_table()
@@ -191,53 +191,12 @@ class Hydrant:
                         # SYSTEM CONFIGURATION
                         with ui.row().classes("w-full mx-auto no-wrap"):
                             with ui.column().classes("w-full"):
-                                with ui.card().classes("w-full bg-gray-900 border border-gray-700 p-6"):
-                                    with ui.row().classes("w-full mx-auto no-wrap"):
-                                        with ui.column().classes():
-                                            ui.label("SYSTEM CONFIG").classes("text-xl font-bold text-white mb-4")
-                                            ui.upload(label="Load from ICD").props('accept=.csv,.xlsx no-thumbnails no-icon auto__false color=lime text-color=black')
-                                            ui.button("Write Configuration", color="orange").classes("text-base w-full")
-                                        with ui.column().classes("gap-0 pl-10"):
-                                            ui.checkbox().classes("h-11")
-                                            ui.checkbox("EBox").classes("h-8")
-                                            ui.checkbox("Flight Computer").classes("h-8")
-                                            ui.checkbox("Bay Board 1 (Press)").classes("h-8")
-                                            ui.checkbox("Bay Board 2 (Intertank)").classes("h-8")
-                                            ui.checkbox("Bay Board 3 (Engine)").classes("h-8")
-                                            ui.checkbox("Flight Recorder").classes("h-8")
-                                    ui.separator().classes("w-full h-1")
-                                    ui.label("Progress").classes("self-center text-lg")
-                                    with ui.row().classes("w-full mx-auto no-wrap gap-0 justify-between"):
-                                        with ui.column().classes('items-center gap-0'):
-                                            ui.label('EBox').classes('text-sm')
-                                            ui.checkbox('').classes("h-10").props("disable")
-                                        with ui.column().classes('items-center gap-0'):
-                                            ui.label('Flight Computer').classes('text-sm')
-                                            ui.checkbox('').classes("h-10").props("disable")
-                                        with ui.column().classes('items-center gap-0'):
-                                            ui.label('Bay Board 1').classes('text-sm')
-                                            ui.checkbox('').classes("h-10").props("disable")
-                                        with ui.column().classes('items-center gap-0'):
-                                            ui.label('Bay Board 2').classes('text-sm')
-                                            ui.checkbox('').classes("h-10").props("disable")
-                                        with ui.column().classes('items-center gap-0'):
-                                            ui.label('Bay Board 3').classes('text-sm')
-                                            ui.checkbox('').classes("h-10").props("disable")
-                                        with ui.column().classes('items-center gap-0'):
-                                            ui.label('Flight Recorder').classes('text-sm')
-                                            ui.checkbox('').classes("h-10").props("disable")
-                                    
+                                self.system_config = System_Config_UI(self)
                             with ui.column().classes("w-full"):
                                 # ERROR LOG
                                 with ui.column().classes("w-full gap-4"):
                                     # ERROR LOG CARD
-                                    with ui.card().classes("w-full bg-gray-900 border border-gray-700 p-6"):
-                                        ui.label("Error Log").classes("text-xl font-bold text-red-400 mb-4")
-
-                                        error_column = ui.column().classes("w-full overflow-y-auto")
-                                        with error_column:
-                                            ui.label("Errors will appear here").classes("text-gray-500 italic")
-                                            ui.image('lebron.png').classes('w-64 h-auto rounded-lg')
+                                    Event_Log_UI()
                         with ui.row().classes("w-full mx-auto no-wrap"):
                             # BOARD SPECIFIC CONFIG
                             with ui.card().classes("w-full bg-gray-900 border border-gray-700 p-6"):
@@ -245,202 +204,32 @@ class Hydrant:
                                     ui.label("MANUAL BOARD CONFIG").classes("text-xl font-bold text-white mb-4")
                                     ui.space()
                                     board_config_toggle = ui.toggle({1: "Flight Computer", 2: "Bay Board 1", 3: "Bay Board 2", 4: "Bay Board 3", 5: "Flight Recorder"}, value=1).classes("border-1 border-[#2f2d63]").props('toggle-color="lime" toggle-text-color="black"')
-                                    with ui.row().classes("no-wrap items-end gap-1"):
-                                        ui.label("TFTP IP Override: ").classes("self-center")
-                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                        ui.label(".")
-                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                        ui.label(".")
-                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                        ui.label(".")
-                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
+                                    with ui.tab_panels().classes("bg-gray-900").props('animated="false"').bind_value_from(board_config_toggle, "value"):
+                                        with ui.tab_panel(1).classes("p-0"):
+                                            self.FC_TFTP_IP = IP_Address_UI(DEFAULT_FC_IP, "TFTP IP")
+                                        with ui.tab_panel(2).classes("p-0"):
+                                            self.BB1_TFTP_IP = IP_Address_UI(DEFAULT_BB1_IP, "TFTP IP")
+                                        with ui.tab_panel(3).classes("p-0"):
+                                            self.BB2_TFTP_IP = IP_Address_UI(DEFAULT_BB2_IP, "TFTP IP")
+                                        with ui.tab_panel(4).classes("p-0"):
+                                            self.BB3_TFTP_IP = IP_Address_UI(DEFAULT_BB3_IP, "TFTP IP")
+                                        with ui.tab_panel(5).classes("p-0"):
+                                            self.FR_TFTP_IP = IP_Address_UI(DEFAULT_FR_IP, "TFTP IP")
                                 ui.separator().classes("h-1")
                                 with ui.row().classes("w-full mx-auto no-wrap"):
                                     with ui.tab_panels().classes("w-full bg-gray-900").props('animated="false"').bind_value_from(board_config_toggle, "value"):
                                         with ui.tab_panel(1).classes("p-0"):
-                                            #FC
-                                            with ui.column().classes("h-full w-full"):
-                                                with ui.row().classes("w-full mx-auto no-wrap flex items-stretch h-full"):
-                                                    # PTs
-                                                    with ui.column().classes("border-1 p-2 border-gray-500 flex-1 basis-auto"):
-                                                        with ui.row().classes("w-full mx-auto no-wrap gap-3"):
-                                                            for x in range(5):
-                                                                with ui.column().classes("w-full gap-1"):
-                                                                    ui.label("PT " + str(x + 1) + "").classes("pb-1 pl-2")
-                                                                    ui.separator()
-                                                                    ui.number(label="Range", value=1000, precision=0).props("filled dense")
-                                                                    ui.number(label="Offset", value=0.5, precision=1).props("filled dense")
-                                                                    ui.number(label="Max", value=4.5, precision=1).props("filled dense")
-                                                    # TCs
-                                                    with ui.column().classes("border-1 p-2 border-gray-500 gap-3 flex-1 basis-auto justify-center"):
-                                                        with ui.column().classes("w-full gap-3"):
-                                                            for x in range(3):
-                                                                with ui.row().classes("w-full mx-auto no-wrap gap-1 items-center"):
-                                                                    ui.label("TC " + str(x + 1) + " ").classes("min-w-10")
-                                                                    ui.select([1, 2, 4, 8, 16, 32, 64, 128], value=1, label="Gain").props("filled dense").classes("min-w-25")
-                                                    # Valves
-                                                    with ui.column().classes("border-1 p-2 border-gray-500 flex-1 basis-auto"):
-                                                        with ui.row().classes("w-full mx-auto no-wrap gap-3"):
-                                                            for x in range(3):
-                                                                with ui.column().classes("w-full gap-1"):
-                                                                    ui.label("Valve " + str(x + 1) + "").classes("pb-1 pl-2")
-                                                                    ui.separator()
-                                                                    #ui.checkbox("Enabled")
-                                                                    ui.switch("Enabled")
-                                                                    ui.select([12, 24], value=24, label="Voltage").props("filled dense").classes("min-w-25")
-                                                with ui.row().classes("w-full mx-auto no-wrap flex items-stretch h-full border-1 p-2 border-gray-500"):
-                                                    # IP Addresses
-                                                    with ui.column().classes("w-full"):
-                                                        with ui.column().classes("w-fit items-end"):
-                                                            with ui.row().classes("no-wrap items-end gap-1"):
-                                                                ui.label("Limewire IP: ").classes("self-center")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                            with ui.row().classes("no-wrap items-end gap-1"):
-                                                                ui.label("Flight Computer IP: ").classes("self-center")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                    with ui.column().classes("w-full"):
-                                                        with ui.column().classes("w-fit items-end"):
-                                                            with ui.row().classes("no-wrap items-end gap-1"):
-                                                                ui.label("Bay Board 1 IP: ").classes("self-center")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                            with ui.row().classes("no-wrap items-end gap-1"):
-                                                                ui.label("Bay Board 2 IP: ").classes("self-center")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                    with ui.column().classes("w-full"):
-                                                        with ui.column().classes("w-fit items-end"):
-                                                            with ui.row().classes("no-wrap items-end gap-1"):
-                                                                ui.label("Bay Board 3 IP: ").classes("self-center")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                            with ui.row().classes("no-wrap items-end gap-1"):
-                                                                ui.label("Flight Recorder IP: ").classes("self-center")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                                ui.label(".")
-                                                                ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
+                                            self.FC_config = FC_Config_UI()
                                         with ui.tab_panel(2).classes("p-0"):
-                                            with ui.column().classes("h-full w-full"):
-                                                # PTs
-                                                with ui.row().classes("w-full mx-auto no-wrap flex items-stretch h-full"):
-                                                    with ui.column().classes("border-1 p-2 border-gray-500 flex-1 basis-auto"):
-                                                        with ui.row().classes("w-full mx-auto no-wrap gap-3"):
-                                                            for x in range(10):
-                                                                with ui.column().classes("w-full gap-1"):
-                                                                    ui.label("PT " + str(x + 1) + "").classes("pb-1 pl-2")
-                                                                    ui.separator()
-                                                                    ui.number(label="Range", value=1000, precision=0).props("filled dense")
-                                                                    ui.number(label="Offset", value=0.5, precision=1).props("filled dense")
-                                                                    ui.number(label="Max", value=4.5, precision=1).props("filled dense")
-                                                with ui.row().classes("w-full mx-auto no-wrap flex items-stretch h-full"):
-                                                    # TCs
-                                                    with ui.column().classes("border-1 p-2 border-gray-500 gap-3 flex-1 basis-auto justify-center"):
-                                                        with ui.row().classes("w-full mx-auto no-wrap"):
-                                                            with ui.column().classes("w-full gap-3"):
-                                                                for x in range(3):
-                                                                    with ui.row().classes("w-full mx-auto no-wrap gap-1 items-center"):
-                                                                        ui.label("TC " + str(x + 1) + " ").classes("min-w-10")
-                                                                        ui.select([1, 2, 4, 8, 16, 32, 64, 128], value=1, label="Gain").props("filled dense").classes("min-w-25")
-                                                            with ui.column().classes("w-full gap-3"):
-                                                                for x in range(3):
-                                                                    with ui.row().classes("w-full mx-auto no-wrap gap-1 items-center"):
-                                                                        ui.label("TC " + str(x + 1) + " ").classes("min-w-10")
-                                                                        ui.select([1, 2, 4, 8, 16, 32, 64, 128], value=1, label="Gain").props("filled dense").classes("min-w-25")
-                                                    # Valves
-                                                    with ui.column().classes("border-1 p-2 border-gray-500 flex-1 basis-auto"):
-                                                        with ui.row().classes("w-full mx-auto no-wrap gap-3"):
-                                                            for x in range(5):
-                                                                with ui.column().classes("w-full gap-1"):
-                                                                    ui.label("Valve " + str(x + 1) + "").classes("pb-1 pl-2")
-                                                                    ui.separator()
-                                                                    #ui.checkbox("Enabled")
-                                                                    ui.switch("Enabled")
-                                                                    ui.select([12, 24], value=24, label="Voltage").props("filled dense").classes("min-w-25")
-                                                with ui.row().classes("w-full no-wrap justify-center h-full border-1 p-2 border-gray-500"):
-                                                    # IP Addresses
-                                                    ui.space()
-                                                    with ui.row().classes("no-wrap items-end gap-1"):
-                                                        ui.label("Bay Board IP: ").classes("self-center")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                        ui.label(".")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                        ui.label(".")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                        ui.label(".")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                    ui.space()
-                                                    with ui.row().classes("no-wrap items-end gap-1"):
-                                                        ui.label("Flight Computer IP: ").classes("self-center")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                        ui.label(".")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                        ui.label(".")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                        ui.label(".")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                    ui.space()
+                                            self.BB1_config = BB_Config_UI(1)
                                         with ui.tab_panel(3).classes("p-0"):
-                                            ui.label("BB2")
+                                            self.BB2_config = BB_Config_UI(2)
                                         with ui.tab_panel(4).classes("p-0"):
-                                            ui.label("BB3")
+                                            self.BB3_config = BB_Config_UI(3)
                                         with ui.tab_panel(5).classes("p-0"):
-                                            with ui.column().classes("h-full w-full"):
-                                                with ui.row().classes("w-full no-wrap justify-center h-full border-1 p-2 border-gray-500"):
-                                                    # IP Addresses
-                                                    ui.space()
-                                                    with ui.row().classes("no-wrap items-end gap-1"):
-                                                        ui.label("Flight Recorder IP: ").classes("self-center")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                        ui.label(".")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                        ui.label(".")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                        ui.label(".")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                    ui.space()
-                                                    with ui.row().classes("no-wrap items-end gap-1"):
-                                                        ui.label("Flight Computer IP: ").classes("self-center")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                        ui.label(".")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                        ui.label(".")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                        ui.label(".")
-                                                        ui.input().props("dense outlined").classes("min-w-[4em] w-[4em]")
-                                                    ui.space()
+                                            self.FR_config = FR_Config_UI()
         # FC CONNECTION DIV
-        with ui.element('div').style('position: fixed; right: 1.5rem; bottom: 1.5rem; z-index: 1000; box-shadow: 0 0 0.5em #7f9fbf35; background-color: black;').classes("") as fc_conn_stat:
+        with ui.element('div').style('position: fixed; right: 1.5rem; bottom: 1.5rem; z-index: 1000; box-shadow: 0 0 0.5em #7f9fbf35; background-color: black;').classes("rounded-sm") as fc_conn_stat:
             self.fc_connection_status = fc_conn_stat
             fc_conn_stat.set_visibility(self.start_fc_connection_status == False)
             with ui.card().classes('bg-transparent text-white p-6 pl-4 shadow-lg'):
@@ -451,8 +240,34 @@ class Hydrant:
                         ui.label('Trying to reconnect...')
         ui.space().classes("h-32")
 
-
-
+    def warn_restore_defaults(self):
+        with ui.dialog() as dialog, ui.card().classes("w-100 h-30 flex flex-col justify-center items-center"):
+            ui.button(icon="close", on_click=lambda e: dialog.close()).classes("absolute right-0 top-0 bg-transparent").props('flat color="white" size="lg"')
+            ui.label("Confirm reset to defaults").classes("text-xl")
+            ui.button("Confirm", on_click=lambda e: (
+                self.restore_defaults(),
+                dialog.close()
+            ))
+            dialog.open()
+        
+    def restore_defaults(self):
+        self.system_config.ICD_config = None
+        self.FC_TFTP_IP.set_ip(DEFAULT_FC_IP)
+        self.BB1_TFTP_IP.set_ip(DEFAULT_BB1_IP)
+        self.BB2_TFTP_IP.set_ip(DEFAULT_BB2_IP)
+        self.BB3_TFTP_IP.set_ip(DEFAULT_BB3_IP)
+        self.FR_TFTP_IP.set_ip(DEFAULT_FR_IP)
+        
+        self.FC_config.restore_defaults()
+        self.BB1_config.restore_defaults()
+        self.BB2_config.restore_defaults()
+        self.BB3_config.restore_defaults()
+        self.FR_config.restore_defaults()
+        
+        self.system_config.reset_progress_indicators()
+        self.system_config.ICD_file.reset()
+        self.system_config.ICD_config = None
+    
     def send_command(self, dialog):
         """Initialize send command process on button press"""
         
