@@ -33,7 +33,7 @@ class LMPFramer:
         self.writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
         await self.writer.drain()
 
-    async def receive_message(self) -> LMPMessage | None:
+    async def receive_message(self) -> tuple[LMPMessage, float] | None:
         msg_length = await self.reader.read(1)
         if not msg_length:
             return None
@@ -42,18 +42,20 @@ class LMPFramer:
         if not msg_bytes:
             return None
 
+        recv_time = asyncio.get_running_loop().time()
+
         msg_id = int.from_bytes(msg_bytes[0:1])
         match msg_id:
             case DeviceCommandAckMessage.MSG_ID:
-                return DeviceCommandAckMessage.from_bytes(msg_bytes)
+                return DeviceCommandAckMessage.from_bytes(msg_bytes), recv_time
             case DeviceCommandMessage.MSG_ID:
-                return DeviceCommandMessage.from_bytes(msg_bytes)
+                return DeviceCommandMessage.from_bytes(msg_bytes), recv_time
             case HeartbeatMessage.MSG_ID:
-                return HeartbeatMessage.from_bytes(msg_bytes)
+                return HeartbeatMessage.from_bytes(msg_bytes), recv_time
             case ValveCommandMessage.MSG_ID:
-                return ValveCommandMessage.from_bytes(msg_bytes)
+                return ValveCommandMessage.from_bytes(msg_bytes), recv_time
             case ValveStateMessage.MSG_ID:
-                return ValveStateMessage.from_bytes(msg_bytes)
+                return ValveStateMessage.from_bytes(msg_bytes), recv_time
             case _:
                 raise ValueError(
                     f"Received invalid LMP message identifier: 0x{msg_id:X}"
@@ -80,11 +82,13 @@ class TelemetryFramer:
         msg_bytes = bytes(message)
         self.sock.sendto(len(msg_bytes).to_bytes(1) + msg_bytes)
 
-    async def receive_message(self) -> TelemetryMessage:
+    async def receive_message(self) -> tuple[TelemetryMessage, float]:
         """Receive a message from the socket.
 
         Returns:
-            The telemetry message received from the socket.
+            The telemetry message received from the socket and the
+            time the message was received according to the asyncio
+            clock.
 
         Raises:
             FramingError: The length prefix and actual message length
@@ -92,6 +96,8 @@ class TelemetryFramer:
             ValueError: The message data is an invalid TelemetryMessage.
         """
         data, _ = await self.sock.recvfrom()
+
+        recv_time = asyncio.get_running_loop().time()
 
         msg_len = int.from_bytes(data[0:1])
 
@@ -105,4 +111,4 @@ class TelemetryFramer:
         except ValueError as err:
             raise err
 
-        return message
+        return message, recv_time

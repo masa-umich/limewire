@@ -37,7 +37,7 @@ class Limewire:
     synnax_writer: sy.Writer | None
     lmp_framer: LMPFramer | None
     telemetry_framer: TelemetryFramer | None
-    queue: asyncio.Queue[LMPMessage]
+    queue: asyncio.Queue[tuple[LMPMessage, float]]
     overwrite_timestamps: bool
     connected: bool
 
@@ -73,9 +73,7 @@ class Limewire:
                 await self.stop()
 
         async with lifespan():
-            self.synnax_writer = await self._open_synnax_writer(
-                sy.TimeStamp.now()
-            )
+            self.synnax_writer = self._open_synnax_writer(sy.TimeStamp.now())
             await asyncio.sleep(0.5)
 
             telemetry_socket = await asyncudp.create_socket(
@@ -232,17 +230,19 @@ class Limewire:
                 continue
 
             try:
-                message = await self.lmp_framer.receive_message()
+                framer_return = await self.lmp_framer.receive_message()
             except (FramingError, ValueError) as err:
                 logger.error(str(err))
                 logger.opt(exception=err).debug("Traceback: ", exc_info=True)
                 continue
 
-            if message is None:
+            if framer_return is None:
                 break
 
+            message, recv_time = framer_return
+
             if type(message) is ValveStateMessage:
-                await self.queue.put(message)
+                await self.queue.put((message, recv_time))
             else:
                 pass
                 # TODO: log warning
@@ -255,17 +255,17 @@ class Limewire:
                 await asyncio.sleep(0)
                 continue
 
-            message = await self.telemetry_framer.receive_message()
+            message, recv_time = await self.telemetry_framer.receive_message()
 
             if self.overwrite_timestamps:
                 message.timestamp = sy.TimeStamp.now()
 
-            await self.queue.put(message)
+            await self.queue.put((message, recv_time))
 
     async def _synnax_write(self) -> None:
         """Write telemetry data and valve state data to Synnax."""
         while True:
-            message = await self.queue.get()
+            message, recv_time = await self.queue.get()
 
             if not isinstance(message, TelemetryMessage) and not isinstance(
                 message, ValveStateMessage
@@ -281,43 +281,64 @@ class Limewire:
                 self.queue.task_done()
                 continue
 
-            if self.synnax_writer is None:
-                try:
-                    self.synnax_writer = await self._open_synnax_writer(
-                        message.timestamp
-                    )
-                except sy.ValidationError as err:
-                    logger.warning(
-                        f"Synnax validation error '{str(err)}', skipping frame"
-                    )
-                    send_ntp_sync(logger)
-                    continue
+            latency_channel: str
+            if isinstance(message, TelemetryMessage):
+                latency_channel = "limewire_telemetry_latency"
+            else:
+                latency_channel = "limewire_valve_state_latency"
 
+            self._synnax_write_frame(
+                frame, message.timestamp, recv_time, latency_channel
+            )
+
+            self.queue.task_done()
+
+    def _synnax_write_frame(
+        self,
+        frame: dict[str, float],
+        timestamp: int,
+        latency_start_time: float,
+        latency_channel: str,
+    ):
+        """Write a frame to Synnax including latency information."""
+        if self.synnax_writer is None:
             try:
-                self.synnax_writer.write(frame)  # pyright: ignore[reportArgumentType]
+                self.synnax_writer = self._open_synnax_writer(timestamp)
             except sy.ValidationError as err:
                 logger.warning(
                     f"Synnax validation error '{str(err)}', skipping frame"
                 )
-
-                try:
-                    self.synnax_writer.close()
-                except sy.ValidationError:
-                    # Why oh why must you be this way Synnax :(
-                    #
-                    # (For context, if a ValidationError occurs, the
-                    # error state doesn't get cleared from the writer, so
-                    # when we try to close the writer it will re-raise the
-                    # error which is why we have to handle it a second time
-                    # here.)
-                    pass
-
-                # Writer will get re-initialzed during next loop iteration
-                self.synnax_writer = None
-
                 send_ntp_sync(logger)
+                return
 
-            self.queue.task_done()
+        frame[f"{latency_channel}_timestamp"] = sy.TimeStamp.now()
+        frame[latency_channel] = (
+            asyncio.get_running_loop().time() - latency_start_time
+        )
+
+        try:
+            self.synnax_writer.write(frame)  # pyright: ignore[reportArgumentType]
+        except sy.ValidationError as err:
+            logger.warning(
+                f"Synnax validation error '{str(err)}', skipping frame"
+            )
+
+            try:
+                self.synnax_writer.close()
+            except sy.ValidationError:
+                # Why oh why must you be this way Synnax :(
+                #
+                # (For context, if a ValidationError occurs, the
+                # error state doesn't get cleared from the writer, so
+                # when we try to close the writer it will re-raise the
+                # error which is why we have to handle it a second time
+                # here.)
+                pass
+
+            # Writer will get re-initialzed next time its needed
+            self.synnax_writer = None
+
+            send_ntp_sync(logger)
 
     def _build_synnax_frame(
         self, msg: TelemetryMessage | ValveStateMessage
@@ -372,7 +393,7 @@ class Limewire:
         frame[limewire_write_time_channel] = sy.TimeStamp.now()
         return frame
 
-    async def _open_synnax_writer(self, timestamp: int) -> sy.Writer:
+    def _open_synnax_writer(self, timestamp: int) -> sy.Writer:
         """Return an initialized Synnax writer using the given timestamp."""
 
         # Create a list of all channels
@@ -404,6 +425,8 @@ class Limewire:
         async with await self.synnax_client.open_async_streamer(
             cmd_channels
         ) as streamer:
+            recv_time = asyncio.get_running_loop().time()
+
             async for frame in streamer:
                 for channel, series in frame.items():
                     valve = Valve.from_channel_name(channel)  # pyright: ignore[reportArgumentType]
@@ -415,3 +438,11 @@ class Limewire:
                         continue
 
                     await self.lmp_framer.send_message(msg)
+
+                    # Write latency data to Synnax
+                    self._synnax_write_frame(
+                        {},
+                        sy.TimeStamp.now(),
+                        recv_time,
+                        "limewire_valve_command_latency",
+                    )

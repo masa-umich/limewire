@@ -97,6 +97,17 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     if LIMEWIRE_DEV_SYNNAX:
         channels = {"fc_timestamp": channels["fc_timestamp"]}
 
+    # Add latency measurement channels
+    channels["limewire_telemetry_latency_timestamp"] = [
+        "limewire_telemetry_latency"
+    ]
+    channels["limewire_valve_state_latency_timestamp"] = [
+        "limewire_valve_state_latency"
+    ]
+    channels["limewire_valve_command_latency_timestamp"] = [
+        "limewire_valve_command_latency"
+    ]
+
     index_channels: list[sy.Channel] = []
     for index_name in channels.keys():
         index_channels.append(
@@ -146,6 +157,8 @@ def is_valve_state_channel(channel_name: str) -> bool:
 
 def get_data_type(channel_name: str) -> sy.DataType:
     """Return the DataType associated with the channel."""
+    if "latency" in channel_name:
+        return sy.DataType.FLOAT64
     if "limewire" in channel_name:
         return sy.DataType.TIMESTAMP
     if is_valve_command_channel(channel_name) or is_valve_state_channel(
