@@ -257,7 +257,7 @@ class Event_Log_UI:
             error_column = ui.column().classes("w-full overflow-y-auto")
             with error_column:
                 ui.label("Errors will appear here").classes("text-gray-500 italic")
-                ui.image('lebron.png').classes('w-64 h-auto rounded-lg')
+                ui.image('lebron_shoot.jpg').classes('w-64 h-auto rounded-lg')
                 
 class System_Config_UI:
     def __init__(self, parentUI):
@@ -535,32 +535,33 @@ class System_Config_UI:
         fc_PTs = [pt.to_PT() for pt in fc_board_ui.PTs]
         fc_TCs = [tc.to_TC() for tc in fc_board_ui.TCs]
         fc_VLVs = [vlv.to_VLV() for vlv in fc_board_ui.valves]
-        fc_FCIP = fc_board_ui.FCIP
-        fc_BB1IP = fc_board_ui.BB1IP
-        fc_BB2IP = fc_board_ui.BB2IP
-        fc_BB3IP = fc_board_ui.BB3IP
-        fc_FRIP = fc_board_ui.FRIP
+        fc_GSEIP = fc_board_ui.limewireIP.ip
+        fc_FCIP = fc_board_ui.FCIP.ip
+        fc_BB1IP = fc_board_ui.BB1IP.ip
+        fc_BB2IP = fc_board_ui.BB2IP.ip
+        fc_BB3IP = fc_board_ui.BB3IP.ip
+        fc_FRIP = fc_board_ui.FRIP.ip
         
         bb1_PTs = [pt.to_PT() for pt in bb1_board_ui.PTs]
         bb1_TCs = [tc.to_TC() for tc in bb1_board_ui.TCs]
         bb1_VLVs = [vlv.to_VLV() for vlv in bb1_board_ui.valves]
-        bb1_BBIP = bb1_board_ui.BBIP
-        bb1_FCIP = bb1_board_ui.FCIP
+        bb1_BBIP = bb1_board_ui.BBIP.ip
+        bb1_FCIP = bb1_board_ui.FCIP.ip
         
         bb2_PTs = [pt.to_PT() for pt in bb2_board_ui.PTs]
         bb2_TCs = [tc.to_TC() for tc in bb2_board_ui.TCs]
         bb2_VLVs = [vlv.to_VLV() for vlv in bb2_board_ui.valves]
-        bb2_BBIP = bb2_board_ui.BBIP
-        bb2_FCIP = bb2_board_ui.FCIP
+        bb2_BBIP = bb2_board_ui.BBIP.ip
+        bb2_FCIP = bb2_board_ui.FCIP.ip
         
         bb3_PTs = [pt.to_PT() for pt in bb3_board_ui.PTs]
         bb3_TCs = [tc.to_TC() for tc in bb3_board_ui.TCs]
         bb3_VLVs = [vlv.to_VLV() for vlv in bb3_board_ui.valves]
-        bb3_BBIP = bb3_board_ui.BBIP
-        bb3_FCIP = bb3_board_ui.FCIP
+        bb3_BBIP = bb3_board_ui.BBIP.ip
+        bb3_FCIP = bb3_board_ui.FCIP.ip
         
-        fr_FCIP = fr_board_ui.FCIP
-        fr_FRIP = fr_board_ui.FRIP
+        fr_FCIP = fr_board_ui.FCIP.ip
+        fr_FRIP = fr_board_ui.FRIP.ip
         
         # time to actually configure
         self.reset_progress_indicators()
@@ -576,11 +577,100 @@ class System_Config_UI:
                 tooltip_msg = f"Used ICD '{ICD_name}'" + (f"<br><br>{msg}" if not result else "")
                 self.set_progress(self.ebox_progress, self.ebox_prog_tooltip, tooltip_msg, result)
                 self.ebox_loading = False
-                print("EBox configured!" if result else "Failed to configure EBox")
+                print("EBox configured!" if result else f"Failed to configure EBox: {msg}")
             print("")
         
-        # TODO rest of boards
-        # TODO respond to udp response for eeprom config
+        if(config_fc):
+            print("Configuring Flight Computer")
+            self.fc_loading = True
+            (result, msg) = await run.cpu_bound(configure_fc, fc_PTs, fc_TCs, fc_VLVs, fc_GSEIP, fc_FCIP, fc_BB1IP, fc_BB2IP, fc_BB3IP, fc_FRIP, fc_tftp)
+            if(result):
+                self.set_board_config_in_progress(self.fc_prog_tooltip)
+                print("Flight Computer config successfully sent, waiting for response.")
+                # TODO wait for UDP response (block here safely)
+            else:
+                tooltip_msg = ""
+                if(gse_channels != None):
+                    tooltip_msg = f"Used ICD '{ICD_name}'<br>"
+                tooltip_msg += f"<br>{msg}"
+                self.set_progress(self.fc_progress, self.fc_prog_tooltip, tooltip_msg, False)
+                self.fc_loading = False
+                print(f"Failed to send Flight Computer EEPROM config over TFTP: {msg}")
+            print("")
+            
+        if(config_bb1):
+            print("Configuring Bay Board 1")
+            self.bb1_loading = True
+            (result, msg) = await run.cpu_bound(configure_bb, 1, bb1_PTs, bb1_TCs, bb1_VLVs, bb1_FCIP, bb1_BBIP, bb1_tftp)
+            if(result):
+                self.set_board_config_in_progress(self.bb1_prog_tooltip)
+                print("Bay Board 1 config successfully sent, waiting for response.")
+                # TODO wait for UDP response (block here safely)
+            else:
+                tooltip_msg = ""
+                if(gse_channels != None):
+                    tooltip_msg = f"Used ICD '{ICD_name}'<br>"
+                tooltip_msg += f"<br>{msg}"
+                self.set_progress(self.bb1_progress, self.bb1_prog_tooltip, tooltip_msg, False)
+                self.bb1_loading = False
+                print(f"Failed to send Bay Board 1 EEPROM config over TFTP: {msg}")
+            print("")
+        
+        if(config_bb2):
+            print("Configuring Bay Board 2")
+            self.bb2_loading = True
+            (result, msg) = await run.cpu_bound(configure_bb, 2, bb2_PTs, bb2_TCs, bb2_VLVs, bb2_FCIP, bb2_BBIP, bb2_tftp)
+            if(result):
+                self.set_board_config_in_progress(self.bb2_prog_tooltip)
+                print("Bay Board 2 config successfully sent, waiting for response.")
+                # TODO wait for UDP response (block here safely)
+            else:
+                tooltip_msg = ""
+                if(gse_channels != None):
+                    tooltip_msg = f"Used ICD '{ICD_name}'<br>"
+                tooltip_msg += f"<br>{msg}"
+                self.set_progress(self.bb2_progress, self.bb2_prog_tooltip, tooltip_msg, False)
+                self.bb2_loading = False
+                print(f"Failed to send Bay Board 2 EEPROM config over TFTP: {msg}")
+            print("")
+        
+        if(config_bb3):
+            print("Configuring Bay Board 3")
+            self.bb3_loading = True
+            (result, msg) = await run.cpu_bound(configure_bb, 3, bb3_PTs, bb3_TCs, bb3_VLVs, bb3_FCIP, bb3_BBIP, bb3_tftp)
+            if(result):
+                self.set_board_config_in_progress(self.bb3_prog_tooltip)
+                print("Bay Board 3 config successfully sent, waiting for response.")
+                # TODO wait for UDP response (block here safely)
+            else:
+                tooltip_msg = ""
+                if(gse_channels != None):
+                    tooltip_msg = f"Used ICD '{ICD_name}'<br>"
+                tooltip_msg += f"<br>{msg}"
+                self.set_progress(self.bb3_progress, self.bb3_prog_tooltip, tooltip_msg, False)
+                self.bb3_loading = False
+                print(f"Failed to send Bay Board 3 EEPROM config over TFTP: {msg}")
+            print("")
+            
+        if(config_fr):
+            print("Configuring Flight Recorder")
+            self.fr_loading = True
+            (result, msg) = await run.cpu_bound(configure_fr, fr_FCIP, fr_FRIP, fr_tftp)
+            if(result):
+                self.set_board_config_in_progress(self.fr_prog_tooltip)
+                print("Flight Recorder config successfully sent, waiting for response.")
+                # TODO wait for UDP response (block here safely)
+            else:
+                tooltip_msg = ""
+                if(gse_channels != None):
+                    tooltip_msg = f"Used ICD '{ICD_name}'<br>"
+                tooltip_msg += f"<br>{msg}"
+                self.set_progress(self.fr_progress, self.fr_prog_tooltip, tooltip_msg, False)
+                self.fr_loading = False
+                print(f"Failed to send Flight Recorder EEPROM config over TFTP: {msg}")
+            print("")
+        
+        print("System configuration done!")
         
     def set_progress(self, icon: ui.icon, tooltip: ui.html, text: str, result: bool):
         if(result):
@@ -589,6 +679,11 @@ class System_Config_UI:
             self.update_progress_icon(icon, -1)
         now = datetime.datetime.now()
         tooltip.set_content(f"{now.strftime("%b %d, %Y %I:%M:%S %p")}<br>{text}")
+        tooltip.set_visibility(True)
+        
+    def set_board_config_in_progress(self, tooltip: ui.html):
+        now = datetime.datetime.now()
+        tooltip.set_content(f"{now.strftime("%b %d, %Y %I:%M:%S %p")}<br>Config sent, waiting for response.")
         tooltip.set_visibility(True)
     
     def handle_ebox_select(self, v):

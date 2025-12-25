@@ -20,6 +20,7 @@ def main(fc_address: tuple[str, int]):
 
     app.add_static_file(url_path='/favicon.ico', local_file=os.path.join(script_dir, 'resources/favicon.ico'))
     app.add_static_file(url_path='/lebron.png', local_file=os.path.join(script_dir, 'resources/lebron.png'))
+    app.add_static_file(url_path='/lebron_shoot.jpg', local_file=os.path.join(script_dir, 'resources/lebron_shoot.jpg'))
     
     hydrant = Hydrant(fc_address)
 

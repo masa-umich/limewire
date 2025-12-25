@@ -79,7 +79,7 @@ def generate_bb_eeprom(bb_num: int, FC_IP: ipaddress.IPv4Address, BB_IP: ipaddre
     raw_out += struct.pack('<I', crc)
     return raw_out
     
-def generate_fr_eeprom():
+def generate_fr_eeprom(FCIP: ipaddress.IPv4Address, FRIP: ipaddress.IPv4Address):
     print("Flight Recorder doesn't exist yet :(")
     raise Exception("Can't do this man, actually this shouldn't be possible")
     
@@ -111,5 +111,29 @@ def generate_fc_eeprom(PTs: list[PT], TCs: list[TC], VLVs: list[VLV], limewire_I
     
 def send_eeprom_tftp(board: ipaddress.IPv4Address, content: bytes):
     print("Sending eeprom config over TFTP to " + str(board))
-    tftp_client = tftpy.TftpClient(str(board))
+    tftp_client = tftpy.TftpClient(str(board), port=70)
     tftp_client.upload("eeprom.bin", BytesIO(content))
+
+def configure_fc(PTs, TCs, VLVs, GSEIP, FCIP, BB1IP, BB2IP, BB3IP, FRIP, TFTPIP) -> tuple[bool, str]:
+    try:
+        eeprom_content = generate_fc_eeprom(PTs, TCs, VLVs, GSEIP, FCIP, BB1IP, BB2IP, BB3IP, FRIP)
+        send_eeprom_tftp(TFTPIP, eeprom_content)
+        return (True, "")
+    except Exception as e:
+        return (False, str(e))
+    
+def configure_bb(bb_num, PTs, TCs, VLVs, FCIP, BBIP, TFTPIP) -> tuple[bool, str]:
+    try:
+        eeprom_content = generate_bb_eeprom(bb_num, FCIP, BBIP, PTs, TCs, VLVs)
+        send_eeprom_tftp(TFTPIP, eeprom_content)
+        return (True, "")
+    except Exception as e:
+        return (False, str(e))
+    
+def configure_fr(FCIP, FRIP, TFTPIP) -> tuple[bool, str]:
+    try:
+        eeprom_content = generate_fr_eeprom(FCIP, FRIP)
+        send_eeprom_tftp(TFTPIP, eeprom_content)
+        return (True, "")
+    except Exception as e:
+        return (False, str(e))
