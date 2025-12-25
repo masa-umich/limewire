@@ -72,11 +72,7 @@ class FCSimulator:
                     i * random.uniform(0, 1) for i in range(board.num_values)
                 ]
 
-                # Send a 0-timestamped telemetry message every 100 messages
-                if loop_counter % 100 == 0:
-                    timestamp = loop_counter
-                else:
-                    timestamp = sy.TimeStamp.now()
+                timestamp = sy.TimeStamp.now()
 
                 msg = TelemetryMessage(board, timestamp, values)
                 self.telemetry_framer.send_message(msg)

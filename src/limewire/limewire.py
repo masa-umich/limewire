@@ -425,9 +425,9 @@ class Limewire:
         async with await self.synnax_client.open_async_streamer(
             cmd_channels
         ) as streamer:
-            recv_time = asyncio.get_running_loop().time()
-
             async for frame in streamer:
+                recv_time = asyncio.get_running_loop().time()
+
                 for channel, series in frame.items():
                     valve = Valve.from_channel_name(channel)  # pyright: ignore[reportArgumentType]
                     # For now, let's assume that if multiple values are in the
