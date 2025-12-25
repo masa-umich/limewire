@@ -111,7 +111,7 @@ def generate_fc_eeprom(PTs: list[PT], TCs: list[TC], VLVs: list[VLV], limewire_I
     
 def send_eeprom_tftp(board: ipaddress.IPv4Address, content: bytes):
     print("Sending eeprom config over TFTP to " + str(board))
-    tftp_client = tftpy.TftpClient(str(board), port=70)
+    tftp_client = tftpy.TftpClient(str(board))
     tftp_client.upload("eeprom.bin", BytesIO(content))
 
 def configure_fc(PTs, TCs, VLVs, GSEIP, FCIP, BB1IP, BB2IP, BB3IP, FRIP, TFTPIP) -> tuple[bool, str]:
