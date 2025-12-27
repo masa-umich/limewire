@@ -74,6 +74,18 @@ class Board(Enum):
 
     def __str__(self) -> str:
         return repr(self).removeprefix(f"{self.__class__.__name__}.")
+    
+    @property
+    def pretty_name(self) -> str:
+        """The pretty name for this board, used for Hydrant UIs"""
+        P_NAMES = {
+            Board.FC: "Flight Computer",
+            Board.BB1: "Bay Board 1 (Press)",
+            Board.BB2: "Bay Board 2 (Intertank)",
+            Board.BB3: "Bay Board 3 (Engine)",
+            Board.FR: "Flight Recorder",
+        }
+        return P_NAMES[self]
 
 
 class Valve:
@@ -108,12 +120,12 @@ class Valve:
             ValueError: The channel name passed in is not a valve channel.
         """
 
-        if "vlv" not in name:
+        if "vlv" not in name and "state" not in name:
             raise ValueError(f"Invalid valve channel {name}")
 
         components = name.split("_")
         board_name = components[0]
-        num = int(components[1][-1])
+        num = int(components[2])
 
         return cls(Board[board_name.upper()], num)
 

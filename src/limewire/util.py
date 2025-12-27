@@ -126,11 +126,31 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     return client, channels
 
 
+def is_valve_command_channel(channel_name: str) -> bool:
+    name_split = channel_name.split("_")
+
+    if len(name_split) != 3:
+        return False
+
+    return name_split[1] == "vlv"
+
+
+def is_valve_state_channel(channel_name: str) -> bool:
+    name_split = channel_name.split("_")
+
+    if len(name_split) != 3:
+        return False
+
+    return name_split[1] == "state"
+
+
 def get_data_type(channel_name: str) -> sy.DataType:
     """Return the DataType associated with the channel."""
     if "limewire" in channel_name:
         return sy.DataType.TIMESTAMP
-    if "state" in channel_name or "cmd" in channel_name:
+    if is_valve_command_channel(channel_name) or is_valve_state_channel(
+        channel_name
+    ):
         return sy.DataType.UINT8
     return sy.DataType.FLOAT32
 

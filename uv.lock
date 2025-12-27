@@ -136,6 +136,15 @@ wheels = [
 ]
 
 [[package]]
+name = "asyncudp"
+version = "0.11.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/0b/b94c42d75e2bd018727e625fa3147447cdfb26603e7b0892a4fdfcd2154d/asyncudp-0.11.0.tar.gz", hash = "sha256:c8ab6459f4dc8ebc42f401d3bd72c2a6c6808d10e42231f39e0c433ac646abf9", size = 3986, upload-time = "2023-07-24T14:45:31.664Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/17/fe/77f4a24264e728fd95542e53f026a91249b51d1611087b8c82d3a033ea97/asyncudp-0.11.0-py3-none-any.whl", hash = "sha256:96d859d86471e3ed30cf9f05cb38e96920156e3a9fe70ee916096ba758ea316e", size = 3538, upload-time = "2023-07-24T14:45:30.411Z" },
+]
+
+[[package]]
 name = "attrs"
 version = "25.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -342,6 +351,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d9/02/111134bfeb6e6c7ac4c74594e39a59f6c0195dc4846afbeac3cba60f1927/docutils-0.22.3.tar.gz", hash = "sha256:21486ae730e4ca9f622677b1412b879af1791efcfba517e4c6f60be543fc8cdd", size = 2290153, upload-time = "2025-11-06T02:35:55.655Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/11/a8/c6a4b901d17399c77cd81fb001ce8961e9f5e04d3daf27e8925cb012e163/docutils-0.22.3-py3-none-any.whl", hash = "sha256:bd772e4aca73aff037958d44f2be5229ded4c09927fcf8690c577b66234d6ceb", size = 633032, upload-time = "2025-11-06T02:35:52.391Z" },
+]
+
+[[package]]
+name = "et-xmlfile"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/38/af70d7ab1ae9d4da450eeec1fa3918940a5fafb9055e934af8d6eb0c2313/et_xmlfile-2.0.0.tar.gz", hash = "sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54", size = 17234, upload-time = "2024-10-25T17:25:40.039Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/8b/5fe2cc11fee489817272089c4203e679c63b570a5aaeb18d852ae3cbba6a/et_xmlfile-2.0.0-py3-none-any.whl", hash = "sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa", size = 18059, upload-time = "2024-10-25T17:25:39.051Z" },
 ]
 
 [[package]]
@@ -726,14 +744,19 @@ name = "limewire"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "asyncudp" },
     { name = "click" },
     { name = "libsass" },
     { name = "loguru" },
     { name = "nicegui" },
+    { name = "openpyxl" },
+    { name = "pandas" },
     { name = "platformdirs" },
     { name = "python-dotenv" },
+    { name = "scapy" },
     { name = "seaborn" },
     { name = "synnax" },
+    { name = "tftpy" },
 ]
 
 [package.dev-dependencies]
@@ -743,14 +766,19 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "asyncudp", specifier = ">=0.11.0" },
     { name = "click", specifier = ">=8.1.8" },
     { name = "libsass", specifier = ">=0.23.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "nicegui", specifier = ">=2.23.2" },
+    { name = "openpyxl", specifier = ">=3.1.5" },
+    { name = "pandas", specifier = ">=2.3.3" },
     { name = "platformdirs", specifier = ">=4.5.0" },
     { name = "python-dotenv", specifier = ">=1.0.1,<2.0.0" },
+    { name = "scapy", specifier = ">=2.6.1" },
     { name = "seaborn", specifier = ">=0.13.2" },
-    { name = "synnax", specifier = ">=0.46,<0.47" },
+    { name = "synnax", specifier = "==0.46.0" },
+    { name = "tftpy", specifier = "==0.8.5" },
 ]
 
 [package.metadata.requires-dev]
@@ -1057,6 +1085,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/62/b7/7efa763ab33dbccf56dade36938a77345ce8e8192d6b39e470ca25ff3cd0/numpy-2.3.4-cp313-cp313t-win32.whl", hash = "sha256:fea80f4f4cf83b54c3a051f2f727870ee51e22f0248d3114b8e755d160b38cfb", size = 6413135, upload-time = "2025-10-15T16:16:55.992Z" },
     { url = "https://files.pythonhosted.org/packages/43/70/aba4c38e8400abcc2f345e13d972fb36c26409b3e644366db7649015f291/numpy-2.3.4-cp313-cp313t-win_amd64.whl", hash = "sha256:15eea9f306b98e0be91eb344a94c0e630689ef302e10c2ce5f7e11905c704f9c", size = 12928582, upload-time = "2025-10-15T16:16:57.943Z" },
     { url = "https://files.pythonhosted.org/packages/67/63/871fad5f0073fc00fbbdd7232962ea1ac40eeaae2bba66c76214f7954236/numpy-2.3.4-cp313-cp313t-win_arm64.whl", hash = "sha256:b6c231c9c2fadbae4011ca5e7e83e12dc4a5072f1a1d85a0a7b3ed754d145a40", size = 10266691, upload-time = "2025-10-15T16:17:00.048Z" },
+]
+
+[[package]]
+name = "openpyxl"
+version = "3.1.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "et-xmlfile" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3d/f9/88d94a75de065ea32619465d2f77b29a0469500e99012523b91cc4141cd1/openpyxl-3.1.5.tar.gz", hash = "sha256:cf0e3cf56142039133628b5acffe8ef0c12bc902d2aadd3e0fe5878dc08d1050", size = 186464, upload-time = "2024-06-28T14:03:44.161Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/da/977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506/openpyxl-3.1.5-py2.py3-none-any.whl", hash = "sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2", size = 250910, upload-time = "2024-06-28T14:03:41.161Z" },
 ]
 
 [[package]]
@@ -1635,6 +1675,15 @@ wheels = [
 ]
 
 [[package]]
+name = "scapy"
+version = "2.6.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/df/2f/035d3888f26d999e9680af8c7ddb7ce4ea0fd8d0e01c000de634c22dcf13/scapy-2.6.1.tar.gz", hash = "sha256:7600d7e2383c853e5c3a6e05d37e17643beebf2b3e10d7914dffcc3bc3c6e6c5", size = 2247754, upload-time = "2024-11-05T08:43:23.488Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4b/34/8695b43af99d0c796e4b7933a0d7df8925f43a8abdd0ff0f6297beb4de3a/scapy-2.6.1-py3-none-any.whl", hash = "sha256:88a998572049b511a1f3e44f4aa7c62dd39c6ea2aa1bb58434f503956641789d", size = 2420670, upload-time = "2024-11-05T08:43:21.285Z" },
+]
+
+[[package]]
 name = "seaborn"
 version = "0.13.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1740,6 +1789,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a6/19/bf13da41e55c56a1f43c7dd57b6ef445f85cf466e518e9310796994a9e49/synnax_freighter-0.46.0.tar.gz", hash = "sha256:aae291da8667ec2b8d47cac4c035b97f762755a2b16d11df15e5707775370c16", size = 10989, upload-time = "2025-09-29T14:53:28.709Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4a/c7/a33a06e7cf32bf9a5e4220fe9a9b5ed92ff492078ea7962fd18f26493897/synnax_freighter-0.46.0-py3-none-any.whl", hash = "sha256:fade3bd6ac5decb6a28d6b07f0bb4ae5b0d646a4b876aabf48706af02b6aa6ef", size = 17239, upload-time = "2025-09-29T14:53:27.347Z" },
+]
+
+[[package]]
+name = "tftpy"
+version = "0.8.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f9/e4/fcb8ef9c25e4b9f5b15f4b5c5fce550de13bb0de7610691f848c959546ab/tftpy-0.8.5.tar.gz", hash = "sha256:dd38e3744530d0c30fa1c715d7fa454319bc8d399bb40c05839cc771f05d0e6c", size = 71339, upload-time = "2025-02-14T14:04:41.125Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ef/dd/5040132ab5dd3f32b8c916aef35ce101ffaaa9ec5a30679d94bd405fc17d/tftpy-0.8.5-py3-none-any.whl", hash = "sha256:435fdf5cc00a1439e698711b1390917b634c84addef581c63e6f743c7b370c28", size = 27372, upload-time = "2025-02-14T14:04:37.665Z" },
 ]
 
 [[package]]

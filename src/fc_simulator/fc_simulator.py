@@ -4,12 +4,15 @@ import socket
 from functools import partial
 from typing import Tuple
 
+import asyncudp
 import synnax as sy
 
 from lmp import (
     Board,
     DeviceCommandAckMessage,
     DeviceCommandMessage,
+    HeartbeatMessage,
+    TelemetryFramer,
     TelemetryMessage,
     ValveCommandMessage,
     ValveStateMessage,
@@ -33,17 +36,23 @@ class FCSimulator:
         self.tcp_port = tcp_port
         self.run_time = run_time
 
-        self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.log_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.log_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.tcp_aborted = False
 
-    async def generate_telemetry_data(
-        self,
-        addr: Tuple[str, int],
-        writer: asyncio.StreamWriter,
-        run_time: float,
-    ) -> None:
+    async def generate_telemetry_data(self, run_time: float) -> None:
         """Send randomly generated telemetry data to Limewire."""
+
+        # Set up telemetry socket
+        self.telemetry_socket = await asyncudp.create_socket(
+            remote_addr=("255.255.255.255", 6767)
+        )
+        self.telemetry_socket._transport.get_extra_info("socket").setsockopt(
+            socket.SOL_SOCKET, socket.SO_BROADCAST, 1
+        )
+        print("Sending telemetry at 255.255.255.255:6767")
+
+        self.telemetry_framer = TelemetryFramer(sock=self.telemetry_socket)
 
         start_time = asyncio.get_running_loop().time()
 
@@ -56,6 +65,7 @@ class FCSimulator:
         ]
 
         values_sent = 0
+        loop_counter = 0
         while True:
             loop_start_time = asyncio.get_running_loop().time()
             for board in boards:
@@ -63,23 +73,16 @@ class FCSimulator:
                     i * random.uniform(0, 1) for i in range(board.num_values)
                 ]
 
-                timestamp = sy.TimeStamp.now()
+                # Send a 0-timestamped telemetry message every 100 messages
+                if loop_counter % 100 == 0:
+                    timestamp = loop_counter
+                else:
+                    timestamp = sy.TimeStamp.now()
+
                 msg = TelemetryMessage(board, timestamp, values)
-                msg_bytes = bytes(msg)
+                self.telemetry_framer.send_message(msg)
 
-                try:
-                    writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
-                    await writer.drain()
-                    values_sent += len(msg.values)
-                except ConnectionAbortedError:
-                    print(
-                        f"Connection to client {format_socket_address(addr)} manually aborted"
-                    )
-                    self.tcp_aborted = True
-                    break
-
-            if self.tcp_aborted:
-                break
+                values_sent += len(msg.values)
 
             if asyncio.get_running_loop().time() - start_time > run_time:
                 break
@@ -90,6 +93,8 @@ class FCSimulator:
                 asyncio.get_running_loop().time() - loop_start_time
             )
             await asyncio.sleep(max(0, 1 / DATA_RATE - loop_elapsed_time))
+
+            loop_counter += 1
 
         actual_run_time = asyncio.get_running_loop().time() - start_time
 
@@ -152,9 +157,10 @@ class FCSimulator:
                         )
 
                 return response
-
+            case HeartbeatMessage.MSG_ID:
+                pass
             case _:
-                raise ValueError("Received non-command message.")
+                print(f"Received non-command message (header 0x{msg_id:X}).")
 
     async def handle_client(
         self,
@@ -167,12 +173,8 @@ class FCSimulator:
 
         self.tcp_aborted = False
 
-        telemetry_task = asyncio.create_task(
-            self.generate_telemetry_data(addr, writer, run_time)
-        )
         valve_task = asyncio.create_task(self.handle_commands(reader, writer))
 
-        await telemetry_task
         await valve_task
 
         if not self.tcp_aborted:
@@ -187,6 +189,12 @@ class FCSimulator:
             ip_addr: The IP address with which to start the TCP server.
             port: The port with which to start the server.
         """
+
+        # Start telemetry task
+        telemetry_task = asyncio.create_task(
+            self.generate_telemetry_data(self.run_time)
+        )
+
         # We have to pass a partial function because asyncio.start_server()
         # expects a function with only two arguments. functools.partial()
         # "fills in" the run_time argument for us and returns a new function
@@ -203,7 +211,9 @@ class FCSimulator:
         async with server:
             await server.serve_forever()
 
+        await telemetry_task
+
         while True:
-            self.udp_socket.sendto(
+            self.log_socket.sendto(
                 b"Hello, world!\r\n", ("127.0.0.1", self.UDP_PORT)
             )
