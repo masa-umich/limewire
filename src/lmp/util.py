@@ -31,7 +31,18 @@ class Board(Enum):
     BB2 = 2
     BB3 = 3
     FR = 4
-
+    
+    @property
+    def pretty_name(self) -> str:
+        PRETTY_NAMES = {
+            Board.FC: "Flight Computer",
+            Board.BB1: "Bay Board 1",
+            Board.BB2: "Bay Board 2",
+            Board.BB3: "Bay Board 3",
+            Board.FR: "Flight Recorder",
+        }
+        return PRETTY_NAMES[self]
+    
     @property
     def num_values(self) -> int:
         """The number of telemetry values for this board."""

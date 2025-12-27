@@ -3,18 +3,32 @@ from datetime import datetime
 
 from nicegui import app, ui
 
+import ipaddress
+
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
 from lmp.util import Board, DeviceCommand
+from lmp.firmware_log import FirmwareLog
 
 from .device_command_history import DeviceCommandHistoryEntry
+from .hydrant_error_ui import Event_Log_UI, Event_Log_Listener, Log_Table
 
+import pathlib
 from .hydrant_ui import IP_Address_UI, FC_Config_UI, BB_Config_UI, FR_Config_UI, Event_Log_UI, System_Config_UI
 
 from .hydrant_system_config import *
 
 class Hydrant:
-    def __init__(self, fc_address: tuple[str, int]):
+    def __init__(self, fc_address: tuple[str, int], log_table: pathlib.Path):
         self.fc_address = fc_address
+        self.log_lookup = None
+        if(log_table != None):
+            if(log_table.suffix == ".csv"):
+                try:
+                    self.log_lookup = Log_Table(log_table)
+                except Exception as err:
+                    print("Failed to parse error lookup table " + str(err))
+            else:
+                print("Error lookup table file must be .csv")
 
         self.boards_available = {board.pretty_name: board for board in Board}
         self.commands_available = {cmd.name: cmd for cmd in DeviceCommand}
@@ -36,8 +50,10 @@ class Hydrant:
             tuple[Board, DeviceCommand],
             DeviceCommandHistoryEntry,
         ] = {}
-
-        app.on_startup(self.connect_to_fc())
+        
+        self.log_listener = Event_Log_Listener()
+        #app.on_startup(self.connect_to_fc())
+        app.on_startup(self.log_listener.open_listener())
 
     async def connect_to_fc(self):
         """Maintain connection to flight computer."""
@@ -109,7 +125,9 @@ class Hydrant:
 
     def main_page(self):
         """Generates page outline and GUI"""
-            
+        
+        self.error_log = Event_Log_UI(self.log_lookup)
+
         ui.page_title("Hydrant")
         ui.dark_mode().enable()
         
