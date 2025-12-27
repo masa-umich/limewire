@@ -250,15 +250,6 @@ class FR_Config_UI:
         self.FCIP.set_ip(DEFAULT_FC_IP)
         self.FRIP.set_ip(DEFAULT_FR_IP)
                 
-class Event_Log_UI:
-    def __init__(self):
-        with ui.card().classes("w-full bg-gray-900 border border-gray-700 p-6"):
-            ui.label("Error Log").classes("text-xl font-bold text-red-400 mb-4")
-            error_column = ui.column().classes("w-full overflow-y-auto")
-            with error_column:
-                ui.label("Errors will appear here").classes("text-gray-500 italic")
-                ui.image('lebron_shoot.jpg').classes('w-64 h-auto rounded-lg')
-                
 class System_Config_UI:
     def __init__(self, parentUI):
         self.base = parentUI
@@ -275,7 +266,7 @@ class System_Config_UI:
         self.bb2_loading = False
         self.bb3_loading = False
         self.fr_loading = False
-        with ui.card().classes("w-full bg-gray-900 border border-gray-700 p-6"):
+        with ui.card().classes("w-full bg-gray-900 border border-gray-700 p-6 h-full"):
             with ui.row().classes("w-full mx-auto no-wrap"):
                 with ui.column().classes():
                     ui.label("SYSTEM CONFIG").classes("text-xl font-bold text-white mb-4")

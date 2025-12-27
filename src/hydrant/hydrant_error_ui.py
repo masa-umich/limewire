@@ -78,7 +78,7 @@ class Event_Log_UI:
     def display(self):
         ui.add_sass('''
                     .sticky-table
-                        height: 500px
+                        height: 100%
                         .q-table__top,
                         .q-table__bottom,
                         thead tr:first-child th
@@ -98,14 +98,14 @@ class Event_Log_UI:
                     .fullscreen
                         height: 100vw !important
                     ''')
-        with ui.card().classes("w-1/2 bg-gray-900 border border-gray-700 p-6 pt-4 gap-2"): # REPLACE THE w-1/2 WITH w-full AFTER MERGING
+        with ui.card().classes("w-full bg-gray-900 border border-gray-700 p-6 pt-4 gap-2 h-full"):
             with ui.row().classes("w-full no-wrap"):
                 ui.label("Event Log").classes("text-xl font-bold text-red-400")
                 ui.space()
                 ui.button("Clear", on_click=self.clear_log).props("outline").classes("self-center")
                 ui.button(icon="fullscreen", on_click=lambda e: log_table.run_method("toggleFullscreen")).props("flat round dense size='20px'")
             columns = [
-                {'name': 'msg', 'label': 'Message', 'field': 'msg', 'required': False, 'align': 'left', 'sortable': False, 'classes': 'max-w-70', 'headerClasses': 'max-w-70', 'style': "overflow: hidden;overflow-wrap: break-word;white-space: normal;"},
+                {'name': 'msg', 'label': 'Message', 'field': 'msg', 'required': False, 'align': 'left', 'sortable': False, 'classes': 'min-w-80', 'headerClasses': 'min-w-80', 'style': "overflow: hidden;overflow-wrap: break-word;white-space: normal;"},
                 {'name': 'board', 'label': 'Board', 'field': 'board', 'required': False, 'sortable': True, 'align': 'left'},
                 {'name': 'timestamp', 'label': 'Timestamp', 'field': 'timestamp', 'required': False, 'sortable': True, 'align': 'left', 'sortOrder': 'da'},
                 {'name': 'code', 'label': 'Code', 'field': 'code', 'required': False, 'sortable': True, 'align': 'left'},
@@ -113,7 +113,7 @@ class Event_Log_UI:
                 {'name': 'id', 'label': 'id', 'field': 'id', 'required': True, 'classes': 'hidden', 'headerClasses': 'hidden'},
                 {'name': 'tooltip', 'label': 'tooltip', 'field': 'tooltip', 'required': False, 'classes': 'hidden', 'headerClasses': 'hidden'}
             ]
-            log_table = ui.table(columns=columns, rows=[]).classes("w-full overflow-y-auto sticky-table").props("no-data-label hide-no-data dense table-header-class='size-xl'") # SET HEIGHT CORRECTLY IN SASS UP ABOVE AFTER MERGING
+            log_table = ui.table(columns=columns, rows=[]).classes("w-full overflow-y-auto sticky-table").props("no-data-label hide-no-data dense table-header-class='size-xl'")
             log_table.pagination = {'sortBy': 'timestamp', 'rowsPerPage': 0, 'descending': True}
             log_table.add_slot('body-cell-msg', '''
                 <q-td :props="props">

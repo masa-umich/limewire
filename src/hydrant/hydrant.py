@@ -13,7 +13,7 @@ from .device_command_history import DeviceCommandHistoryEntry
 from .hydrant_error_ui import Event_Log_UI, Event_Log_Listener, Log_Table
 
 import pathlib
-from .hydrant_ui import IP_Address_UI, FC_Config_UI, BB_Config_UI, FR_Config_UI, Event_Log_UI, System_Config_UI
+from .hydrant_ui import IP_Address_UI, FC_Config_UI, BB_Config_UI, FR_Config_UI, System_Config_UI
 
 from .hydrant_system_config import *
 
@@ -161,10 +161,10 @@ class Hydrant:
                 with ui.tab_panels().classes("w-full bg-[#121212]").props('animated="false"').bind_value_from(main_page_toggle, "value"):
                     with ui.tab_panel(1).classes("p-0"):
                         # DEVICE COMMANDS
-                        with ui.row().classes("w-full mx-auto no-wrap"):
-                            with ui.column().classes("w-full"):
+                        with ui.row().classes("w-full mx-auto no-wrap h-[27em] gap-0"):
+                            with ui.column().classes("w-1/2 h-full pr-2"):
                                 with ui.card().classes(
-                                    "w-full bg-gray-900 border border-gray-700 p-6"
+                                    "w-full bg-gray-900 border border-gray-700 p-6 h-full"
                                 ):
                                     ui.label("DEVICE COMMANDS").classes(
                                         "text-xl font-bold text-white mb-4"
@@ -197,24 +197,24 @@ class Hydrant:
                                         ui.button(
                                             "SEND", on_click=lambda: self.send_command(dialog)
                                         ).classes("w-half bg-blue-600 text-white hover:bg-blue-700")
-                            with ui.column().classes("w-full"):
+                            with ui.column().classes("w-1/2 h-full pl-2"):
                                 # ERROR LOG
-                                with ui.column().classes("w-full gap-4"):
+                                with ui.column().classes("w-full gap-4 h-full"):
                                     # ERROR LOG CARD
-                                    Event_Log_UI()
+                                    self.error_log.display()
                         with ui.row().classes("w-full mx-auto no-wrap"):
                             # COMMAND HISTORY CARD
                             self.command_history_table()
                     with ui.tab_panel(2).classes("p-0"):
                         # SYSTEM CONFIGURATION
-                        with ui.row().classes("w-full mx-auto no-wrap"):
-                            with ui.column().classes("w-full"):
+                        with ui.row().classes("w-full mx-auto no-wrap h-[30em] gap-0"):
+                            with ui.column().classes("w-1/2 pr-2 h-full"):
                                 self.system_config = System_Config_UI(self)
-                            with ui.column().classes("w-full"):
+                            with ui.column().classes("w-1/2 pl-2 h-full"):
                                 # ERROR LOG
-                                with ui.column().classes("w-full gap-4"):
+                                with ui.column().classes("w-full gap-4 h-full"):
                                     # ERROR LOG CARD
-                                    Event_Log_UI()
+                                    self.error_log.display()
                         with ui.row().classes("w-full mx-auto no-wrap"):
                             # BOARD SPECIFIC CONFIG
                             with ui.card().classes("w-full bg-gray-900 border border-gray-700 p-6"):
@@ -257,6 +257,8 @@ class Hydrant:
                         ui.label('Flight Computer disconnected.').classes("text-bold")
                         ui.label('Trying to reconnect...')
         ui.space().classes("h-32")
+        
+        self.log_listener.attach_ui(self.error_log)
 
     def warn_restore_defaults(self):
         with ui.dialog() as dialog, ui.card().classes("w-100 h-30 flex flex-col justify-center items-center"):
