@@ -7,7 +7,7 @@ from lmp import Board
 class FirmwareLog:
     """A firmware log message sent over UDP."""
 
-    timestamp: datetime # UTC timestamp
+    timestamp: datetime  # UTC timestamp
     board: Board
     status_code: int
     message: str
@@ -16,10 +16,10 @@ class FirmwareLog:
     def __init__(
         self, timestamp: datetime, board: Board, status_code: int, message: str
     ):
-        if(status_code is not None and status_code > 9999):
+        if status_code is not None and status_code > 9999:
             raise ValueError(f"Invalid status code {status_code}")
-        
-        if(board is not None and status_code is not None):
+
+        if board is not None and status_code is not None:
             board_matches_status_code = status_code // 1000 == board.value
             if not board_matches_status_code:
                 raise ValueError(
@@ -38,41 +38,43 @@ class FirmwareLog:
             log_str = log_bytes.decode().strip()
         except UnicodeDecodeError:
             raise ValueError("Message not ASCII-encoded.")
-        
-        timestamp = None # default if no timestamp is given
+
+        timestamp = None  # default if no timestamp is given
         try:
             timestamp_str = log_str[:24]
-            timestamp = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+            timestamp = datetime.strptime(
+                timestamp_str, "%Y-%m-%dT%H:%M:%S.%fZ"
+            ).replace(tzinfo=timezone.utc)
             log_str = log_str[24:]
-            if(log_str[0] == " "):
+            if log_str[0] == " ":
                 log_str = log_str[1:]
         except Exception:
-            pass # It's ok to not have a timestamp, some logs will not
-        
-        code = None # default if no error code is included
+            pass  # It's ok to not have a timestamp, some logs will not
+
+        code = None  # default if no error code is included
         try:
             code_str = log_str[:4]
-            if not code_str.isdigit(): 
+            if not code_str.isdigit():
                 raise ValueError()
             code = int(code_str)
             log_str = log_str[4:]
-            if(log_str[0] == " "):
+            if log_str[0] == " ":
                 log_str = log_str[1:]
         except Exception:
             pass
-        
+
         board = None
-        if(code is not None):
+        if code is not None:
             board = Board(code // 1000)
-            
+
         return cls(timestamp, board, code, log_str)
-    
+
     def __str__(self):
         return f"{{Timestamp: {self.timestamp}, Board: {self.board}, Code: {self.status_code}, Msg: '{self.message}'}}"
-    
+
     def to_log(self):
         time_str = None
-        if(self.timestamp is not None):
+        if self.timestamp is not None:
             timestamp = self.timestamp
             local_zone = datetime.now(timezone.utc).astimezone().tzinfo
             timestamp = timestamp.astimezone(local_zone)

@@ -31,7 +31,7 @@ class Board(Enum):
     BB2 = 2
     BB3 = 3
     FR = 4
-    
+
     @property
     def num_values(self) -> int:
         """The number of telemetry values for this board."""
@@ -63,7 +63,7 @@ class Board(Enum):
 
     def __str__(self) -> str:
         return repr(self).removeprefix(f"{self.__class__.__name__}.")
-    
+
     @property
     def pretty_name(self) -> str:
         """The pretty name for this board, used for Hydrant UIs"""
