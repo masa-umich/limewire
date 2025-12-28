@@ -1,8 +1,7 @@
+import ipaddress
 from datetime import datetime, timezone
 
 from lmp import Board
-
-import ipaddress
 
 
 class FirmwareLog:
@@ -17,10 +16,10 @@ class FirmwareLog:
     def __init__(
         self, timestamp: datetime, board: Board, status_code: int, message: str
     ):
-        if(status_code != None and status_code > 9999):
+        if(status_code is not None and status_code > 9999):
             raise ValueError(f"Invalid status code {status_code}")
         
-        if(board != None and status_code != None):
+        if(board is not None and status_code is not None):
             board_matches_status_code = status_code // 1000 == board.value
             if not board_matches_status_code:
                 raise ValueError(
@@ -47,22 +46,23 @@ class FirmwareLog:
             log_str = log_str[24:]
             if(log_str[0] == " "):
                 log_str = log_str[1:]
-        except Exception as err:
+        except Exception:
             pass # It's ok to not have a timestamp, some logs will not
         
         code = None # default if no error code is included
         try:
             code_str = log_str[:4]
-            if not code_str.isdigit(): raise ValueError()
+            if not code_str.isdigit(): 
+                raise ValueError()
             code = int(code_str)
             log_str = log_str[4:]
             if(log_str[0] == " "):
                 log_str = log_str[1:]
-        except Exception as err:
+        except Exception:
             pass
         
         board = None
-        if(code != None):
+        if(code is not None):
             board = Board(code // 1000)
             
         return cls(timestamp, board, code, log_str)
@@ -72,9 +72,9 @@ class FirmwareLog:
     
     def to_log(self):
         time_str = None
-        if(self.timestamp != None):
+        if(self.timestamp is not None):
             timestamp = self.timestamp
             local_zone = datetime.now(timezone.utc).astimezone().tzinfo
             timestamp = timestamp.astimezone(local_zone)
             time_str = timestamp.strftime("%b %d, %Y %I:%M:%S.%f %p %Z")
-        return f"'{self.message}', Timestamp: {time_str}, Code: {self.status_code}, Board: {self.board.pretty_name if self.board != None else None}"
+        return f"'{self.message}', Timestamp: {time_str}, Code: {self.status_code}, Board: {self.board.pretty_name if self.board is not None else None}"

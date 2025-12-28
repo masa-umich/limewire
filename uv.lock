@@ -777,7 +777,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.1,<2.0.0" },
     { name = "scapy", specifier = ">=2.6.1" },
     { name = "seaborn", specifier = ">=0.13.2" },
-    { name = "synnax", specifier = "==0.46.0" },
+    { name = "synnax", specifier = ">=0.46,<0.47" },
     { name = "tftpy", specifier = "==0.8.5" },
 ]
 

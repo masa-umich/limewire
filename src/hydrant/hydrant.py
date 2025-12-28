@@ -1,27 +1,35 @@
 import asyncio
+import pathlib
 from datetime import datetime
 
 from nicegui import app, ui
 
-import ipaddress
-
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
 from lmp.util import Board, DeviceCommand
-from lmp.firmware_log import FirmwareLog
 
 from .device_command_history import DeviceCommandHistoryEntry
-from .hydrant_error_ui import Event_Log_UI, Event_Log_Listener, Log_Table
+from .hydrant_error_ui import Event_Log_Listener, Event_Log_UI, Log_Table
+from .hydrant_system_config import (
+    DEFAULT_BB1_IP,
+    DEFAULT_BB2_IP,
+    DEFAULT_BB3_IP,
+    DEFAULT_FC_IP,
+    DEFAULT_FR_IP,
+)
+from .hydrant_ui import (
+    BB_Config_UI,
+    FC_Config_UI,
+    FR_Config_UI,
+    IP_Address_UI,
+    System_Config_UI,
+)
 
-import pathlib
-from .hydrant_ui import IP_Address_UI, FC_Config_UI, BB_Config_UI, FR_Config_UI, System_Config_UI
-
-from .hydrant_system_config import *
 
 class Hydrant:
     def __init__(self, fc_address: tuple[str, int], log_table: pathlib.Path):
         self.fc_address = fc_address
         self.log_lookup = None
-        if(log_table != None):
+        if(log_table is not None):
             if(log_table.suffix == ".csv"):
                 try:
                     self.log_lookup = Log_Table(log_table)
@@ -249,7 +257,7 @@ class Hydrant:
         # FC CONNECTION DIV
         with ui.element('div').style('position: fixed; right: 1.5rem; bottom: 1.5rem; z-index: 1000; box-shadow: 0 0 0.5em #7f9fbf35; background-color: black;').classes("rounded-sm") as fc_conn_stat:
             self.fc_connection_status = fc_conn_stat
-            fc_conn_stat.set_visibility(self.start_fc_connection_status == False)
+            fc_conn_stat.set_visibility(not self.start_fc_connection_status)
             with ui.card().classes('bg-transparent text-white p-6 pl-4 shadow-lg'):
                 with ui.row().classes("no-wrap"):
                     ui.icon("error", color="yellow")
@@ -291,7 +299,8 @@ class Hydrant:
     def send_command(self, dialog):
         """Initialize send command process on button press"""
         
-        if(self.board_select.value == None or self.command_select.value == None): return
+        if(self.board_select.value is None or self.command_select.value is None): 
+            return
         self.selected_board_name = self.board_select.value
         self.selected_command_name = self.command_select.value
 

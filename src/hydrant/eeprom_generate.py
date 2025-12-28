@@ -1,11 +1,11 @@
-from enum import Enum
 import ipaddress
 import struct
 import zlib
+from enum import Enum
+from io import BytesIO
 
 import tftpy
 
-from io import BytesIO
 
 class ValveVoltage(Enum):
     Valve_12V = 0

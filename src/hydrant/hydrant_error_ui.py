@@ -1,23 +1,15 @@
 import asyncio
-from datetime import datetime, timezone
 import ipaddress
-
+import logging
+import os
+import pathlib
 from collections import deque
+from datetime import datetime, timezone
 
 import pandas as pd
+from nicegui import ui
 
-import os
-
-import pathlib
-
-import logging
-
-from nicegui import app, ui
-
-from lmp.util import Board, DeviceCommand
 from lmp.firmware_log import FirmwareLog
-
-from enum import Enum
 
 EVENT_LOG_PORT = 1234
 
@@ -39,35 +31,35 @@ class Log_Table:
     
     def get_type(self, code: int):
         err = self.lookup_table.get(code)
-        if(err != None):
+        if(err is not None):
             return err["type"]
         else:
             return None
         
     def get_name(self, code: int):
         err = self.lookup_table.get(code)
-        if(err != None):
+        if(err is not None):
             return err["name"]
         else:
             return None
     
     def get_function(self, code: int):
         err = self.lookup_table.get(code)
-        if(err != None):
+        if(err is not None):
             return err["function"]
         else:
             return None
         
     def get_severity(self, code: int):
         err = self.lookup_table.get(code)
-        if(err != None):
+        if(err is not None):
             return err["severity"]
         else:
             return None
         
     def get_details(self, code: int):
         err = self.lookup_table.get(code)
-        if(err != None):
+        if(err is not None):
             return err["details"]
         else:
             return None
@@ -139,7 +131,7 @@ class Event_Log_UI:
             self.tables.append(log_table)
     
     def clear_log(self, e = None):
-        if(self.listener != None):
+        if(self.listener is not None):
             self.listener.log_buffer.clear()
         
         for x in self.tables:
@@ -147,7 +139,7 @@ class Event_Log_UI:
         
     def add_log(self, log: FirmwareLog, addr: ipaddress.IPv4Address = None, localtime: bool = True):
         time_str = None
-        if(log.timestamp != None):
+        if(log.timestamp is not None):
             timestamp = log.timestamp
             if(localtime):
                 local_zone = datetime.now(timezone.utc).astimezone().tzinfo
@@ -156,20 +148,23 @@ class Event_Log_UI:
             
             
         for x in self.tables:
-            x.add_row({'msg': log.message, 'board': log.board.pretty_name if log.board != None else None, 'timestamp': time_str, 'code': log.status_code, 'ip': addr, 'id': self.cur_id, 'tooltip': self.generate_tooltip(log.status_code)})
+            x.add_row({'msg': log.message, 'board': log.board.pretty_name if log.board is not None else None, 'timestamp': time_str, 'code': log.status_code, 'ip': addr, 'id': self.cur_id, 'tooltip': self.generate_tooltip(log.status_code)})
         self.cur_id += 1
 
     def attach_listener(self, listener):
         self.listener = listener
         
     def generate_tooltip(self, code:int):
-        if(code == None): return None
-        if(self.lookup_table == None): return None
+        if(code is None): 
+            return None
+        if(self.lookup_table is None): 
+            return None
         error_name = self.lookup_table.get_name(code)
         error_type = self.lookup_table.get_type(code)
         error_severity = self.lookup_table.get_severity(code)
         error_details = self.lookup_table.get_details(code)
-        if(error_name == None): return None
+        if(error_name is None): 
+            return None
         tooltip_msg = f"Error {error_name}: Type - {error_type}, Severity - {error_severity}<br><br>{error_details}"
         return tooltip_msg
 
@@ -206,7 +201,7 @@ class Event_Log_Listener:
                 continue
             
             try:
-                if(self.handler != None):
+                if(self.handler is not None):
                     await self.handler.wait_for_close()
             except asyncio.CancelledError:
                 print("Log listener cancelled.")
@@ -224,14 +219,14 @@ class Event_Log_Listener:
             x.add_log(log, addr=addr, localtime=True)
             
     async def setup_future(self) -> asyncio.Future:
-        if(self.eeprom_response != None and not self.eeprom_response.done()):
+        if(self.eeprom_response is not None and not self.eeprom_response.done()):
             self.eeprom_response.cancel()
             await asyncio.sleep(0) # yield event loop and trigger cancelled response
         self.eeprom_response = asyncio.get_event_loop().create_future()
         return self.eeprom_response
     
     def trigger_eeprom_response(self, log: FirmwareLog):
-        if(self.eeprom_response != None and not self.eeprom_response.done()):
+        if(self.eeprom_response is not None and not self.eeprom_response.done()):
             self.eeprom_response.set_result(log)
 
 class Event_Log_Protocol(asyncio.DatagramProtocol):
@@ -247,7 +242,7 @@ class Event_Log_Protocol(asyncio.DatagramProtocol):
     def datagram_received(self, data, addr):
         log = FirmwareLog.from_bytes(data)
         self.listener.log_to_UIs(log, addr[0])
-        if(log.status_code != None and (log.status_code % 1000) in EEPROM_CODES):
+        if(log.status_code is not None and (log.status_code % 1000) in EEPROM_CODES):
             try:
                 self.listener.trigger_eeprom_response(log)
             except Exception as err:

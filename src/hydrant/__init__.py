@@ -1,14 +1,12 @@
+import os
+import pathlib
+
 import click
-from nicegui import ui, app
+from nicegui import app, ui
 
 from limewire.util import SocketAddress
 
-import pathlib
-
 from .hydrant import Hydrant
-
-import os
-from pathlib import Path
 
 
 @click.command(context_settings={"help_option_names": ["--help", "-h"]})

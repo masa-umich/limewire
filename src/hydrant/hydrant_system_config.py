@@ -1,12 +1,9 @@
-import pandas as pd
-
+import ipaddress
 from io import BytesIO
 
+import pandas as pd
 import synnax as sy
-
 from synnax.hardware import ni
-
-import ipaddress
 
 ICD_SHEET = "AVI Mappings 25-26"
 
@@ -80,7 +77,7 @@ class ICD:
                         continue
                     if "Broken Channel" in row["Name"]:
                         continue
-                except:
+                except Exception:
                     continue
                 channel_num = int(row["Channel"])
                 if row["Type"] == "PTs":
@@ -309,7 +306,7 @@ def configure_ebox(channels) -> tuple[bool, str]:
 
 def setup_channels(client: sy.Synnax, channels, analog_task, digital_task, analog_card):
     print("Creating channels in Synnax")
-    yes_to_all = False # create new synnax channels for all items in the sheet?
+    #yes_to_all = False # create new synnax channels for all items in the sheet?
 
     for channel in channels:
         if channel["type"] == "PT":            
@@ -488,13 +485,13 @@ def create_tasks(client: sy.Synnax, frequency: int):
     try:
         analog_card = client.hardware.devices.retrieve(model=analog_card_model)
         print(" > Analog card '" + analog_card.make + " " + analog_card.model + "' found!")
-    except:
+    except Exception:
         raise Exception("Analog card '" + analog_card_model + "' not found, are you sure it's connected? Maybe try re-enabling the NI Device Scanner.")
     
     try:
         digital_card = client.hardware.devices.retrieve(model=digital_card_model)
         print(" > Digital card '" + digital_card.make + " " + digital_card.model + "' found!")
-    except:
+    except Exception:
         raise Exception("Digital card '" + digital_card_model + "' not found, are you sure it's connected? Maybe try re-enabling the NI Device Scanner.")
 
     analog_task = ni.AnalogReadTask(
