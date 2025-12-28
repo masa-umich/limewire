@@ -38,7 +38,9 @@ class Log_Table:
                 "type": str(row["Type"]),
                 "name": str(row["Name"]),
                 "function": str(row["Function"]),
-                "severity": str(row["Severity"]) if not pd.isna(row["Severity"]) else "None",
+                "severity": str(row["Severity"])
+                if not pd.isna(row["Severity"])
+                else "None",
                 "details": str(row["Note (optional)"]),
             }
 
