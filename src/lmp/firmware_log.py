@@ -77,4 +77,4 @@ class FirmwareLog:
             local_zone = datetime.now(timezone.utc).astimezone().tzinfo
             timestamp = timestamp.astimezone(local_zone)
             time_str = timestamp.strftime("%b %d, %Y %I:%M:%S.%f %p %Z")
-        return f"Message: '{self.message}', Timestamp: {time_str}, Code: {self.status_code}, Board: {self.board.pretty_name if self.board != None else None}"
+        return f"'{self.message}', Timestamp: {time_str}, Code: {self.status_code}, Board: {self.board.pretty_name if self.board != None else None}"

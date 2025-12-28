@@ -25,6 +25,10 @@ EVENT_LOG_FILE = ""
 
 LOG_TABLE_SHEET = "Lookup Table"
 
+EVENT = 15
+
+EEPROM_CODES = [219, 220, 221, 222, 705] # Event codes indicating something changed with the eeprom config
+
 class Log_Table:
     def __init__(self, table_path: pathlib.Path):
         self.table_path = table_path
@@ -171,6 +175,7 @@ class Event_Log_UI:
 
 class Event_Log_Listener:
     def __init__(self):
+        self.eeprom_response:asyncio.Future = None
         self.log_UIs:list[Event_Log_UI] = []
         self.transport = None
         self.log_buffer = deque(maxlen=100)
@@ -217,6 +222,17 @@ class Event_Log_Listener:
         self.log_buffer.append((log, addr))
         for x in self.log_UIs:
             x.add_log(log, addr=addr, localtime=True)
+            
+    async def setup_future(self) -> asyncio.Future:
+        if(self.eeprom_response != None and not self.eeprom_response.done()):
+            self.eeprom_response.cancel()
+            await asyncio.sleep(0) # yield event loop and trigger cancelled response
+        self.eeprom_response = asyncio.get_event_loop().create_future()
+        return self.eeprom_response
+    
+    def trigger_eeprom_response(self, log: FirmwareLog):
+        if(self.eeprom_response != None and not self.eeprom_response.done()):
+            self.eeprom_response.set_result(log)
 
 class Event_Log_Protocol(asyncio.DatagramProtocol):
     def __init__(self, listener):
@@ -231,7 +247,12 @@ class Event_Log_Protocol(asyncio.DatagramProtocol):
     def datagram_received(self, data, addr):
         log = FirmwareLog.from_bytes(data)
         self.listener.log_to_UIs(log, addr[0])
-        logging.getLogger("events").info(log.to_log() + f", IP: {addr[0]}")
+        if(log.status_code != None and (log.status_code % 1000) in EEPROM_CODES):
+            try:
+                self.listener.trigger_eeprom_response(log)
+            except Exception as err:
+                print("Error triggering eeprom config response " + str(err))
+        logging.getLogger("events").info(log.to_log() + f", IP: {addr[0]}") #TODO change to a custom log level after merging with hydrant-reconnection
         
     def connection_lost(self, exc):
         self.open = False

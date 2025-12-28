@@ -207,9 +207,9 @@ class Hydrant:
                             self.command_history_table()
                     with ui.tab_panel(2).classes("p-0"):
                         # SYSTEM CONFIGURATION
-                        with ui.row().classes("w-full mx-auto no-wrap h-[30em] gap-0"):
+                        with ui.row().classes("w-full mx-auto no-wrap h-[31em] gap-0"):
                             with ui.column().classes("w-1/2 pr-2 h-full"):
-                                self.system_config = System_Config_UI(self)
+                                self.system_config = System_Config_UI(self, self.log_listener)
                             with ui.column().classes("w-1/2 pl-2 h-full"):
                                 # ERROR LOG
                                 with ui.column().classes("w-full gap-4 h-full"):

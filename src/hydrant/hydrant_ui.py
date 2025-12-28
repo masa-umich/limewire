@@ -10,7 +10,14 @@ from .hydrant_system_config import *
 
 from .eeprom_generate import *
 
+from .hydrant_error_ui import Event_Log_Listener
+
+from lmp.firmware_log import FirmwareLog
+from lmp.util import Board
+
 progress_lookup = {-1: {"name": "close", "color": "red"}, 0: {"name": "", "color": "black"}, 1: {"name": "check", "color": "green"}}
+
+EEPROM_RESPONSE_TIMEOUT = 1 # seconds
 
 class IP_Address_UI:
     def __init__(self, initial : ipaddress.IPv4Address, name : str):
@@ -251,7 +258,8 @@ class FR_Config_UI:
         self.FRIP.set_ip(DEFAULT_FR_IP)
                 
 class System_Config_UI:
-    def __init__(self, parentUI):
+    def __init__(self, parentUI, log_listener: Event_Log_Listener):
+        self.log_listener = log_listener
         self.base = parentUI
         self.configure_ebox = False
         self.configure_fc = False
@@ -380,6 +388,22 @@ class System_Config_UI:
                 ui.label("ICD processing error:").classes("text-xl")
                 ui.space().classes('h-1 w-full')
                 ui.label(str(e)).classes("text-sm")
+                dialog.open()
+            return
+        except ICD_Value_Exception as e:
+            print("Value error while processing ICD")
+            traceback.print_exception(type(e), e, e.__traceback__)
+            with ui.dialog().props('persistent').classes("") as dialog, ui.card().classes("bg-[#990000] max-w-[90vw] h-60 flex flex-col justify-center items-center"):
+                with ui.column().classes("items-center"):
+                    ui.button(icon="close", on_click=lambda e: dialog.close()).classes("absolute right-0 top-0 bg-transparent").props('flat color="white" size="lg"')
+                    ui.label(f"{e.type}:").classes("text-xl")
+                    ui.space().classes('h-10 w-full')
+                    with ui.scroll_area().classes("max-w-[80vw] w-[80vw] h-25"):
+                        with ui.row().classes("w-full no-wrap overflow-x-auto overflow-scroll"):
+                            for k, v in e.row.items():
+                                with ui.column().classes("whitespace-nowrap overflow-x-auto overflow-y-hidden items-center"):
+                                    ui.label(str(k)).classes("bold whitespace-nowrap overflow-x-auto overflow-y-hidden")
+                                    ui.label(str(v)).classes("whitespace-nowrap overflow-x-auto overflow-y-hidden")
                 dialog.open()
             return
         self.process_board_channels()
@@ -564,6 +588,7 @@ class System_Config_UI:
                 self.set_progress(self.ebox_progress, self.ebox_prog_tooltip, "ICD not loaded", False)
             else:
                 self.ebox_loading = True
+                self.set_in_progress(self.ebox_prog_tooltip, "Configuring, this may take a while...")
                 (result, msg) = await run.cpu_bound(configure_ebox, gse_channels)
                 tooltip_msg = f"Used ICD '{ICD_name}'" + (f"<br><br>{msg}" if not result else "")
                 self.set_progress(self.ebox_progress, self.ebox_prog_tooltip, tooltip_msg, result)
@@ -574,94 +599,249 @@ class System_Config_UI:
         if(config_fc):
             print("Configuring Flight Computer")
             self.fc_loading = True
+            eeprom_future = None
+            if(self.log_listener != None):
+                eeprom_future = await self.log_listener.setup_future()
+            self.set_board_tftp_in_progress(self.fc_prog_tooltip)
             (result, msg) = await run.cpu_bound(configure_fc, fc_PTs, fc_TCs, fc_VLVs, fc_GSEIP, fc_FCIP, fc_BB1IP, fc_BB2IP, fc_BB3IP, fc_FRIP, fc_tftp)
             if(result):
                 self.set_board_config_in_progress(self.fc_prog_tooltip)
                 print("Flight Computer config successfully sent, waiting for response.")
-                # TODO wait for UDP response (block here safely)
+                if(eeprom_future != None):
+                    future_msg = ""
+                    future_result = False
+                    try:
+                        log: FirmwareLog = await asyncio.wait_for(eeprom_future, timeout=EEPROM_RESPONSE_TIMEOUT)
+                        if(log.status_code % 1000 == 705):
+                            future_result = True
+                            future_msg = log.message
+                            if(log.board != Board.FC):
+                                future_result = False
+                                future_msg = "A successful response came from the wrong board: " + log.board.pretty_name
+                                print("Successful eeprom came from the wrong board: " + log.board.pretty_name)
+                            else:
+                                print("Successful response from the Flight Computer")
+                        else:
+                            future_msg = log.message
+                            print("Flight Computer config failed: " + log.message)
+                    except asyncio.CancelledError as err:
+                        future_msg = "Error: configuration was started from a different source, " + str(err)
+                        print("EEPROM config future was cancelled")
+                    except TimeoutError as err:
+                        future_msg = "Timed out waiting for response"
+                        print("Flight Computer config timed out waiting for UDP response")
+                    tooltip_msg = ""
+                    if(gse_channels != None):
+                        tooltip_msg = f"Used ICD '{ICD_name}'<br>"
+                    tooltip_msg += f"<br>{future_msg}"
+                    self.set_progress(self.fc_progress, self.fc_prog_tooltip, tooltip_msg, future_result)
             else:
                 tooltip_msg = ""
                 if(gse_channels != None):
                     tooltip_msg = f"Used ICD '{ICD_name}'<br>"
                 tooltip_msg += f"<br>{msg}"
                 self.set_progress(self.fc_progress, self.fc_prog_tooltip, tooltip_msg, False)
-                self.fc_loading = False
                 print(f"Failed to send Flight Computer EEPROM config over TFTP: {msg}")
+            self.fc_loading = False
             print("")
             
         if(config_bb1):
             print("Configuring Bay Board 1")
             self.bb1_loading = True
+            eeprom_future = None
+            if(self.log_listener != None):
+                eeprom_future = await self.log_listener.setup_future()
+            self.set_board_tftp_in_progress(self.bb1_prog_tooltip)
             (result, msg) = await run.cpu_bound(configure_bb, 1, bb1_PTs, bb1_TCs, bb1_VLVs, bb1_FCIP, bb1_BBIP, bb1_tftp)
             if(result):
                 self.set_board_config_in_progress(self.bb1_prog_tooltip)
                 print("Bay Board 1 config successfully sent, waiting for response.")
-                # TODO wait for UDP response (block here safely)
+                if(eeprom_future != None):
+                    future_msg = ""
+                    future_result = False
+                    try:
+                        log: FirmwareLog = await asyncio.wait_for(eeprom_future, timeout=EEPROM_RESPONSE_TIMEOUT)
+                        if(log.status_code % 1000 == 705):
+                            future_result = True
+                            future_msg = log.message
+                            if(log.board != Board.BB1):
+                                future_result = False
+                                future_msg = "A successful response came from the wrong board: " + log.board.pretty_name
+                                print("Successful eeprom came from the wrong board: " + log.board.pretty_name)
+                            else:
+                                print("Successful response from Bay Board 1")
+                        else:
+                            future_msg = log.message
+                            print("Bay Board 1 config failed: " + log.message)
+                    except asyncio.CancelledError as err:
+                        future_msg = "Error: configuration was started from a different source, " + str(err)
+                        print("EEPROM config future was cancelled")
+                    except TimeoutError as err:
+                        future_msg = "Timed out waiting for response"
+                        print("Bay Board 1 config timed out waiting for UDP response")
+                    tooltip_msg = ""
+                    if(gse_channels != None):
+                        tooltip_msg = f"Used ICD '{ICD_name}'<br>"
+                    tooltip_msg += f"<br>{future_msg}"
+                    self.set_progress(self.bb1_progress, self.bb1_prog_tooltip, tooltip_msg, future_result)
             else:
                 tooltip_msg = ""
                 if(gse_channels != None):
                     tooltip_msg = f"Used ICD '{ICD_name}'<br>"
                 tooltip_msg += f"<br>{msg}"
                 self.set_progress(self.bb1_progress, self.bb1_prog_tooltip, tooltip_msg, False)
-                self.bb1_loading = False
                 print(f"Failed to send Bay Board 1 EEPROM config over TFTP: {msg}")
+            self.bb1_loading = False
             print("")
         
         if(config_bb2):
             print("Configuring Bay Board 2")
             self.bb2_loading = True
+            eeprom_future = None
+            if(self.log_listener != None):
+                eeprom_future = await self.log_listener.setup_future()
+            self.set_board_tftp_in_progress(self.bb2_prog_tooltip)
             (result, msg) = await run.cpu_bound(configure_bb, 2, bb2_PTs, bb2_TCs, bb2_VLVs, bb2_FCIP, bb2_BBIP, bb2_tftp)
             if(result):
                 self.set_board_config_in_progress(self.bb2_prog_tooltip)
                 print("Bay Board 2 config successfully sent, waiting for response.")
-                # TODO wait for UDP response (block here safely)
+                if(eeprom_future != None):
+                    future_msg = ""
+                    future_result = False
+                    try:
+                        log: FirmwareLog = await asyncio.wait_for(eeprom_future, timeout=EEPROM_RESPONSE_TIMEOUT)
+                        if(log.status_code % 1000 == 705):
+                            future_result = True
+                            future_msg = log.message
+                            if(log.board != Board.BB2):
+                                future_result = False
+                                future_msg = "A successful response came from the wrong board: " + log.board.pretty_name
+                                print("Successful eeprom came from the wrong board: " + log.board.pretty_name)
+                            else:
+                                print("Successful response from Bay Board 2")
+                        else:
+                            future_msg = log.message
+                            print("Bay Board 2 config failed: " + log.message)
+                    except asyncio.CancelledError as err:
+                        future_msg = "Error: configuration was started from a different source, " + str(err)
+                        print("EEPROM config future was cancelled")
+                    except TimeoutError as err:
+                        future_msg = "Timed out waiting for response"
+                        print("Bay Board 2 config timed out waiting for UDP response")
+                    tooltip_msg = ""
+                    if(gse_channels != None):
+                        tooltip_msg = f"Used ICD '{ICD_name}'<br>"
+                    tooltip_msg += f"<br>{future_msg}"
+                    self.set_progress(self.bb2_progress, self.bb2_prog_tooltip, tooltip_msg, future_result)
             else:
                 tooltip_msg = ""
                 if(gse_channels != None):
                     tooltip_msg = f"Used ICD '{ICD_name}'<br>"
                 tooltip_msg += f"<br>{msg}"
                 self.set_progress(self.bb2_progress, self.bb2_prog_tooltip, tooltip_msg, False)
-                self.bb2_loading = False
                 print(f"Failed to send Bay Board 2 EEPROM config over TFTP: {msg}")
+            self.bb2_loading = False
             print("")
         
         if(config_bb3):
             print("Configuring Bay Board 3")
             self.bb3_loading = True
+            eeprom_future = None
+            if(self.log_listener != None):
+                eeprom_future = await self.log_listener.setup_future()
+            self.set_board_tftp_in_progress(self.bb3_prog_tooltip)
             (result, msg) = await run.cpu_bound(configure_bb, 3, bb3_PTs, bb3_TCs, bb3_VLVs, bb3_FCIP, bb3_BBIP, bb3_tftp)
             if(result):
                 self.set_board_config_in_progress(self.bb3_prog_tooltip)
                 print("Bay Board 3 config successfully sent, waiting for response.")
-                # TODO wait for UDP response (block here safely)
+                if(eeprom_future != None):
+                    future_msg = ""
+                    future_result = False
+                    try:
+                        log: FirmwareLog = await asyncio.wait_for(eeprom_future, timeout=EEPROM_RESPONSE_TIMEOUT)
+                        if(log.status_code % 1000 == 705):
+                            future_result = True
+                            future_msg = log.message
+                            if(log.board != Board.BB3):
+                                future_result = False
+                                future_msg = "A successful response came from the wrong board: " + log.board.pretty_name
+                                print("Successful eeprom came from the wrong board: " + log.board.pretty_name)
+                            else:
+                                print("Successful response from Bay Board 3")
+                        else:
+                            future_msg = log.message
+                            print("Bay Board 3 config failed: " + log.message)
+                    except asyncio.CancelledError as err:
+                        future_msg = "Error: configuration was started from a different source, " + str(err)
+                        print("EEPROM config future was cancelled")
+                    except TimeoutError as err:
+                        future_msg = "Timed out waiting for response"
+                        print("Bay Board 3 config timed out waiting for UDP response")
+                    tooltip_msg = ""
+                    if(gse_channels != None):
+                        tooltip_msg = f"Used ICD '{ICD_name}'<br>"
+                    tooltip_msg += f"<br>{future_msg}"
+                    self.set_progress(self.bb3_progress, self.bb3_prog_tooltip, tooltip_msg, future_result)
             else:
                 tooltip_msg = ""
                 if(gse_channels != None):
                     tooltip_msg = f"Used ICD '{ICD_name}'<br>"
                 tooltip_msg += f"<br>{msg}"
                 self.set_progress(self.bb3_progress, self.bb3_prog_tooltip, tooltip_msg, False)
-                self.bb3_loading = False
                 print(f"Failed to send Bay Board 3 EEPROM config over TFTP: {msg}")
+            self.bb3_loading = False
             print("")
             
         if(config_fr):
             print("Configuring Flight Recorder")
             self.fr_loading = True
+            eeprom_future = None
+            if(self.log_listener != None):
+                eeprom_future = await self.log_listener.setup_future()
+            self.set_board_tftp_in_progress(self.fr_prog_tooltip)
             (result, msg) = await run.cpu_bound(configure_fr, fr_FCIP, fr_FRIP, fr_tftp)
             if(result):
                 self.set_board_config_in_progress(self.fr_prog_tooltip)
                 print("Flight Recorder config successfully sent, waiting for response.")
-                # TODO wait for UDP response (block here safely)
+                if(eeprom_future != None):
+                    future_msg = ""
+                    future_result = False
+                    try:
+                        log: FirmwareLog = await asyncio.wait_for(eeprom_future, timeout=EEPROM_RESPONSE_TIMEOUT)
+                        if(log.status_code % 1000 == 705):
+                            future_result = True
+                            future_msg = log.message
+                            if(log.board != Board.FR):
+                                future_result = False
+                                future_msg = "A successful response came from the wrong board: " + log.board.pretty_name
+                                print("Successful eeprom came from the wrong board: " + log.board.pretty_name)
+                            else:
+                                print("Successful response from the Flight Recorder")
+                        else:
+                            future_msg = log.message
+                            print("Flight Recorder config failed: " + log.message)
+                    except asyncio.CancelledError as err:
+                        future_msg = "Error: configuration was started from a different source, " + str(err)
+                        print("EEPROM config future was cancelled")
+                    except TimeoutError as err:
+                        future_msg = "Timed out waiting for response"
+                        print("Flight Recorder config timed out waiting for UDP response")
+                    tooltip_msg = ""
+                    if(gse_channels != None):
+                        tooltip_msg = f"Used ICD '{ICD_name}'<br>"
+                    tooltip_msg += f"<br>{future_msg}"
+                    self.set_progress(self.fr_progress, self.fr_prog_tooltip, tooltip_msg, future_result)
             else:
                 tooltip_msg = ""
                 if(gse_channels != None):
                     tooltip_msg = f"Used ICD '{ICD_name}'<br>"
                 tooltip_msg += f"<br>{msg}"
                 self.set_progress(self.fr_progress, self.fr_prog_tooltip, tooltip_msg, False)
-                self.fr_loading = False
                 print(f"Failed to send Flight Recorder EEPROM config over TFTP: {msg}")
+            self.fr_loading = False
             print("")
         
-        print("System configuration done!")
+        print("System configuration done!\n")
         
     def set_progress(self, icon: ui.icon, tooltip: ui.html, text: str, result: bool):
         if(result):
@@ -675,6 +855,16 @@ class System_Config_UI:
     def set_board_config_in_progress(self, tooltip: ui.html):
         now = datetime.datetime.now()
         tooltip.set_content(f"{now.strftime("%b %d, %Y %I:%M:%S %p")}<br>Config sent, waiting for response.")
+        tooltip.set_visibility(True)
+        
+    def set_board_tftp_in_progress(self, tooltip: ui.html):
+        now = datetime.datetime.now()
+        tooltip.set_content(f"{now.strftime("%b %d, %Y %I:%M:%S %p")}<br>Sending config...")
+        tooltip.set_visibility(True)
+    
+    def set_in_progress(self, tooltip: ui.html, msg: str):
+        now = datetime.datetime.now()
+        tooltip.set_content(f"{now.strftime("%b %d, %Y %I:%M:%S %p")}<br>{msg}")
         tooltip.set_visibility(True)
     
     def handle_ebox_select(self, v):

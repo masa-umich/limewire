@@ -85,7 +85,7 @@ class ICD:
                 channel_num = int(row["Channel"])
                 if row["Type"] == "PTs":
                     if(pd.isna(row["Max Pressure"]) or pd.isna(row["Calibration Offset (V)"]) or pd.isna(row["Max Output Voltage"])):
-                        raise ValueError("Missing config value in row " + str(row.to_json()))
+                        raise ICD_Value_Exception("Missing value while processing ICD", row.to_dict())
                     channel = {
                         "name": row["Name"],
                         "type": "PT",
@@ -105,7 +105,7 @@ class ICD:
                     elif channel_num >= 0:
                         port = 4
                     else:
-                        raise ValueError("Invalid channel number for valve: " + str(row["Name"]) + " in row " + str(row_num))
+                        raise ICD_Value_Exception("Invalid channel number in row", row.to_dict())
                     channel = {
                         "name": row["Name"],
                         "type": "VLV",
@@ -136,14 +136,14 @@ class ICD:
                     }
                     self.ebox_channels.append(channel)
                 else:
-                    raise ValueError("Unknown type " + str(row["Type"]) + " in row " + str(row_num))
+                    raise ICD_Value_Exception("Unknown peripheral type", row.to_dict())
             elif(row["Connection Location"] == "Press Bay Board"):
                 if(row["Name"] == ""):
                     continue
                 
                 if(row["Type"] == "PTs"):
                     if(pd.isna(row["Max Pressure"]) or pd.isna(row["Calibration Offset (V)"]) or pd.isna(row["Max Output Voltage"])):
-                        raise ValueError("Missing config value in row " + str(row.to_json()))
+                        raise ICD_Value_Exception("Missing value while processing ICD", row.to_dict())
                     channel = {
                         "name": row["Name"],
                         "type": "PT",
@@ -163,7 +163,7 @@ class ICD:
                     self.bb1_channels.append(channel)
                 elif(row["Type"] == "VLVs"):
                     if(pd.isna(row["Supply Voltage (V)"])):
-                        raise ValueError("Missing config value in row " + str(row.to_json()))
+                        raise ICD_Value_Exception("Missing value while processing ICD", row.to_dict())
                     channel = {
                         "name": row["Name"],
                         "type": "VLV",
@@ -172,14 +172,14 @@ class ICD:
                     }
                     self.bb1_channels.append(channel)
                 else:
-                    raise ValueError("Unknown type " + str(row["Type"]) + " in row " + str(row_num))
+                    raise ICD_Value_Exception("Unknown peripheral type", row.to_dict())
             elif(row["Connection Location"] == "Intertank Bay Board"):
                 if(row["Name"] == ""):
                     continue
                 
                 if(row["Type"] == "PTs"):
                     if(pd.isna(row["Max Pressure"]) or pd.isna(row["Calibration Offset (V)"]) or pd.isna(row["Max Output Voltage"])):
-                        raise ValueError("Missing config value in row " + str(row.to_json()))
+                        raise ICD_Value_Exception("Missing value while processing ICD", row.to_dict())
                     channel = {
                         "name": row["Name"],
                         "type": "PT",
@@ -199,7 +199,7 @@ class ICD:
                     self.bb2_channels.append(channel)
                 elif(row["Type"] == "VLVs"):
                     if(pd.isna(row["Supply Voltage (V)"])):
-                        raise ValueError("Missing config value in row " + str(row.to_json()))
+                        raise ICD_Value_Exception("Missing value while processing ICD", row.to_dict())
                     channel = {
                         "name": row["Name"],
                         "type": "VLV",
@@ -208,14 +208,14 @@ class ICD:
                     }
                     self.bb2_channels.append(channel)
                 else:
-                    raise ValueError("Unknown type " + str(row["Type"]) + " in row " + str(row_num))
+                    raise ICD_Value_Exception("Unknown peripheral type", row.to_dict())
             elif(row["Connection Location"] == "Engine Bay Board"):
                 if(row["Name"] == ""):
                     continue
                 
                 if(row["Type"] == "PTs"):
                     if(pd.isna(row["Max Pressure"]) or pd.isna(row["Calibration Offset (V)"]) or pd.isna(row["Max Output Voltage"])):
-                        raise ValueError("Missing config value in row " + str(row.to_json()))
+                        raise ICD_Value_Exception("Missing value while processing ICD", row.to_dict())
                     channel = {
                         "name": row["Name"],
                         "type": "PT",
@@ -235,7 +235,7 @@ class ICD:
                     self.bb3_channels.append(channel)
                 elif(row["Type"] == "VLVs"):
                     if(pd.isna(row["Supply Voltage (V)"])):
-                        raise ValueError("Missing config value in row " + str(row.to_json()))
+                        raise ICD_Value_Exception("Missing value while processing ICD", row.to_dict())
                     channel = {
                         "name": row["Name"],
                         "type": "VLV",
@@ -244,7 +244,7 @@ class ICD:
                     }
                     self.bb3_channels.append(channel)
                 else:
-                    raise ValueError("Unknown type " + str(row["Type"]) + " in row " + str(row_num))
+                    raise ICD_Value_Exception("Unknown peripheral type", row.to_dict())
             elif(row["Connection Location"] == "Flight Computer"):
                 if(row["Name"] == ""):
                     continue
@@ -253,7 +253,7 @@ class ICD:
                     if(pd.isna(row["Max Pressure"])):
                         continue # Special case for Fluctus channel
                     if(pd.isna(row["Max Pressure"]) or pd.isna(row["Calibration Offset (V)"]) or pd.isna(row["Max Output Voltage"])):
-                        raise ValueError("Missing config value in row " + str(row.to_json()))
+                        raise ICD_Value_Exception("Missing value while processing ICD", row.to_dict())
                     channel = {
                         "name": row["Name"],
                         "type": "PT",
@@ -273,7 +273,7 @@ class ICD:
                     self.fc_channels.append(channel)
                 elif(row["Type"] == "VLVs"):
                     if(pd.isna(row["Supply Voltage (V)"])):
-                        raise ValueError("Missing config value in row " + str(row.to_json()))
+                        raise ICD_Value_Exception("Missing value while processing ICD", row.to_dict())
                     channel = {
                         "name": row["Name"],
                         "type": "VLV",
@@ -282,7 +282,7 @@ class ICD:
                     }
                     self.fc_channels.append(channel)
                 else:
-                    raise ValueError("Unknown type " + str(row["Type"]) + " in row " + str(row_num))
+                    raise ICD_Value_Exception("Unknown peripheral type", row.to_dict())
             elif(row["Type"] == "IPs"):
                 if(pd.isna(row["Connection Location"])):
                     continue
@@ -529,3 +529,9 @@ def configure_tasks(client: sy.Synnax, analog_task, digital_task):
         client.hardware.tasks.configure(task=digital_task, timeout=500)
         print(" > Successfully configured digital task!")
     print(" > All tasks have been successfully created!")
+    
+class ICD_Value_Exception(Exception):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.type = args[0]
+        self.row = args[1]
