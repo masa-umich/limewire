@@ -19,7 +19,7 @@ dependencies = [
     "python-dotenv<2.0.0,>=1.0.1",
     "scapy>=2.6.1",
     "seaborn>=0.13.2",
-    "synnax==0.46.0",
+    "synnax>=0.46,<0.47",
     "tftpy==0.8.5",
 ]
 name = "limewire"
