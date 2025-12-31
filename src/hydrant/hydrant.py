@@ -17,7 +17,7 @@ from .hydrant_system_config import (
     DEFAULT_FC_IP,
     DEFAULT_FR_IP,
 )
-from .hydrant_telemetry import Board_Telemetry_UI, Telemetry_Listener
+from .hydrant_telemetry import BoardTelemetryUI, TelemetryListener
 from .hydrant_ui import (
     BB_Config_UI,
     FC_Config_UI,
@@ -69,7 +69,7 @@ class Hydrant:
         ] = {}
 
         self.log_listener = Event_Log_Listener()
-        self.telem_listener = Telemetry_Listener()
+        self.telem_listener = TelemetryListener()
         app.on_startup(self.connect_to_fc())
         app.on_startup(self.log_listener.open_listener())
         app.on_startup(self.telem_listener.open_listener())
@@ -355,11 +355,11 @@ class Hydrant:
                         with ui.row().classes("w-full no-wrap gap-0 h-[48em]"):
                             # FLIGHT COMPUTER
                             with ui.column().classes("w-1/2 pr-2 h-full"):
-                                self.fc_telemetry = Board_Telemetry_UI(
+                                fc_telemetry = BoardTelemetryUI(
                                     self.channels["fc_timestamp"], Board.FC, 3
                                 )
                                 self.telem_listener.attach_ui(
-                                    self.fc_telemetry, Board.FC, client
+                                    fc_telemetry, Board.FC, client
                                 )
                             with ui.column().classes("w-1/2 pl-2 h-full"):
                                 # ERROR LOG
@@ -369,29 +369,29 @@ class Hydrant:
                         with ui.row().classes("w-full no-wrap"):
                             # BAY BOARD
                             with ui.column().classes("w-full h-full"):
-                                self.bb1_telemetry = Board_Telemetry_UI(
+                                bb1_telemetry = BoardTelemetryUI(
                                     self.channels["bb1_timestamp"], Board.BB1, 6
                                 )
                                 self.telem_listener.attach_ui(
-                                    self.bb1_telemetry, Board.BB1, client
+                                    bb1_telemetry, Board.BB1, client
                                 )
-                                self.bb2_telemetry = Board_Telemetry_UI(
+                                bb2_telemetry = BoardTelemetryUI(
                                     self.channels["bb2_timestamp"], Board.BB2, 6
                                 )
                                 self.telem_listener.attach_ui(
-                                    self.bb2_telemetry, Board.BB2, client
+                                    bb2_telemetry, Board.BB2, client
                                 )
-                                self.bb3_telemetry = Board_Telemetry_UI(
+                                bb3_telemetry = BoardTelemetryUI(
                                     self.channels["bb3_timestamp"], Board.BB3, 6
                                 )
                                 self.telem_listener.attach_ui(
-                                    self.bb3_telemetry, Board.BB3, client
+                                    bb3_telemetry, Board.BB3, client
                                 )
-                                self.fr_telemetry = Board_Telemetry_UI(
+                                fr_telemetry = BoardTelemetryUI(
                                     self.channels["fr_timestamp"], Board.FR, 5
                                 )
                                 self.telem_listener.attach_ui(
-                                    self.fr_telemetry, Board.FR, client
+                                    fr_telemetry, Board.FR, client
                                 )
         # FC CONNECTION DIV
         with (

@@ -10,7 +10,7 @@ from lmp.util import Board
 TELEM_PORT = 6767
 
 
-class Board_Telemetry_UI:
+class BoardTelemetryUI:
     def __init__(self, channels: list[str], board: Board, columns: int):
         self.channels = channels
         self.board = board
@@ -29,7 +29,7 @@ class Board_Telemetry_UI:
                 with ui.row().classes("no-wrap gap-1 items-center"):
                     ui.label("Timestamp: ")
                     ui.label().classes(
-                        "border w-[32ch] p-1 pl-2 pr-2 rounded-md"
+                        "border w-[43ch] p-1 pl-2 pr-2 rounded-md"
                     ).bind_text_from(
                         self, "timestamp", backward=process_timestamp
                     )
@@ -85,7 +85,7 @@ class Board_Telemetry_UI:
                 setattr(
                     self,
                     self.channels[x],
-                    Valve_OLD(msg.values[x])
+                    ValveOLD(msg.values[x])
                     if msg.values[x] is not None
                     else None,
                 )
@@ -100,30 +100,15 @@ class Board_Telemetry_UI:
         )
 
 
-def process_timestamp(v):
+def process_timestamp(v: datetime.datetime):
     if v is None:
         return " - "
     local_zone = (
         datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
     )
     local_time = v.astimezone(local_zone)
-    return f"{local_time.strftime('%b %d, %Y %I:%M:%S.')}{local_time.microsecond // 1000} {local_time.strftime('%p')} {local_time.strftime('%Z')}"
-
-
-class Telemetry_Value:
-    def __init__(self, name: str, unit: str, bindobj, bindattr):
-        with ui.row().classes(
-            "no-wrap items-center gap-1 justify-center w-full"
-        ):
-            ui.label(f"{name}:")
-            ui.label().classes(
-                "border w-[8ch] p-1 pl-2 pr-2 rounded-md"
-            ).bind_text_from(
-                bindobj,
-                bindattr,
-                backward=lambda v: v if v is not None else " - ",
-            )
-            ui.label(unit)
+    diff = datetime.datetime.now(datetime.timezone.utc) - v
+    return f"{local_time.strftime('%b %d, %Y %I:%M:%S.')}{local_time.microsecond // 1000} {local_time.strftime('%p')} {local_time.strftime('%Z')} - {(diff.seconds // 3600):02d}:{((diff.seconds % 3600) // 60):02d}:{(diff.seconds % 60):02d}.{int(diff.microseconds // 1e3):03d}"
 
 
 def process_channel_name(name: str):
@@ -165,18 +150,18 @@ def get_channel_unit(name: str):
         return ""
 
 
-class Valve_OLD(Enum):
+class ValveOLD(Enum):
     En = (-1,)
     NoLoad = (0,)
     Load = 1
 
 
-class Telemetry_Listener:
+class TelemetryListener:
     def __init__(self):
-        self.telemetry_UIs: list[tuple[Board, Board_Telemetry_UI, Client]] = []
+        self.telemetry_UIs: list[tuple[Board, BoardTelemetryUI, Client]] = []
         self.transport = None
 
-    def attach_ui(self, ui: Board_Telemetry_UI, board: Board, client: Client):
+    def attach_ui(self, ui: BoardTelemetryUI, board: Board, client: Client):
         self.telemetry_UIs.append((board, ui, client))
 
     def cleanup(self, client: Client):
@@ -213,7 +198,7 @@ class Telemetry_Listener:
                 continue
 
     def create_protocol(self):
-        return Telemetry_Protocol(self)
+        return TelemetryProtocol(self)
 
     def send_to_UIs(self, msg: TelemetryMessage):
         for x in self.telemetry_UIs:
@@ -221,10 +206,10 @@ class Telemetry_Listener:
                 x[1].process_message(msg)
 
 
-class Telemetry_Protocol(asyncio.DatagramProtocol):
+class TelemetryProtocol(asyncio.DatagramProtocol):
     def __init__(self, listener):
         super().__init__()
-        self.listener: Telemetry_Listener = listener
+        self.listener: TelemetryListener = listener
         self.open = False
 
     def connection_made(self, transport):
