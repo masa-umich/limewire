@@ -146,6 +146,15 @@ def is_valve_command_channel(channel_name: str) -> bool:
     return name_split[1] == "vlv"
 
 
+def is_valve_command_index_channel(channel_name: str) -> bool:
+    name_split = channel_name.split("_")
+
+    if len(name_split) != 4:
+        return False
+
+    return name_split[1] == "vlv" and name_split[3] == "timestamp"
+
+
 def is_valve_state_channel(channel_name: str) -> bool:
     name_split = channel_name.split("_")
 

@@ -23,8 +23,10 @@ from .ntp_sync import send_ntp_sync
 from .util import (
     get_write_time_channel_name,
     is_valve_command_channel,
+    is_valve_command_index_channel,
     synnax_init,
 )
+
 
 WINERROR_SEMAPHORE_TIMEOUT = 121
 
@@ -297,10 +299,10 @@ class Limewire:
         self,
         frame: dict[str, float],
         timestamp: int,
-        latency_start_time: float,
-        latency_channel: str,
+        latency_start_time: float | None = None,
+        latency_channel: str | None = None,
     ):
-        """Write a frame to Synnax including latency information."""
+        """Write a frame to Synnax."""
         if self.synnax_writer is None:
             try:
                 self.synnax_writer = self._open_synnax_writer(timestamp)
@@ -311,10 +313,11 @@ class Limewire:
                 send_ntp_sync(logger)
                 return
 
-        frame[f"{latency_channel}_timestamp"] = sy.TimeStamp.now()
-        frame[latency_channel] = (
-            asyncio.get_running_loop().time() - latency_start_time
-        )
+        if latency_start_time is not None and latency_channel is not None:
+            frame[f"{latency_channel}_timestamp"] = sy.TimeStamp.now()
+            frame[latency_channel] = (
+                asyncio.get_running_loop().time() - latency_start_time
+            )
 
         try:
             self.synnax_writer.write(frame)  # pyright: ignore[reportArgumentType]
@@ -422,13 +425,19 @@ class Limewire:
                 if is_valve_command_channel(channel_name):
                     cmd_channels.append(channel_name)
 
+        for index_channel in self.channels.keys():
+            if is_valve_command_index_channel(index_channel):
+                cmd_channels.append(index_channel)
+
         async with await self.synnax_client.open_async_streamer(
             cmd_channels
         ) as streamer:
             async for frame in streamer:
-                recv_time = asyncio.get_running_loop().time()
-
+                logger.debug(frame)
                 for channel, series in frame.items():
+                    if not is_valve_command_channel(channel):  # pyright: ignore[reportArgumentType]
+                        continue
+
                     valve = Valve.from_channel_name(channel)  # pyright: ignore[reportArgumentType]
                     # For now, let's assume that if multiple values are in the
                     # frame, we only care about the most recent one
@@ -439,10 +448,21 @@ class Limewire:
 
                     await self.lmp_framer.send_message(msg)
 
+                    if f"{channel}_timestamp" not in frame:
+                        continue
+
+                    # NOTE: If the console is running on a different machine
+                    # (which is reasonable to assume will happen during ops)
+                    # this is a really bad idea due to clock sync issues
+                    # between the console laptop and DAQ PC.
+                    console_actuation_time = frame[f"{channel}_timestamp"][-1]
+                    latency_ns = sy.TimeStamp.now() - console_actuation_time
+
+                    frame = {
+                        "limewire_valve_command_latency_timestamp": sy.TimeStamp.now(),
+                        "limewire_valve_command_latency": float(latency_ns)
+                        / 1_000_000_000,
+                    }
+
                     # Write latency data to Synnax
-                    self._synnax_write_frame(
-                        {},
-                        sy.TimeStamp.now(),
-                        recv_time,
-                        "limewire_valve_command_latency",
-                    )
+                    self._synnax_write_frame(frame, sy.TimeStamp.now())
