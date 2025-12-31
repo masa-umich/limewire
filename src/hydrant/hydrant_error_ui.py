@@ -293,7 +293,7 @@ class Event_Log_Listener:
         )  # TODO figure out logging location
         formatter = logging.Formatter(
             "%(levelname)s: %(asctime)s %(message)s",
-            datefmt="%m/%d/%Y %I:%M:%S %p -",
+            datefmt="%m/%d/%Y %I:%M:%S %p %Z -",
         )
         filehandler = logging.FileHandler(log_file, mode="a")
         filehandler.setFormatter(formatter)
