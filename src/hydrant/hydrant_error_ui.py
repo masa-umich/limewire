@@ -7,7 +7,7 @@ from collections import deque
 from datetime import datetime, timezone
 
 import pandas as pd
-from nicegui import ui
+from nicegui import Client, ui
 
 from lmp.firmware_log import FirmwareLog
 
@@ -280,7 +280,7 @@ class Event_Log_UI:
 class Event_Log_Listener:
     def __init__(self):
         self.eeprom_response: asyncio.Future = None
-        self.log_UIs: list[Event_Log_UI] = []
+        self.log_UIs: list[tuple[Event_Log_UI, Client]] = []
         self.transport = None
         self.log_buffer = deque(maxlen=100)
         log_setup = logging.getLogger("events")
@@ -300,11 +300,14 @@ class Event_Log_Listener:
         log_setup.setLevel(logging.INFO)
         log_setup.addHandler(filehandler)
 
-    def attach_ui(self, ui: Event_Log_UI):
-        self.log_UIs.append(ui)
+    def attach_ui(self, ui: Event_Log_UI, client: Client):
+        self.log_UIs.append((ui, client))
         ui.attach_listener(self)
         for x in self.log_buffer:
             ui.add_log(x[0], x[1])
+
+    def cleanup(self, client: Client):
+        self.log_UIs[:] = [x for x in self.log_UIs if x[1] == client]
 
     async def open_listener(self):
         while True:
@@ -340,7 +343,7 @@ class Event_Log_Listener:
     def log_to_UIs(self, log: FirmwareLog, addr: ipaddress.IPv4Address):
         self.log_buffer.append((log, addr))
         for x in self.log_UIs:
-            x.add_log(log, addr=addr, localtime=True)
+            x[0].add_log(log, addr=addr, localtime=True)
 
     async def setup_future(self) -> asyncio.Future:
         if self.eeprom_response is not None and not self.eeprom_response.done():
