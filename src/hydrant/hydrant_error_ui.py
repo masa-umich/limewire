@@ -28,7 +28,7 @@ EEPROM_CODES = [
 ]  # Event codes indicating something changed with the eeprom config
 
 
-class Log_Table:
+class LogTable:
     def __init__(self, table_path: pathlib.Path):
         self.table_path = table_path
         table_df = pd.read_csv(table_path, na_filter=False)
@@ -80,10 +80,10 @@ class Log_Table:
             return None
 
 
-class Event_Log_UI:
-    def __init__(self, lookup_table: Log_Table = None):
+class EventLogUI:
+    def __init__(self, lookup_table: LogTable = None):
         self.tables: list[ui.table] = []
-        self.listener: Event_Log_Listener = None
+        self.listener: EventLogListener = None
         self.cur_id = 0
         self.lookup_table = lookup_table
 
@@ -277,10 +277,10 @@ class Event_Log_UI:
         return tooltip_msg
 
 
-class Event_Log_Listener:
+class EventLogListener:
     def __init__(self):
         self.eeprom_response: asyncio.Future = None
-        self.log_UIs: list[Event_Log_UI] = []
+        self.log_UIs: list[EventLogUI] = []
         self.transport = None
         self.log_buffer = deque(maxlen=100)
         log_setup = logging.getLogger("events")
@@ -300,7 +300,7 @@ class Event_Log_Listener:
         log_setup.setLevel(logging.INFO)
         log_setup.addHandler(filehandler)
 
-    def attach_ui(self, ui: Event_Log_UI):
+    def attach_ui(self, ui: EventLogUI):
         self.log_UIs.append(ui)
         ui.attach_listener(self)
         for x in self.log_buffer:
@@ -335,7 +335,7 @@ class Event_Log_Listener:
                 continue
 
     def create_protocol(self):
-        return Event_Log_Protocol(self)
+        return EventLogProtocol(self)
 
     def log_to_UIs(self, log: FirmwareLog, addr: ipaddress.IPv4Address):
         self.log_buffer.append((log, addr))
@@ -356,10 +356,10 @@ class Event_Log_Listener:
             self.eeprom_response.set_result(log)
 
 
-class Event_Log_Protocol(asyncio.DatagramProtocol):
+class EventLogProtocol(asyncio.DatagramProtocol):
     def __init__(self, listener):
         super().__init__()
-        self.listener: Event_Log_Listener = listener
+        self.listener: EventLogListener = listener
         self.open = False
 
     def connection_made(self, transport):

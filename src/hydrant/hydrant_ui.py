@@ -13,13 +13,13 @@ from .eeprom_generate import (
     PT,
     TC,
     VLV,
-    TC_gain_convert,
+    TCGain,
     ValveVoltage,
     configure_bb,
     configure_fc,
     configure_fr,
 )
-from .hydrant_error_ui import Event_Log_Listener
+from .hydrant_error_ui import EventLogListener
 from .hydrant_system_config import (
     DEFAULT_BB1_IP,
     DEFAULT_BB2_IP,
@@ -34,7 +34,7 @@ from .hydrant_system_config import (
     DEFAULT_VALVE_ENABLED,
     DEFAULT_VALVE_VOLTAGE,
     ICD,
-    ICD_Exception,
+    ICDException,
     NUM_BB_PTs,
     NUM_BB_TCs,
     NUM_BB_VLVs,
@@ -53,7 +53,7 @@ progress_lookup = {
 EEPROM_RESPONSE_TIMEOUT = 1  # seconds
 
 
-class IP_Address_UI:
+class IPAddressUI:
     def __init__(self, initial: ipaddress.IPv4Address, name: str):
         self.ip = initial
         with ui.row().classes("no-wrap items-end gap-1"):
@@ -61,7 +61,7 @@ class IP_Address_UI:
             oct0 = (
                 ui.input(
                     value=self.get_octet(0),
-                    on_change=IP_UI_Octet_Handle(self, 0),
+                    on_change=IPUIOctetHandle(self, 0),
                 )
                 .props("dense outlined")
                 .classes("min-w-[4em] w-[4em]")
@@ -70,7 +70,7 @@ class IP_Address_UI:
             oct1 = (
                 ui.input(
                     value=self.get_octet(1),
-                    on_change=IP_UI_Octet_Handle(self, 1),
+                    on_change=IPUIOctetHandle(self, 1),
                 )
                 .props("dense outlined")
                 .classes("min-w-[4em] w-[4em]")
@@ -79,7 +79,7 @@ class IP_Address_UI:
             oct2 = (
                 ui.input(
                     value=self.get_octet(2),
-                    on_change=IP_UI_Octet_Handle(self, 2),
+                    on_change=IPUIOctetHandle(self, 2),
                 )
                 .props("dense outlined")
                 .classes("min-w-[4em] w-[4em]")
@@ -88,7 +88,7 @@ class IP_Address_UI:
             oct3 = (
                 ui.input(
                     value=self.get_octet(3),
-                    on_change=IP_UI_Octet_Handle(self, 3),
+                    on_change=IPUIOctetHandle(self, 3),
                 )
                 .props("dense outlined")
                 .classes("min-w-[4em] w-[4em]")
@@ -117,10 +117,10 @@ class IP_Address_UI:
             self.octs[x].set_value(self.get_octet(x))
 
 
-class IP_UI_Octet_Handle:
-    parent: IP_Address_UI
+class IPUIOctetHandle:
+    parent: IPAddressUI
 
-    def __init__(self, base: IP_Address_UI, octet_index: int):
+    def __init__(self, base: IPAddressUI, octet_index: int):
         self.oct = octet_index
         self.parent = base
 
@@ -159,7 +159,7 @@ class IP_UI_Octet_Handle:
         )
 
 
-class PT_UI:
+class PTUI:
     def __init__(self, range: float, offset: float, max: float, name: str):
         self.range = range
         self.offset = offset
@@ -181,7 +181,7 @@ class PT_UI:
         return PT(self.range, self.offset, self.max)
 
 
-class TC_UI:
+class TCUI:
     def __init__(self, gain: int, name: str):
         self.gain = gain
         with ui.row().classes("w-full mx-auto no-wrap gap-1 items-center"):
@@ -191,10 +191,10 @@ class TC_UI:
             ).props("filled dense").classes("min-w-25").bind_value(self, "gain")
 
     def to_TC(self):
-        return TC(TC_gain_convert(self.gain))
+        return TC(TCGain.from_int(self.gain))
 
 
-class Valve_UI:
+class ValveUI:
     def __init__(self, enabled: bool, voltage: int, name: str):
         self.voltage = voltage
         self.enabled = enabled
@@ -209,18 +209,18 @@ class Valve_UI:
 
     def to_VLV(self):
         if self.voltage == 12:
-            return VLV(ValveVoltage.Valve_12V, 1 if self.enabled else 0)
+            return VLV(ValveVoltage.V12, self.enabled)
         elif self.voltage == 24:
-            return VLV(ValveVoltage.Valve_24V, 1 if self.enabled else 0)
+            return VLV(ValveVoltage.V24, self.enabled)
         else:
             raise Exception("Voltage must be either 12v or 24v")
 
 
-class FC_Config_UI:
+class FCConfigUI:
     def __init__(self):
-        self.PTs: list[PT_UI] = []
-        self.TCs: list[TC_UI] = []
-        self.valves: list[Valve_UI] = []
+        self.PTs: list[PTUI] = []
+        self.TCs: list[TCUI] = []
+        self.valves: list[ValveUI] = []
         with ui.column().classes("h-full w-full"):
             with ui.row().classes(
                 "w-full mx-auto no-wrap flex items-stretch h-full"
@@ -232,7 +232,7 @@ class FC_Config_UI:
                     with ui.row().classes("w-full mx-auto no-wrap gap-3"):
                         for x in range(NUM_FC_PTs):
                             self.PTs.append(
-                                PT_UI(
+                                PTUI(
                                     DEFAULT_PT_RANGE,
                                     DEFAULT_PT_OFFSET,
                                     DEFAULT_PT_MAX,
@@ -246,7 +246,7 @@ class FC_Config_UI:
                     with ui.column().classes("w-full gap-3"):
                         for x in range(NUM_FC_TCs):
                             self.TCs.append(
-                                TC_UI(DEFAULT_TC_GAIN, "TC " + str(x + 1) + " ")
+                                TCUI(DEFAULT_TC_GAIN, "TC " + str(x + 1) + " ")
                             )
                 # Valves
                 with ui.column().classes(
@@ -255,7 +255,7 @@ class FC_Config_UI:
                     with ui.row().classes("w-full mx-auto no-wrap gap-3"):
                         for x in range(NUM_FC_VLVs):
                             self.valves.append(
-                                Valve_UI(
+                                ValveUI(
                                     DEFAULT_VALVE_ENABLED,
                                     DEFAULT_VALVE_VOLTAGE,
                                     "Valve " + str(x + 1),
@@ -267,26 +267,26 @@ class FC_Config_UI:
                 # IP Addresses
                 with ui.column().classes("w-full"):
                     with ui.column().classes("w-fit items-end"):
-                        self.limewireIP = IP_Address_UI(
+                        self.limewireIP = IPAddressUI(
                             DEFAULT_GSE_IP, "Limewire IP"
                         )
-                        self.FCIP = IP_Address_UI(
+                        self.FCIP = IPAddressUI(
                             DEFAULT_FC_IP, "Flight Computer IP"
                         )
                 with ui.column().classes("w-full"):
                     with ui.column().classes("w-fit items-end"):
-                        self.BB1IP = IP_Address_UI(
+                        self.BB1IP = IPAddressUI(
                             DEFAULT_BB1_IP, "Bay Board 1 IP"
                         )
-                        self.BB2IP = IP_Address_UI(
+                        self.BB2IP = IPAddressUI(
                             DEFAULT_BB2_IP, "Bay Board 2 IP"
                         )
                 with ui.column().classes("w-full"):
                     with ui.column().classes("w-fit items-end"):
-                        self.BB3IP = IP_Address_UI(
+                        self.BB3IP = IPAddressUI(
                             DEFAULT_BB3_IP, "Bay Board 3 IP"
                         )
-                        self.FRIP = IP_Address_UI(
+                        self.FRIP = IPAddressUI(
                             DEFAULT_FR_IP, "Flight Recorder IP"
                         )
 
@@ -308,12 +308,12 @@ class FC_Config_UI:
         self.FRIP.set_ip(DEFAULT_FR_IP)
 
 
-class BB_Config_UI:
+class BBConfigUI:
     def __init__(self, num: int):
         self.bb_num = num
-        self.PTs: list[PT_UI] = []
-        self.TCs: list[TC_UI] = []
-        self.valves: list[Valve_UI] = []
+        self.PTs: list[PTUI] = []
+        self.TCs: list[TCUI] = []
+        self.valves: list[ValveUI] = []
         with ui.column().classes("h-full w-full"):
             # PTs
             with ui.row().classes(
@@ -325,7 +325,7 @@ class BB_Config_UI:
                     with ui.row().classes("w-full mx-auto no-wrap gap-3"):
                         for x in range(NUM_BB_PTs):
                             self.PTs.append(
-                                PT_UI(
+                                PTUI(
                                     DEFAULT_PT_RANGE,
                                     DEFAULT_PT_OFFSET,
                                     DEFAULT_PT_MAX,
@@ -343,7 +343,7 @@ class BB_Config_UI:
                         with ui.column().classes("w-full gap-3"):
                             for x in range(int(NUM_BB_TCs / 2)):
                                 self.TCs.append(
-                                    TC_UI(
+                                    TCUI(
                                         DEFAULT_TC_GAIN,
                                         "TC " + str(x + 1) + " ",
                                     )
@@ -351,7 +351,7 @@ class BB_Config_UI:
                         with ui.column().classes("w-full gap-3"):
                             for x in range(int(NUM_BB_TCs / 2), NUM_BB_TCs):
                                 self.TCs.append(
-                                    TC_UI(
+                                    TCUI(
                                         DEFAULT_TC_GAIN,
                                         "TC " + str(x + 1) + " ",
                                     )
@@ -363,7 +363,7 @@ class BB_Config_UI:
                     with ui.row().classes("w-full mx-auto no-wrap gap-3"):
                         for x in range(NUM_BB_VLVs):
                             self.valves.append(
-                                Valve_UI(
+                                ValveUI(
                                     DEFAULT_VALVE_ENABLED,
                                     DEFAULT_VALVE_VOLTAGE,
                                     "Valve " + str(x + 1),
@@ -375,13 +375,13 @@ class BB_Config_UI:
                 # IP Addresses
                 ui.space()
                 if self.bb_num == 1:
-                    self.BBIP = IP_Address_UI(DEFAULT_BB1_IP, "Bay Board IP")
+                    self.BBIP = IPAddressUI(DEFAULT_BB1_IP, "Bay Board IP")
                 elif self.bb_num == 2:
-                    self.BBIP = IP_Address_UI(DEFAULT_BB2_IP, "Bay Board IP")
+                    self.BBIP = IPAddressUI(DEFAULT_BB2_IP, "Bay Board IP")
                 elif self.bb_num == 3:
-                    self.BBIP = IP_Address_UI(DEFAULT_BB3_IP, "Bay Board IP")
+                    self.BBIP = IPAddressUI(DEFAULT_BB3_IP, "Bay Board IP")
                 ui.space()
-                self.FCIP = IP_Address_UI(DEFAULT_FC_IP, "Flight Computer IP")
+                self.FCIP = IPAddressUI(DEFAULT_FC_IP, "Flight Computer IP")
                 ui.space()
 
     def restore_defaults(self):
@@ -403,7 +403,7 @@ class BB_Config_UI:
             self.BBIP.set_ip(DEFAULT_BB3_IP)
 
 
-class FR_Config_UI:
+class FRConfigUI:
     def __init__(self):
         with ui.column().classes("h-full w-full"):
             with ui.row().classes(
@@ -411,9 +411,9 @@ class FR_Config_UI:
             ):
                 # IP Addresses
                 ui.space()
-                self.FRIP = IP_Address_UI(DEFAULT_FR_IP, "Flight Recorder IP")
+                self.FRIP = IPAddressUI(DEFAULT_FR_IP, "Flight Recorder IP")
                 ui.space()
-                self.FCIP = IP_Address_UI(DEFAULT_FC_IP, "Flight Computer IP")
+                self.FCIP = IPAddressUI(DEFAULT_FC_IP, "Flight Computer IP")
                 ui.space()
 
     def restore_defaults(self):
@@ -421,8 +421,8 @@ class FR_Config_UI:
         self.FRIP.set_ip(DEFAULT_FR_IP)
 
 
-class System_Config_UI:
-    def __init__(self, parentUI, log_listener: Event_Log_Listener):
+class SystemConfigUI:
+    def __init__(self, parentUI, log_listener: EventLogListener):
         self.log_listener = log_listener
         self.base = parentUI
         self.configure_ebox = False
@@ -713,7 +713,7 @@ class System_Config_UI:
                 ui.label(str(e)).classes("text-base")
                 dialog.open()
             return
-        except ICD_Exception as e:
+        except ICDException as e:
             print("Value error while processing ICD")
             traceback.print_exception(type(e), e, e.__traceback__)
             with (
@@ -749,11 +749,11 @@ class System_Config_UI:
         self.process_board_channels()
 
     def process_board_channels(self):
-        fc_board_ui: FC_Config_UI = self.base.FC_config
-        bb1_board_ui: BB_Config_UI = self.base.BB1_config
-        bb2_board_ui: BB_Config_UI = self.base.BB2_config
-        bb3_board_ui: BB_Config_UI = self.base.BB3_config
-        fr_board_ui: FR_Config_UI = self.base.FR_config
+        fc_board_ui: FCConfigUI = self.base.FC_config
+        bb1_board_ui: BBConfigUI = self.base.BB1_config
+        bb2_board_ui: BBConfigUI = self.base.BB2_config
+        bb3_board_ui: BBConfigUI = self.base.BB3_config
+        fr_board_ui: FRConfigUI = self.base.FR_config
 
         fc_vlvs_configured = []
         bb1_vlvs_configured = []
@@ -875,11 +875,11 @@ class System_Config_UI:
             gse_channels = copy.deepcopy(self.ICD_config.ebox_channels)
             ICD_name = self.ICD_config.name
 
-        fc_board_ui: FC_Config_UI = self.base.FC_config
-        bb1_board_ui: BB_Config_UI = self.base.BB1_config
-        bb2_board_ui: BB_Config_UI = self.base.BB2_config
-        bb3_board_ui: BB_Config_UI = self.base.BB3_config
-        fr_board_ui: FR_Config_UI = self.base.FR_config
+        fc_board_ui: FCConfigUI = self.base.FC_config
+        bb1_board_ui: BBConfigUI = self.base.BB1_config
+        bb2_board_ui: BBConfigUI = self.base.BB2_config
+        bb3_board_ui: BBConfigUI = self.base.BB3_config
+        fr_board_ui: FRConfigUI = self.base.FR_config
 
         fc_tftp = self.base.FC_TFTP_IP.ip
         bb1_tftp = self.base.BB1_TFTP_IP.ip
@@ -964,20 +964,20 @@ class System_Config_UI:
             if self.log_listener is not None:
                 eeprom_future = await self.log_listener.setup_future()
             self.set_board_tftp_in_progress(self.fc_prog_tooltip)
-            (result, msg) = await run.cpu_bound(
-                configure_fc,
-                fc_PTs,
-                fc_TCs,
-                fc_VLVs,
-                fc_GSEIP,
-                fc_FCIP,
-                fc_BB1IP,
-                fc_BB2IP,
-                fc_BB3IP,
-                fc_FRIP,
-                fc_tftp,
-            )
-            if result:
+            try:
+                await run.cpu_bound(
+                    configure_fc,
+                    fc_PTs,
+                    fc_TCs,
+                    fc_VLVs,
+                    fc_GSEIP,
+                    fc_FCIP,
+                    fc_BB1IP,
+                    fc_BB2IP,
+                    fc_BB3IP,
+                    fc_FRIP,
+                    fc_tftp,
+                )
                 self.set_board_config_in_progress(self.fc_prog_tooltip)
                 print(
                     "Flight Computer config successfully sent, waiting for response."
@@ -1032,16 +1032,16 @@ class System_Config_UI:
                         tooltip_msg,
                         future_result,
                     )
-            else:
+            except Exception as err:
                 tooltip_msg = ""
                 if gse_channels is not None:
                     tooltip_msg = f"Used ICD '{ICD_name}'<br>"
-                tooltip_msg += f"<br>{msg}"
+                tooltip_msg += f"<br>{str(err)}"
                 self.set_progress(
                     self.fc_progress, self.fc_prog_tooltip, tooltip_msg, False
                 )
                 print(
-                    f"Failed to send Flight Computer EEPROM config over TFTP: {msg}"
+                    f"Failed to send Flight Computer EEPROM config over TFTP: {str(err)}"
                 )
             self.fc_loading = False
             print("")
@@ -1053,17 +1053,17 @@ class System_Config_UI:
             if self.log_listener is not None:
                 eeprom_future = await self.log_listener.setup_future()
             self.set_board_tftp_in_progress(self.bb1_prog_tooltip)
-            (result, msg) = await run.cpu_bound(
-                configure_bb,
-                1,
-                bb1_PTs,
-                bb1_TCs,
-                bb1_VLVs,
-                bb1_FCIP,
-                bb1_BBIP,
-                bb1_tftp,
-            )
-            if result:
+            try:
+                await run.cpu_bound(
+                    configure_bb,
+                    1,
+                    bb1_PTs,
+                    bb1_TCs,
+                    bb1_VLVs,
+                    bb1_FCIP,
+                    bb1_BBIP,
+                    bb1_tftp,
+                )
                 self.set_board_config_in_progress(self.bb1_prog_tooltip)
                 print(
                     "Bay Board 1 config successfully sent, waiting for response."
@@ -1114,16 +1114,16 @@ class System_Config_UI:
                         tooltip_msg,
                         future_result,
                     )
-            else:
+            except Exception as err:
                 tooltip_msg = ""
                 if gse_channels is not None:
                     tooltip_msg = f"Used ICD '{ICD_name}'<br>"
-                tooltip_msg += f"<br>{msg}"
+                tooltip_msg += f"<br>{str(err)}"
                 self.set_progress(
                     self.bb1_progress, self.bb1_prog_tooltip, tooltip_msg, False
                 )
                 print(
-                    f"Failed to send Bay Board 1 EEPROM config over TFTP: {msg}"
+                    f"Failed to send Bay Board 1 EEPROM config over TFTP: {str(err)}"
                 )
             self.bb1_loading = False
             print("")
@@ -1135,17 +1135,17 @@ class System_Config_UI:
             if self.log_listener is not None:
                 eeprom_future = await self.log_listener.setup_future()
             self.set_board_tftp_in_progress(self.bb2_prog_tooltip)
-            (result, msg) = await run.cpu_bound(
-                configure_bb,
-                2,
-                bb2_PTs,
-                bb2_TCs,
-                bb2_VLVs,
-                bb2_FCIP,
-                bb2_BBIP,
-                bb2_tftp,
-            )
-            if result:
+            try:
+                await run.cpu_bound(
+                    configure_bb,
+                    2,
+                    bb2_PTs,
+                    bb2_TCs,
+                    bb2_VLVs,
+                    bb2_FCIP,
+                    bb2_BBIP,
+                    bb2_tftp,
+                )
                 self.set_board_config_in_progress(self.bb2_prog_tooltip)
                 print(
                     "Bay Board 2 config successfully sent, waiting for response."
@@ -1196,16 +1196,16 @@ class System_Config_UI:
                         tooltip_msg,
                         future_result,
                     )
-            else:
+            except Exception as err:
                 tooltip_msg = ""
                 if gse_channels is not None:
                     tooltip_msg = f"Used ICD '{ICD_name}'<br>"
-                tooltip_msg += f"<br>{msg}"
+                tooltip_msg += f"<br>{str(err)}"
                 self.set_progress(
                     self.bb2_progress, self.bb2_prog_tooltip, tooltip_msg, False
                 )
                 print(
-                    f"Failed to send Bay Board 2 EEPROM config over TFTP: {msg}"
+                    f"Failed to send Bay Board 2 EEPROM config over TFTP: {str(err)}"
                 )
             self.bb2_loading = False
             print("")
@@ -1217,17 +1217,17 @@ class System_Config_UI:
             if self.log_listener is not None:
                 eeprom_future = await self.log_listener.setup_future()
             self.set_board_tftp_in_progress(self.bb3_prog_tooltip)
-            (result, msg) = await run.cpu_bound(
-                configure_bb,
-                3,
-                bb3_PTs,
-                bb3_TCs,
-                bb3_VLVs,
-                bb3_FCIP,
-                bb3_BBIP,
-                bb3_tftp,
-            )
-            if result:
+            try:
+                await run.cpu_bound(
+                    configure_bb,
+                    3,
+                    bb3_PTs,
+                    bb3_TCs,
+                    bb3_VLVs,
+                    bb3_FCIP,
+                    bb3_BBIP,
+                    bb3_tftp,
+                )
                 self.set_board_config_in_progress(self.bb3_prog_tooltip)
                 print(
                     "Bay Board 3 config successfully sent, waiting for response."
@@ -1278,16 +1278,16 @@ class System_Config_UI:
                         tooltip_msg,
                         future_result,
                     )
-            else:
+            except Exception as err:
                 tooltip_msg = ""
                 if gse_channels is not None:
                     tooltip_msg = f"Used ICD '{ICD_name}'<br>"
-                tooltip_msg += f"<br>{msg}"
+                tooltip_msg += f"<br>{str(err)}"
                 self.set_progress(
                     self.bb3_progress, self.bb3_prog_tooltip, tooltip_msg, False
                 )
                 print(
-                    f"Failed to send Bay Board 3 EEPROM config over TFTP: {msg}"
+                    f"Failed to send Bay Board 3 EEPROM config over TFTP: {str(err)}"
                 )
             self.bb3_loading = False
             print("")
@@ -1299,10 +1299,8 @@ class System_Config_UI:
             if self.log_listener is not None:
                 eeprom_future = await self.log_listener.setup_future()
             self.set_board_tftp_in_progress(self.fr_prog_tooltip)
-            (result, msg) = await run.cpu_bound(
-                configure_fr, fr_FCIP, fr_FRIP, fr_tftp
-            )
-            if result:
+            try:
+                await run.cpu_bound(configure_fr, fr_FCIP, fr_FRIP, fr_tftp)
                 self.set_board_config_in_progress(self.fr_prog_tooltip)
                 print(
                     "Flight Recorder config successfully sent, waiting for response."
@@ -1357,16 +1355,16 @@ class System_Config_UI:
                         tooltip_msg,
                         future_result,
                     )
-            else:
+            except Exception as err:
                 tooltip_msg = ""
                 if gse_channels is not None:
                     tooltip_msg = f"Used ICD '{ICD_name}'<br>"
-                tooltip_msg += f"<br>{msg}"
+                tooltip_msg += f"<br>{str(err)}"
                 self.set_progress(
                     self.fr_progress, self.fr_prog_tooltip, tooltip_msg, False
                 )
                 print(
-                    f"Failed to send Flight Recorder EEPROM config over TFTP: {msg}"
+                    f"Failed to send Flight Recorder EEPROM config over TFTP: {str(err)}"
                 )
             self.fr_loading = False
             print("")
