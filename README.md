@@ -184,10 +184,10 @@ Some caveats:
 - If running Limewire on the DAQ PC: 
    - Your local machine should be connected to the DAQ PC via Ethernet. Make
      sure and that your local IP is configured to be in the same subnet as
-     the DAQ PC (here's how to do that on [macOS](https://support.apple.com/en-in/guide/mac-help/mh141292/26/mac/26) 
+     the DAQ PC (here's how to change your local IP on [macOS](https://support.apple.com/en-in/guide/mac-help/mh141292/26/mac/26)
      and [Windows](https://support.microsoft.com/en-us/windows/essential-network-settings-and-tasks-in-windows-f21a9bbc-c582-55cd-35e0-73431160a1b9)).
-     If you have any trouble with this process, contact Ryan Wei or Felix
-     Foreman-Braunschweig for help.
+     Contact Ryan Wei or Felix Foreman-Braunschweig for the DAQ PC local IP
+     address or if you run into any issues with this process.
    - The IP address field should be whatever IP address you configured your
      local machine to be.
 
