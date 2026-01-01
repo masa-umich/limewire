@@ -1,16 +1,58 @@
 # Limewire
 
-Limewire is a driver that facilitates communication between Synnax and
-Limelight. Check out the [Limewire Design
-Doc](https://docs.google.com/document/d/1Ccmjck5NHinmJLGH1tcoJ1EP9xZHQlAl20x2YuC15tI/edit?usp=sharing)
-for all relevant information.
+This repository contains the ground support software for MASA's Limelight
+mission. There are two main components:
 
-Project Lead: Rohan Satapathy
+- __Limewire__: A driver that enables communication of telemetry and valve
+  commands between the rocket and our database, Synnax.
+
+- __Hydrant__: A web-based GUI that enables remote command and control of
+  the flight hardware.
+
+> [!NOTE] Although the telemetry + valve driver is only one component of the
+ground software, the repository is called "Limewire" because Hydrant was
+developed at a later point in time. This leads to a couple (rather
+unfortunate) conventions:
+> 
+> - This README will mostly refer to Limewire, but you can mentally replace
+>   "Limewire" with "Limewire and Hydrant" most of the time.
+> - When "installing Limewire," you're actually installing both Limewire and
+>   Hydrant, so there's no need to install Hydrant separately.
+
+__Project Lead__: Ryan Wei
 
 ## Installation
 
-How you install Limewire will depend on whether you're installing it in a
-development environment or on the DAQ PC.
+If you want to use Limewire on the DAQ PC, follow the first set
+of instructions. If you want to contribute to Limewire, follow the second
+set of instructions.
+
+### DAQ PC Installation
+
+Limewire is installed on the DAQ PC using `uv` because it installs
+Limewire in a virtual environment while globally exposing the `limewire`
+command-line entry point. 
+
+Start by checking if Limewire is installed on the DAQ PC. 
+
+```
+limewire
+```
+
+If Limewire is already installed, you should see log messages start to
+appear in the terminal. If you see a "command not found" error, install
+Limewire using the following command.
+
+```
+uv tool install git+https://github.com/masa-umich/limewire.git
+```
+
+If Limewire is already installed and you'd like to upgrade to the latest
+version, run the following command.
+
+```
+uv tool upgrade limewire
+```
 
 ### Development Installation
 
@@ -42,170 +84,125 @@ development environment or on the DAQ PC.
    being merged into `main`. An easy way to do this is configure your editor
    to enable "Format on Save".
 
-### DAQ PC Installation
+## Running Limewire and Hydrant
 
-Limewire is installed on the DAQ PC using `uv` because it installs
-Limewire in a virtual environment while globally exposing the `limewire`
-command-line entry point. To download the latest version from GitHub, use
-the following command.
+During operations, Limewire and Hydrant should be run on the DAQ PC while
+connected to the real flight computer. Assuming Limewire is installed
+following the instructions above, run the following command in the DAQ PC
+terminal to run Limewire:
 
+```shell
+limewire
 ```
+
+> [!IMPORTANT]
+> If Synnax is not running when Limewire is started, it will crash right
+> away. Make sure Synnax is running on the DAQ PC before starting Limewire.
+
+To run Hydrant, use the following command:
+
+```shell
+hydrant
+```
+
+To see all the runtime options available, run either command with the `-h/--help`
+flag.
+
+### Running development code on the DAQ PC
+
+If you're working on Limewire or Hydrant in a development branch, you can
+uninstall the mainline version and install Limewire from your development
+branch.
+
+```shell
+uv tool uninstall limewire
+uv tool install git+https://github.com/masa-umich/limewire.git@your-branch-name
+```
+After pointing the Limewire installation to the development branch, if you
+add new commits to your branch, you can easily upgrade Limewire using the
+following: 
+```shell
 uv tool upgrade limewire
 ```
 
-## How to Run Limewire
-
-Although Limewire is meant to run on the DAQ PC connected to the flight
-computer via Ethernet, there are three alternate configurations you can use
-that make it easier to test Limewire. In order from easiest/least
-realistic to hardest/most realistic, they are:
-
-1. Limewire, Synnax, and FC Simulator running on your development machine
-2. Limewire and Synnax running on the DAQ PC, FC Simulator running on your
-   development machine, connected via WiFi
-3. Limewire and Synnax running on the DAQ PC, FC Simulator running on your
-   development machine, connected via Ethernet
-4. Limewire and Synnax running on the DAQ PC, flight computer connected via
-   Ethernet
-
-### Running the FC Simulator
-
-To run the FC Simulator, you'll need to know how you're connecting to
-Limewire.
-
-If you're using local Limewire and Synnax (Configuration 1), then your IP
-address will be `localhost`.
-
-If you're connecting to the DAQ PC via WiFi (Configuration 2):
-
-1. Make sure you're connected to the University of Michigan WiFi. If you
-   aren't on campus, you can use the
-   [UMVPN](https://its.umich.edu/enterprise/wifi-networks/vpn/getting-started)
-   service. If you need help getting this set up properly, contact Rohan
-   Satapathy on Slack.
-2. Find your public IP address. The method to do this varies based on your
-   operating system, but you should end up with a IPv4 address that looks
-   like `35.X.X.X`. On macOS, the command to do this is `ipconfig getifaddr
-en0`.
-
-If you're connecting to the DAQ PC via Ethernet (Configuration 3):
-
-1. Log into the DAQ PC, go to network settings, and find the Ethernet IP
-   address and subnet mask.
-
-2. Find your development machine's network settings and ensure that the
-   subnet mask matches and that the your computer's IP address is valid for
-   that subnet mask.
-
-   On macOS, this can be done by going to Settings > Network > Ethernet >
-   Details > TCP/IP, set "Configure IPv4" to "Manually", then change the IP
-   address and subnet mask.
-
-   A simple strategy for making sure the IP address is valid is to take the
-   IP address of the DAQ PC and incrementing the last octet by 1. Since
-   there are only two devices in the network, this guarantees that there are
-   no IP address conflicts.
-
-Once you've determined your development machine's IP address, open a new
-terminal window and start the FC Simulator. Configure the number of seconds
-that the simulator sends telemetry messages for each client connection by
-setting the `runtime` argument.
+If you install a development version of Limewire, you MUST restore the 
+mainline version of Limewire after you're done.
 
 ```shell
-uv run python -m fc_simulator [ip-address]:8888 [runtime]
+uv tool uninstall limewire
+uv tool install git+https://github.com/masa-umich/limewire.git
+```
+
+### Using FC Simulator
+
+To make development easier, this repository contains a flight computer
+simulator, `fc_simulator`, that can be run locally for testing. There are
+two typical configurations that are used when running FC Simulator.
+
+1. Limewire, Synnax, and FC Simulator running on your local machine.
+2. Limewire and Synnax running on the DAQ PC and FC Simulator running on
+   your local machine.
+
+To run the FC simulator, follow the Limewire development installation
+instructions to install the simulator on your local machine. Then, open a
+new terminal, and activate the virtual environment for your project:
+
+```
+# Linux/macOS (bash/zsh)
+source .venv/bin/activate
+
+# Windows (CMD)
+.venv\Scripts\activate.bat
+
+# Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+```
+
+Next, start FC Simulator using the following command. (Note: Using `0.0.0.0`
+ensures that the FC simulator serves across all network interfaces.)
+
+```
+fc_simulator 0.0.0.0:8888
 ```
 
 You might receive a pop-up asking if you want to allow Python to accept
 incoming network connections. Make sure this option is enabled.
 
-### Running Limewire
+Finally, start Limewire and connect to FC Simulator.
 
-If you're running Limewire on the DAQ PC:
+```
+limewire [ip-address]:8888
+```
 
-1. Use `ssh` to access the DAQ PC, then enter PowerShell. 
-   ```shell
-   ssh [username]@[daq-pc-ip-address]
-   powershell
-   ```
+Some caveats:
 
-   To get the username and IP address of the DAQ PC, contact Rohan Satapathy
-   on Slack.
+- If running Limewire locally:
+   - You'll need open a new terminal to run Limewire, make sure you
+     re-activate the virtual environment in this terminal.
+   - The IP address field should be `127.0.0.1`.
 
-2. Install the latest version of Limewire on the DAQ PC.
+- If running Limewire on the DAQ PC: 
+   - Your local machine should be connected to the DAQ PC via Ethernet. Make
+     sure and that your local IP is configured to be in the same subnet as
+     the DAQ PC (here's how to do that on [macOS](https://support.apple.com/en-in/guide/mac-help/mh141292/26/mac/26) 
+     and [Windows](https://support.microsoft.com/en-us/windows/essential-network-settings-and-tasks-in-windows-f21a9bbc-c582-55cd-35e0-73431160a1b9)).
+     If you have any trouble with this process, contact Ryan Wei or Felix
+     Foreman-Braunschweig for help.
+   - The IP address field should be whatever IP address you configured your
+     local machine to be.
 
-   ```shell
-   uv tool upgrade limewire
-   ```
-
-   > [!NOTE]
-   > If you're working on Limewire in a development branch, you can uninstall
-   > the mainline version and install Limewire from your development branch.
-   > 
-   > ```shell
-   > uv tool uninstall limewire
-   > uv tool install git+https://github.com/masa-umich/limewire.git@your-branch-name
-   > ```
-   > After pointing the Limewire installation to the development branch, if you
-   > add new commits to your branch, you can easily upgrade Limewire using the
-   > following: 
-   > ```shell
-   > uv tool upgrade limewire
-   > ```
-   > 
-   > If you install a development version of Limewire, you MUST restore the 
-   > mainline version of Limewire after you're done.
-   >
-   > ```shell
-   > uv tool uninstall limewire
-   > uv tool install git+https://github.com/masa-umich/limewire.git
-   > ```
-
-3. Run Limewire.
-
-   ```shell
-   limewire [ip-address]:8888
-   ```
-
-If you're running Limewire on your local machine:
-
-1. Open a new terminal window and start your local Synnax cluster using
-   [these
-   instructions](https://docs.synnaxlabs.com/reference/cluster/quick-start?platform=macos).
-   I recommend using the Docker container method, but feel free to use any
-   method that works well on your system.
-
-2. Set `LIMEWIRE_DEV_SYNNAX=1`. 
-
-   Synnax has a limit of 50 channels without getting a license key,
-   so `LIMEWIRE_DEV_SYNNAX` tells Limewire to only creates channels associated
-   with the flight computer to avoid hitting that limit in order to enable
-   local testing.
-
-   On macOS/Linux:
-
-   ```shell
-   export LIMEWIRE_DEV_SYNNAX=1
-   ```
-
-   On Windows (make sure you're using PowerShell):
-
-   ```pwsh-console
-   $Env:LIMEWIRE_DEV_SYNNAX="1"
-   ```
-
-
-3. Run Limewire.
-
-   ```shell
-   uv run python -m limewire localhost:8888
-   ```
 
 ## Project Structure
 
-This repository currently contains three packages in the `src` directory:
+This repository currently contains four packages in the `src` directory:
 
-- `limewire`: The Limewire driver, a TCP client that runs on the DAQ
-  PC and processes telemetry data from the flight computer.
+- `limewire`: The code for Limewire, which interfaces with the flight
+   computer via TCP for valve commands and UDP for telemetry. 
 - `fc_simulator`: The Flight Computer Simulator, a TCP server that acts
-  as a stand-in for the Flight Computer while its Ethernet issues are being
-  debugged, enabling testing of Limewire.
+  as a stand-in for the Flight Computer and enables local testing for
+  Limewire.
+- `lmp`: A shared library that implements message serializing and
+   deserializing for the Limelight Messaging Protocol.
+- `hydrant`: A web-based GUI that enables remote command and control of the
+  rocket hardware.
+
