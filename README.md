@@ -9,11 +9,12 @@ mission. There are two main components:
 - __Hydrant__: A web-based GUI that enables remote command and control of
   the flight hardware.
 
-> [!NOTE] Although the telemetry + valve driver is only one component of the
-ground software, the repository is called "Limewire" because Hydrant was
-developed at a later point in time. This leads to a couple (rather
-unfortunate) conventions:
-> 
+> [!NOTE]
+> Although the telemetry + valve driver is only one component of the
+> ground software, the repository is called "Limewire" because Hydrant was
+> developed at a later point in time. This leads to a couple (rather
+> unfortunate) conventions:
+>
 > - This README will mostly refer to Limewire, but you can mentally replace
 >   "Limewire" with "Limewire and Hydrant" most of the time.
 > - When "installing Limewire," you're actually installing both Limewire and
