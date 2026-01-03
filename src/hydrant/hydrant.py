@@ -68,7 +68,7 @@ class Hydrant:
             DeviceCommandHistoryEntry,
         ] = {}
 
-        self.log_listener = Event_Log_Listener()
+        self.log_listener = EventLogListener()
         self.telem_listener = TelemetryListener()
         app.on_startup(self.connect_to_fc())
         app.on_startup(self.log_listener.open_listener())
@@ -145,7 +145,7 @@ class Hydrant:
     def main_page(self, client: client.Client):
         """Generates page outline and GUI"""
 
-        error_log = Event_Log_UI(self.log_lookup)
+        error_log = EventLogUI(self.log_lookup)
 
         ui.page_title("Hydrant")
         ui.dark_mode().enable()
@@ -349,7 +349,7 @@ class Hydrant:
                                         with ui.tab_panel(4).classes("p-0"):
                                             self.BB3_config = BBConfigUI(3)
                                         with ui.tab_panel(5).classes("p-0"):
-                                            self.FR_config = FR_Config_UI()
+                                            self.FR_config = FRConfigUI()
                     with ui.tab_panel(3).classes("p-0"):
                         # TELEMETRY
                         with ui.row().classes("w-full no-wrap gap-0 h-[48em]"):

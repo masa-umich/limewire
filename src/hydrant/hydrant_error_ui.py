@@ -280,7 +280,7 @@ class EventLogUI:
 class EventLogListener:
     def __init__(self):
         self.eeprom_response: asyncio.Future = None
-        self.log_UIs: list[tuple[Event_Log_UI, Client]] = []
+        self.log_UIs: list[tuple[EventLogUI, Client]] = []
         self.transport = None
         self.log_buffer = deque(maxlen=100)
         log_setup = logging.getLogger("events")
@@ -300,7 +300,7 @@ class EventLogListener:
         log_setup.setLevel(logging.INFO)
         log_setup.addHandler(filehandler)
 
-    def attach_ui(self, ui: Event_Log_UI, client: Client):
+    def attach_ui(self, ui: EventLogUI, client: Client):
         self.log_UIs.append((ui, client))
         ui.attach_listener(self)
         for x in self.log_buffer:
