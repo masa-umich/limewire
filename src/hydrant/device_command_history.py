@@ -29,7 +29,7 @@ class DeviceCommandHistoryEntry:
     def to_gui_dict(self):
         date_format = "%b %d, %Y %I:%M:%S %p"
         return {
-            "Board": self.board.name,
+            "Board": self.board.pretty_name,
             "Command": self.command.name,
             "Send Time": self.send_time.strftime(date_format),
             "ACK?": self.ack,

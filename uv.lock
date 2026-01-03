@@ -354,6 +354,15 @@ wheels = [
 ]
 
 [[package]]
+name = "et-xmlfile"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/38/af70d7ab1ae9d4da450eeec1fa3918940a5fafb9055e934af8d6eb0c2313/et_xmlfile-2.0.0.tar.gz", hash = "sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54", size = 17234, upload-time = "2024-10-25T17:25:40.039Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/8b/5fe2cc11fee489817272089c4203e679c63b570a5aaeb18d852ae3cbba6a/et_xmlfile-2.0.0-py3-none-any.whl", hash = "sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa", size = 18059, upload-time = "2024-10-25T17:25:39.051Z" },
+]
+
+[[package]]
 name = "fastapi"
 version = "0.121.0"
 source = { registry = "https://pypi.org/simple" }
@@ -718,19 +727,36 @@ wheels = [
 ]
 
 [[package]]
+name = "libsass"
+version = "0.23.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/79/b4/ab091585eaa77299558e3289ca206846aefc123fb320b5656ab2542c20ad/libsass-0.23.0.tar.gz", hash = "sha256:6f209955ede26684e76912caf329f4ccb57e4a043fd77fe0e7348dd9574f1880", size = 316068, upload-time = "2024-01-06T18:53:05.404Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/13/fc1bea1de880ca935137183727c7d4dd921c4128fc08b8ddc3698ba5a8a3/libsass-0.23.0-cp38-abi3-macosx_11_0_x86_64.whl", hash = "sha256:34cae047cbbfc4ffa832a61cbb110f3c95f5471c6170c842d3fed161e40814dc", size = 1086783, upload-time = "2024-01-06T19:02:38.903Z" },
+    { url = "https://files.pythonhosted.org/packages/55/2f/6af938651ff3aec0a0b00742209df1172bc297fa73531f292801693b7315/libsass-0.23.0-cp38-abi3-macosx_14_0_arm64.whl", hash = "sha256:ea97d1b45cdc2fc3590cb9d7b60f1d8915d3ce17a98c1f2d4dd47ee0d9c68ce6", size = 982759, upload-time = "2024-01-06T19:02:41.331Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/5a/eb5b62641df0459a3291fc206cf5bd669c0feed7814dded8edef4ade8512/libsass-0.23.0-cp38-abi3-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:4a218406d605f325d234e4678bd57126a66a88841cb95bee2caeafdc6f138306", size = 9444543, upload-time = "2024-01-06T19:02:43.191Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/fc/275783f5120970d859ae37d04b6a60c13bdec2aa4294b9dfa8a37b5c2513/libsass-0.23.0-cp38-abi3-win32.whl", hash = "sha256:31e86d92a5c7a551df844b72d83fc2b5e50abc6fbbb31e296f7bebd6489ed1b4", size = 775481, upload-time = "2024-01-06T19:02:46.05Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/20/caf3c7cf2432d85263119798c45221ddf67bdd7dae8f626d14ff8db04040/libsass-0.23.0-cp38-abi3-win_amd64.whl", hash = "sha256:a2ec85d819f353cbe807432d7275d653710d12b08ec7ef61c124a580a8352f3c", size = 872914, upload-time = "2024-01-06T19:02:47.61Z" },
+]
+
+[[package]]
 name = "limewire"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "asyncudp" },
     { name = "click" },
+    { name = "libsass" },
     { name = "loguru" },
     { name = "nicegui" },
+    { name = "openpyxl" },
+    { name = "pandas" },
     { name = "platformdirs" },
     { name = "python-dotenv" },
     { name = "scapy" },
     { name = "seaborn" },
     { name = "synnax" },
+    { name = "tftpy" },
 ]
 
 [package.dev-dependencies]
@@ -742,13 +768,17 @@ dev = [
 requires-dist = [
     { name = "asyncudp", specifier = ">=0.11.0" },
     { name = "click", specifier = ">=8.1.8" },
+    { name = "libsass", specifier = ">=0.23.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "nicegui", specifier = ">=2.23.2" },
+    { name = "openpyxl", specifier = ">=3.1.5" },
+    { name = "pandas", specifier = ">=2.3.3" },
     { name = "platformdirs", specifier = ">=4.5.0" },
     { name = "python-dotenv", specifier = ">=1.0.1,<2.0.0" },
     { name = "scapy", specifier = ">=2.6.1" },
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "synnax", specifier = ">=0.46,<0.47" },
+    { name = "tftpy", specifier = "==0.8.5" },
 ]
 
 [package.metadata.requires-dev]
@@ -1055,6 +1085,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/62/b7/7efa763ab33dbccf56dade36938a77345ce8e8192d6b39e470ca25ff3cd0/numpy-2.3.4-cp313-cp313t-win32.whl", hash = "sha256:fea80f4f4cf83b54c3a051f2f727870ee51e22f0248d3114b8e755d160b38cfb", size = 6413135, upload-time = "2025-10-15T16:16:55.992Z" },
     { url = "https://files.pythonhosted.org/packages/43/70/aba4c38e8400abcc2f345e13d972fb36c26409b3e644366db7649015f291/numpy-2.3.4-cp313-cp313t-win_amd64.whl", hash = "sha256:15eea9f306b98e0be91eb344a94c0e630689ef302e10c2ce5f7e11905c704f9c", size = 12928582, upload-time = "2025-10-15T16:16:57.943Z" },
     { url = "https://files.pythonhosted.org/packages/67/63/871fad5f0073fc00fbbdd7232962ea1ac40eeaae2bba66c76214f7954236/numpy-2.3.4-cp313-cp313t-win_arm64.whl", hash = "sha256:b6c231c9c2fadbae4011ca5e7e83e12dc4a5072f1a1d85a0a7b3ed754d145a40", size = 10266691, upload-time = "2025-10-15T16:17:00.048Z" },
+]
+
+[[package]]
+name = "openpyxl"
+version = "3.1.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "et-xmlfile" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3d/f9/88d94a75de065ea32619465d2f77b29a0469500e99012523b91cc4141cd1/openpyxl-3.1.5.tar.gz", hash = "sha256:cf0e3cf56142039133628b5acffe8ef0c12bc902d2aadd3e0fe5878dc08d1050", size = 186464, upload-time = "2024-06-28T14:03:44.161Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/da/977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506/openpyxl-3.1.5-py2.py3-none-any.whl", hash = "sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2", size = 250910, upload-time = "2024-06-28T14:03:41.161Z" },
 ]
 
 [[package]]
@@ -1747,6 +1789,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a6/19/bf13da41e55c56a1f43c7dd57b6ef445f85cf466e518e9310796994a9e49/synnax_freighter-0.46.0.tar.gz", hash = "sha256:aae291da8667ec2b8d47cac4c035b97f762755a2b16d11df15e5707775370c16", size = 10989, upload-time = "2025-09-29T14:53:28.709Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4a/c7/a33a06e7cf32bf9a5e4220fe9a9b5ed92ff492078ea7962fd18f26493897/synnax_freighter-0.46.0-py3-none-any.whl", hash = "sha256:fade3bd6ac5decb6a28d6b07f0bb4ae5b0d646a4b876aabf48706af02b6aa6ef", size = 17239, upload-time = "2025-09-29T14:53:27.347Z" },
+]
+
+[[package]]
+name = "tftpy"
+version = "0.8.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f9/e4/fcb8ef9c25e4b9f5b15f4b5c5fce550de13bb0de7610691f848c959546ab/tftpy-0.8.5.tar.gz", hash = "sha256:dd38e3744530d0c30fa1c715d7fa454319bc8d399bb40c05839cc771f05d0e6c", size = 71339, upload-time = "2025-02-14T14:04:41.125Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ef/dd/5040132ab5dd3f32b8c916aef35ce101ffaaa9ec5a30679d94bd405fc17d/tftpy-0.8.5-py3-none-any.whl", hash = "sha256:435fdf5cc00a1439e698711b1390917b634c84addef581c63e6f743c7b370c28", size = 27372, upload-time = "2025-02-14T14:04:37.665Z" },
 ]
 
 [[package]]
