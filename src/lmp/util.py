@@ -16,6 +16,18 @@ class DeviceCommand(Enum):
     def __str__(self) -> str:
         return repr(self).removeprefix(f"{self.__class__.__name__}.")
 
+    def available_on_board(self, board) -> bool:
+        specific_cmds = {
+            DeviceCommand.PDB_3V7_OFF: Board.FC,
+            DeviceCommand.PDB_3V7_ON: Board.FC,
+            DeviceCommand.PDB_SET_SOURCE_BATTERY: Board.FC,
+            DeviceCommand.PDB_SET_SOURCE_GSE: Board.FC,
+        }
+        if self in specific_cmds:
+            return specific_cmds[self] == board
+        else:
+            return True
+
 
 class Board(Enum):
     """A class to represent a board on the rocket.

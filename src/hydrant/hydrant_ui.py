@@ -441,6 +441,14 @@ class SystemConfigUI:
         with ui.card().classes(
             "w-full bg-gray-900 border border-gray-700 p-6 h-full"
         ):
+            HelpTooltip("""Configure individual devices or the entire system.<br><br>
+                        Uploading the ICD will allow you to configure the EBox, and
+                        modifies the board configurations parameters below.<br>
+                        Regardless of whether you upload the ICD or not, you must still click the "Write Configuration" button to start the
+                        configuration process.<br><br>
+                        Board configuration upload IP (TFTP IP) does not get updated by
+                        the ICD and must be modified appropriately for the current system.
+                        """)
             with ui.row().classes("w-full mx-auto no-wrap"):
                 with ui.column().classes():
                     ui.label("SYSTEM CONFIG").classes(
@@ -451,11 +459,15 @@ class SystemConfigUI:
                     ).props(
                         "accept=.xlsx no-thumbnails no-icon auto__false color=lime text-color=black"
                     )
-                    self.config_button = ui.button(
-                        "Write Configuration",
-                        color="orange",
-                        on_click=self.warn_write_config,
-                    ).classes("text-base w-full")
+                    self.config_button = (
+                        ui.button(
+                            "Write Configuration",
+                            color="orange",
+                            on_click=self.warn_write_config,
+                        )
+                        .classes("text-base w-full")
+                        .props("text-color=black")
+                    )
                 with ui.column().classes("gap-0 pl-10"):
                     self.all_select = (
                         ui.checkbox()
@@ -1427,3 +1439,18 @@ class SystemConfigUI:
         self.config_button.set_enabled(False)
         await self.start_config_write()
         self.config_button.set_enabled(True)
+
+
+class HelpTooltip:
+    def __init__(self, content: str):
+        with ui.icon("help_outline", size="20px").classes(
+            "text-gray-400 absolute right-2 top-2"
+        ):
+            with (
+                ui.tooltip()
+                .classes("max-w-[50vw]")
+                .style("white-space: nowrap")
+            ):
+                ui.html(content=content, sanitize=False).style(
+                    "font-size: 12px"
+                ).style("white-space: nowrap")

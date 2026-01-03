@@ -221,16 +221,24 @@ class Hydrant:
                                             options=list(
                                                 self.boards_available.keys()
                                             ),
+                                            on_change=lambda e: self.command_select.set_options(
+                                                [
+                                                    cmd.name
+                                                    for cmd in DeviceCommand
+                                                    if cmd.available_on_board(
+                                                        self.boards_available[
+                                                            self.board_select.value
+                                                        ]
+                                                    )
+                                                ]
+                                            ),
                                         ).classes("w-full")
                                         # Command
                                         ui.label("COMMAND").classes(
                                             "text-lg font-bold text-white"
                                         )
                                         self.command_select = ui.select(
-                                            label="Select a command",
-                                            options=list(
-                                                self.commands_available.keys()
-                                            ),
+                                            label="Select a command", options=[]
                                         ).classes("w-full")
                                         # Dialog that is used for popup
                                         with ui.dialog() as dialog, ui.card():
