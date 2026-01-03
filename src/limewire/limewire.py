@@ -32,6 +32,15 @@ WINERROR_SEMAPHORE_TIMEOUT = 121
 class Limewire:
     """A class to manage Limewire's resources."""
 
+    synnax_client: sy.Synnax
+    channels: dict[str, list[str]]
+    synnax_writer: sy.Writer | None
+    lmp_framer: LMPFramer | None
+    telemetry_framer: TelemetryFramer | None
+    queue: asyncio.Queue[LMPMessage]
+    overwrite_timestamps: bool
+    connected: bool
+
     def __init__(self, overwrite_timestamps: bool = False) -> None:
         logger.info(
             f"Limewire started (overwrite_timestamps={overwrite_timestamps})."
@@ -40,8 +49,10 @@ class Limewire:
         self.synnax_client, self.channels = synnax_init()
         self.synnax_writer = None
         self.lmp_framer = None
-        self.queue: asyncio.Queue[LMPMessage] = asyncio.Queue()
+        self.telemetry_framer = None
+        self.queue = asyncio.Queue()
         self.overwrite_timestamps = overwrite_timestamps
+        self.connected = False
 
     async def start(self, fc_addr: tuple[str, int]) -> None:
         """Open a connection to the flight computer and start Limewire.
@@ -110,16 +121,15 @@ class Limewire:
                     else:
                         raise err
 
-                peername = tcp_writer.get_extra_info("peername")
+                peername = tcp_writer.get_extra_info("peername")  # pyright: ignore[reportAny]
                 logger.info(
                     f"Connected to flight computer at {peername[0]}:{peername[1]}."
                 )
 
-                # Set up async tasks
-                self.start_time = asyncio.get_event_loop().time()
                 # Track whether you need to reconnect
                 reconnect = False
                 try:
+                    # Set up async tasks
                     async with asyncio.TaskGroup() as tg:
                         tg.create_task(self._fc_tcp_read())
                         tg.create_task(self._fc_telemetry_listen())
@@ -172,13 +182,17 @@ class Limewire:
     async def _send_heartbeat(self):
         HEARTBEAT_INTERVAL = 1
         while True:
+            await asyncio.sleep(HEARTBEAT_INTERVAL)
+
+            logger.debug(f"Queue size: {self.queue.qsize()}")
+
+            if self.lmp_framer is None:
+                continue
+
             try:
                 await self.lmp_framer.send_message(HeartbeatMessage())
-                await asyncio.sleep(HEARTBEAT_INTERVAL)
-                logger.debug(f"Queue size: {self.queue.qsize()}")
             except ConnectionResetError as err:
                 raise err
-                # print(err)
 
     async def _connect_fc(
         self, ip_addr: str, port: int
@@ -212,6 +226,11 @@ class Limewire:
             The number of telemetry values processed.
         """
         while True:
+            if self.lmp_framer is None:
+                # Yield control back to runtime
+                await asyncio.sleep(0)
+                continue
+
             try:
                 message = await self.lmp_framer.receive_message()
             except (FramingError, ValueError) as err:
@@ -231,6 +250,11 @@ class Limewire:
     async def _fc_telemetry_listen(self):
         """Listen for telemetry messages."""
         while True:
+            if self.telemetry_framer is None:
+                # Yield control back to runtime
+                await asyncio.sleep(0)
+                continue
+
             message = await self.telemetry_framer.receive_message()
 
             if self.overwrite_timestamps:
@@ -270,7 +294,7 @@ class Limewire:
                     continue
 
             try:
-                self.synnax_writer.write(frame)
+                self.synnax_writer.write(frame)  # pyright: ignore[reportArgumentType]
             except sy.ValidationError as err:
                 logger.warning(
                     f"Synnax validation error '{str(err)}', skipping frame"
@@ -280,6 +304,12 @@ class Limewire:
                     self.synnax_writer.close()
                 except sy.ValidationError:
                     # Why oh why must you be this way Synnax :(
+                    #
+                    # (For context, if a ValidationError occurs, the
+                    # error state doesn't get cleared from the writer, so
+                    # when we try to close the writer it will re-raise the
+                    # error which is why we have to handle it a second time
+                    # here.)
                     pass
 
                 # Writer will get re-initialzed during next loop iteration
@@ -291,19 +321,19 @@ class Limewire:
 
     def _build_synnax_frame(
         self, msg: TelemetryMessage | ValveStateMessage
-    ) -> dict | None:
+    ) -> dict[str, float] | None:
         if isinstance(msg, TelemetryMessage):
             try:
                 frame = self._build_telemetry_frame(msg)
             except KeyError as err:
-                logger.error(str(err), extra={"error_code": "0006"})
+                logger.error(str(err))
                 return None
         else:
             frame = self._build_valve_state_frame(msg)
 
         return frame
 
-    def _build_telemetry_frame(self, msg: TelemetryMessage) -> dict:
+    def _build_telemetry_frame(self, msg: TelemetryMessage) -> dict[str, float]:
         """Construct a frame to write to Synnax from a telemetry message.
 
         Raises:
@@ -329,9 +359,11 @@ class Limewire:
 
         return frame
 
-    def _build_valve_state_frame(self, msg: ValveStateMessage) -> dict:
+    def _build_valve_state_frame(
+        self, msg: ValveStateMessage
+    ) -> dict[str, float]:
         """Construct a frame to write to Synnax from a valve state message."""
-        frame = {}
+        frame: dict[str, float] = {}
         frame[msg.valve.state_channel_index] = msg.timestamp
         frame[msg.valve.state_channel] = int(msg.state)
         limewire_write_time_channel = get_write_time_channel_name(
@@ -344,7 +376,7 @@ class Limewire:
         """Return an initialized Synnax writer using the given timestamp."""
 
         # Create a list of all channels
-        writer_channels = []
+        writer_channels: list[str] = []
         for index_channel, data_channels in self.channels.items():
             writer_channels.append(index_channel)
             for ch in data_channels:
@@ -377,5 +409,9 @@ class Limewire:
                     valve = Valve.from_channel_name(channel)  # pyright: ignore[reportArgumentType]
                     # For now, let's assume that if multiple values are in the
                     # frame, we only care about the most recent one
-                    msg = ValveCommandMessage(valve, bool(series[-1]))
+                    msg = ValveCommandMessage(valve, bool(series[-1]))  # pyright: ignore[reportUnknownArgumentType]
+
+                    if self.lmp_framer is None:
+                        continue
+
                     await self.lmp_framer.send_message(msg)

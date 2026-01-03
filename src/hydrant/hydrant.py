@@ -9,7 +9,7 @@ from lmp import DeviceCommandAckMessage, DeviceCommandMessage
 from lmp.util import Board, DeviceCommand
 
 from .device_command_history import DeviceCommandHistoryEntry
-from .hydrant_error_ui import Event_Log_Listener, Event_Log_UI, Log_Table
+from .hydrant_error_ui import EventLogListener, EventLogUI, LogTable
 from .hydrant_system_config import (
     DEFAULT_BB1_IP,
     DEFAULT_BB2_IP,
@@ -19,11 +19,11 @@ from .hydrant_system_config import (
 )
 from .hydrant_telemetry import BoardTelemetryUI, TelemetryListener
 from .hydrant_ui import (
-    BB_Config_UI,
-    FC_Config_UI,
-    FR_Config_UI,
-    IP_Address_UI,
-    System_Config_UI,
+    BBConfigUI,
+    FCConfigUI,
+    FRConfigUI,
+    IPAddressUI,
+    SystemConfigUI,
 )
 
 
@@ -34,7 +34,7 @@ class Hydrant:
         if log_table is not None:
             if log_table.suffix == ".csv":
                 try:
-                    self.log_lookup = Log_Table(log_table)
+                    self.log_lookup = LogTable(log_table)
                 except Exception as err:
                     print("Failed to parse error lookup table " + str(err))
             else:
@@ -268,7 +268,7 @@ class Hydrant:
                             "w-full mx-auto no-wrap h-[31em] gap-0"
                         ):
                             with ui.column().classes("w-1/2 pr-2 h-full"):
-                                self.system_config = System_Config_UI(
+                                self.system_config = SystemConfigUI(
                                     self, self.log_listener
                                 )
                             with ui.column().classes("w-1/2 pl-2 h-full"):
@@ -311,23 +311,23 @@ class Hydrant:
                                         )
                                     ):
                                         with ui.tab_panel(1).classes("p-0"):
-                                            self.FC_TFTP_IP = IP_Address_UI(
+                                            self.FC_TFTP_IP = IPAddressUI(
                                                 DEFAULT_FC_IP, "TFTP IP"
                                             )
                                         with ui.tab_panel(2).classes("p-0"):
-                                            self.BB1_TFTP_IP = IP_Address_UI(
+                                            self.BB1_TFTP_IP = IPAddressUI(
                                                 DEFAULT_BB1_IP, "TFTP IP"
                                             )
                                         with ui.tab_panel(3).classes("p-0"):
-                                            self.BB2_TFTP_IP = IP_Address_UI(
+                                            self.BB2_TFTP_IP = IPAddressUI(
                                                 DEFAULT_BB2_IP, "TFTP IP"
                                             )
                                         with ui.tab_panel(4).classes("p-0"):
-                                            self.BB3_TFTP_IP = IP_Address_UI(
+                                            self.BB3_TFTP_IP = IPAddressUI(
                                                 DEFAULT_BB3_IP, "TFTP IP"
                                             )
                                         with ui.tab_panel(5).classes("p-0"):
-                                            self.FR_TFTP_IP = IP_Address_UI(
+                                            self.FR_TFTP_IP = IPAddressUI(
                                                 DEFAULT_FR_IP, "TFTP IP"
                                             )
                                 ui.separator().classes("h-1")
@@ -341,13 +341,13 @@ class Hydrant:
                                         )
                                     ):
                                         with ui.tab_panel(1).classes("p-0"):
-                                            self.FC_config = FC_Config_UI()
+                                            self.FC_config = FCConfigUI()
                                         with ui.tab_panel(2).classes("p-0"):
-                                            self.BB1_config = BB_Config_UI(1)
+                                            self.BB1_config = BBConfigUI(1)
                                         with ui.tab_panel(3).classes("p-0"):
-                                            self.BB2_config = BB_Config_UI(2)
+                                            self.BB2_config = BBConfigUI(2)
                                         with ui.tab_panel(4).classes("p-0"):
-                                            self.BB3_config = BB_Config_UI(3)
+                                            self.BB3_config = BBConfigUI(3)
                                         with ui.tab_panel(5).classes("p-0"):
                                             self.FR_config = FR_Config_UI()
                     with ui.tab_panel(3).classes("p-0"):

@@ -99,7 +99,7 @@ class ICD:
                             or pd.isna(row["Calibration Offset (V)"])
                             or pd.isna(row["Max Output Voltage"])
                         ):
-                            raise ICD_Value_Exception(
+                            raise ICDValueException(
                                 "Missing value while processing ICD",
                                 row.to_dict(),
                             )
@@ -122,7 +122,7 @@ class ICD:
                         elif channel_num >= 0:
                             port = 4
                         else:
-                            raise ICD_Value_Exception(
+                            raise ICDValueException(
                                 "Invalid channel number in row", row.to_dict()
                             )
                         channel = {
@@ -155,7 +155,7 @@ class ICD:
                         }
                         self.ebox_channels.append(channel)
                     else:
-                        raise ICD_Value_Exception(
+                        raise ICDValueException(
                             "Unknown peripheral type", row.to_dict()
                         )
                 elif row["Connection Location"] == "Press Bay Board":
@@ -168,7 +168,7 @@ class ICD:
                             or pd.isna(row["Calibration Offset (V)"])
                             or pd.isna(row["Max Output Voltage"])
                         ):
-                            raise ICD_Value_Exception(
+                            raise ICDValueException(
                                 "Missing value while processing ICD",
                                 row.to_dict(),
                             )
@@ -191,7 +191,7 @@ class ICD:
                         self.bb1_channels.append(channel)
                     elif row["Type"] == "VLVs":
                         if pd.isna(row["Supply Voltage (V)"]):
-                            raise ICD_Value_Exception(
+                            raise ICDValueException(
                                 "Missing value while processing ICD",
                                 row.to_dict(),
                             )
@@ -203,7 +203,7 @@ class ICD:
                         }
                         self.bb1_channels.append(channel)
                     else:
-                        raise ICD_Value_Exception(
+                        raise ICDValueException(
                             "Unknown peripheral type", row.to_dict()
                         )
                 elif row["Connection Location"] == "Intertank Bay Board":
@@ -216,7 +216,7 @@ class ICD:
                             or pd.isna(row["Calibration Offset (V)"])
                             or pd.isna(row["Max Output Voltage"])
                         ):
-                            raise ICD_Value_Exception(
+                            raise ICDValueException(
                                 "Missing value while processing ICD",
                                 row.to_dict(),
                             )
@@ -239,7 +239,7 @@ class ICD:
                         self.bb2_channels.append(channel)
                     elif row["Type"] == "VLVs":
                         if pd.isna(row["Supply Voltage (V)"]):
-                            raise ICD_Value_Exception(
+                            raise ICDValueException(
                                 "Missing value while processing ICD",
                                 row.to_dict(),
                             )
@@ -251,7 +251,7 @@ class ICD:
                         }
                         self.bb2_channels.append(channel)
                     else:
-                        raise ICD_Value_Exception(
+                        raise ICDValueException(
                             "Unknown peripheral type", row.to_dict()
                         )
                 elif row["Connection Location"] == "Engine Bay Board":
@@ -264,7 +264,7 @@ class ICD:
                             or pd.isna(row["Calibration Offset (V)"])
                             or pd.isna(row["Max Output Voltage"])
                         ):
-                            raise ICD_Value_Exception(
+                            raise ICDValueException(
                                 "Missing value while processing ICD",
                                 row.to_dict(),
                             )
@@ -287,7 +287,7 @@ class ICD:
                         self.bb3_channels.append(channel)
                     elif row["Type"] == "VLVs":
                         if pd.isna(row["Supply Voltage (V)"]):
-                            raise ICD_Value_Exception(
+                            raise ICDValueException(
                                 "Missing value while processing ICD",
                                 row.to_dict(),
                             )
@@ -299,7 +299,7 @@ class ICD:
                         }
                         self.bb3_channels.append(channel)
                     else:
-                        raise ICD_Value_Exception(
+                        raise ICDValueException(
                             "Unknown peripheral type", row.to_dict()
                         )
                 elif row["Connection Location"] == "Flight Computer":
@@ -318,7 +318,7 @@ class ICD:
                             or pd.isna(row["Calibration Offset (V)"])
                             or pd.isna(row["Max Output Voltage"])
                         ):
-                            raise ICD_Value_Exception(
+                            raise ICDValueException(
                                 "Missing value while processing ICD",
                                 row.to_dict(),
                             )
@@ -341,7 +341,7 @@ class ICD:
                         self.fc_channels.append(channel)
                     elif row["Type"] == "VLVs":
                         if pd.isna(row["Supply Voltage (V)"]):
-                            raise ICD_Value_Exception(
+                            raise ICDValueException(
                                 "Missing value while processing ICD",
                                 row.to_dict(),
                             )
@@ -353,7 +353,7 @@ class ICD:
                         }
                         self.fc_channels.append(channel)
                     else:
-                        raise ICD_Value_Exception(
+                        raise ICDValueException(
                             "Unknown peripheral type", row.to_dict()
                         )
                 elif row["Type"] == "IPs":
@@ -367,7 +367,7 @@ class ICD:
                 else:
                     continue
             except ValueError:
-                raise ICD_Exception("ICD processing error", row.to_dict())
+                raise ICDException("ICD processing error", row.to_dict())
             except KeyError as err:
                 raise KeyError("Missing critical column: " + str(err))
 
@@ -661,7 +661,7 @@ def configure_tasks(client: sy.Synnax, analog_task, digital_task):
     print(" > All tasks have been successfully created!")
 
 
-class ICD_Exception(Exception):
+class ICDException(Exception):
     def __init__(self, *args):
         super().__init__(*args)
         self.type = args[0]
@@ -671,5 +671,5 @@ class ICD_Exception(Exception):
                 self.row[k] = "-"
 
 
-class ICD_Value_Exception(ICD_Exception):
+class ICDValueException(ICDException):
     pass

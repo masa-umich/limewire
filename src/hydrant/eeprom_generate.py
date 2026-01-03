@@ -8,40 +8,40 @@ import tftpy
 
 
 class ValveVoltage(Enum):
-    Valve_12V = 0
-    Valve_24V = 1
+    V12 = 0  # 12V
+    V24 = 1  # 24V
 
 
 class TCGain(Enum):
-    Gain_1x = 0
-    Gain_2x = 1
-    Gain_4x = 2
-    Gain_8x = 3
-    Gain_16x = 4
-    Gain_32x = 5
-    Gain_64x = 6
-    Gain_128x = 7
+    X1 = 0
+    X2 = 1
+    X4 = 2
+    X8 = 3
+    X16 = 4
+    X32 = 5
+    X64 = 6
+    X128 = 7
 
-
-def TC_gain_convert(gain: int) -> TCGain:
-    if gain == 1:
-        return TCGain.Gain_1x
-    elif gain == 2:
-        return TCGain.Gain_2x
-    elif gain == 4:
-        return TCGain.Gain_4x
-    elif gain == 8:
-        return TCGain.Gain_8x
-    elif gain == 16:
-        return TCGain.Gain_16x
-    elif gain == 32:
-        return TCGain.Gain_32x
-    elif gain == 64:
-        return TCGain.Gain_64x
-    elif gain == 128:
-        return TCGain.Gain_128x
-    else:
-        raise Exception("TC gain must be a power of 2 from 1 to 128")
+    @classmethod
+    def from_int(cls, gain: int):
+        if gain == 1:
+            return TCGain.Gain_1x
+        elif gain == 2:
+            return TCGain.Gain_2x
+        elif gain == 4:
+            return TCGain.Gain_4x
+        elif gain == 8:
+            return TCGain.Gain_8x
+        elif gain == 16:
+            return TCGain.Gain_16x
+        elif gain == 32:
+            return TCGain.Gain_32x
+        elif gain == 64:
+            return TCGain.Gain_64x
+        elif gain == 128:
+            return TCGain.Gain_128x
+        else:
+            raise Exception("TC gain must be a power of 2 from 1 to 128")
 
 
 class PT:
@@ -57,47 +57,47 @@ class TC:
 
 
 class VLV:
-    def __init__(self, voltage: ValveVoltage, enabled: int):
+    def __init__(self, voltage: ValveVoltage, enabled: bool):
         self.voltage = voltage
         self.enabled = enabled
 
 
 def generate_bb_eeprom(
     bb_num: int,
-    FC_IP: ipaddress.IPv4Address,
-    BB_IP: ipaddress.IPv4Address,
-    PTs: list[PT],
-    TCs: list[TC],
-    VLVs: list[VLV],
+    fc_ip: ipaddress.IPv4Address,
+    bb_ip: ipaddress.IPv4Address,
+    pts: list[PT],
+    tcs: list[TC],
+    vlvs: list[VLV],
 ) -> bytes:
-    if len(PTs) != 10:
-        raise Exception(
+    if len(pts) != 10:
+        raise ValueError(
             "Bay Board must be configured with exactly 10 PT channels"
         )
-    if len(TCs) != 6:
-        raise Exception(
+    if len(tcs) != 6:
+        raise ValueError(
             "Bay Board must be configured with exactly 6 TC channels"
         )
-    if len(VLVs) != 5:
-        raise Exception(
+    if len(vlvs) != 5:
+        raise ValueError(
             "Bay Board must be configured with exactly 5 valve channels"
         )
     if bb_num < 1 or bb_num > 3:
-        raise Exception("Bay Board must be configured as BB1 through BB3")
+        raise ValueError("Bay Board must be configured as BB1 through BB3")
     raw_out = struct.pack("<B", bb_num)
-    for x in PTs:
+    for x in pts:
         raw_out += (
             struct.pack("<f", x.offset)
             + struct.pack("<f", x.range)
             + struct.pack("<f", x.max_voltage)
         )
-    for x in TCs:
+    for x in tcs:
         raw_out += struct.pack("<B", x.gain.value)
-    for x in VLVs:
+    for x in vlvs:
         raw_out += struct.pack("<B", x.voltage.value) + struct.pack(
-            "<B", x.enabled
+            "<B", int(x.enabled)
         )
-    raw_out += FC_IP.packed + BB_IP.packed
+    raw_out += fc_ip.packed + bb_ip.packed
 
     crc = zlib.crc32(raw_out)
 
@@ -106,55 +106,57 @@ def generate_bb_eeprom(
 
 
 def generate_fr_eeprom(
-    FCIP: ipaddress.IPv4Address, FRIP: ipaddress.IPv4Address
+    fc_ip: ipaddress.IPv4Address, fr_ip: ipaddress.IPv4Address
 ):
     print("Flight Recorder doesn't exist yet :(")
-    raise Exception("Can't do this man, actually this shouldn't be possible")
+    raise NotImplementedError(
+        "Can't do this man, actually this shouldn't be possible"
+    )
 
 
 def generate_fc_eeprom(
-    PTs: list[PT],
-    TCs: list[TC],
-    VLVs: list[VLV],
+    pts: list[PT],
+    tcs: list[TC],
+    vlvs: list[VLV],
     limewire_IP: ipaddress.IPv4Address,
-    FC_IP: ipaddress.IPv4Address,
-    BB1_IP: ipaddress.IPv4Address,
-    BB2_IP: ipaddress.IPv4Address,
-    BB3_IP: ipaddress.IPv4Address,
-    FR_IP: ipaddress.IPv4Address,
+    fc_ip: ipaddress.IPv4Address,
+    bb1_ip: ipaddress.IPv4Address,
+    bb2_ip: ipaddress.IPv4Address,
+    bb3_ip: ipaddress.IPv4Address,
+    fr_ip: ipaddress.IPv4Address,
 ) -> bytes:
-    if len(PTs) != 5:
-        raise Exception(
+    if len(pts) != 5:
+        raise ValueError(
             "Flight Computer must be configured with exactly 5 PT channels"
         )
-    if len(TCs) != 3:
-        raise Exception(
+    if len(tcs) != 3:
+        raise ValueError(
             "Flight Computer must be configured with exactly 3 TC channels"
         )
-    if len(VLVs) != 3:
-        raise Exception(
+    if len(vlvs) != 3:
+        raise ValueError(
             "Flight Computer must be configured with exactly 3 valve channels"
         )
     raw_out = bytes()
-    for x in PTs:
+    for x in pts:
         raw_out += (
             struct.pack("<f", x.offset)
             + struct.pack("<f", x.range)
             + struct.pack("<f", x.max_voltage)
         )
-    for x in TCs:
+    for x in tcs:
         raw_out += struct.pack("<B", x.gain.value)
-    for x in VLVs:
+    for x in vlvs:
         raw_out += struct.pack("<B", x.voltage.value) + struct.pack(
-            "<B", x.enabled
+            "<B", int(x.enabled)
         )
     raw_out += (
         limewire_IP.packed
-        + FC_IP.packed
-        + BB1_IP.packed
-        + BB2_IP.packed
-        + BB3_IP.packed
-        + FR_IP.packed
+        + fc_ip.packed
+        + bb1_ip.packed
+        + bb2_ip.packed
+        + bb3_ip.packed
+        + fr_ip.packed
     )
 
     crc = zlib.crc32(raw_out)
@@ -170,33 +172,19 @@ def send_eeprom_tftp(board: ipaddress.IPv4Address, content: bytes):
 
 
 def configure_fc(
-    PTs, TCs, VLVs, GSEIP, FCIP, BB1IP, BB2IP, BB3IP, FRIP, TFTPIP
-) -> tuple[bool, str]:
-    try:
-        eeprom_content = generate_fc_eeprom(
-            PTs, TCs, VLVs, GSEIP, FCIP, BB1IP, BB2IP, BB3IP, FRIP
-        )
-        send_eeprom_tftp(TFTPIP, eeprom_content)
-        return (True, "")
-    except Exception as e:
-        return (False, str(e))
+    pts, tcs, vlvs, gseip, fcip, bb1ip, bb2ip, bb3ip, frip, tftpip
+):
+    eeprom_content = generate_fc_eeprom(
+        pts, tcs, vlvs, gseip, fcip, bb1ip, bb2ip, bb3ip, frip
+    )
+    send_eeprom_tftp(tftpip, eeprom_content)
 
 
-def configure_bb(
-    bb_num, PTs, TCs, VLVs, FCIP, BBIP, TFTPIP
-) -> tuple[bool, str]:
-    try:
-        eeprom_content = generate_bb_eeprom(bb_num, FCIP, BBIP, PTs, TCs, VLVs)
-        send_eeprom_tftp(TFTPIP, eeprom_content)
-        return (True, "")
-    except Exception as e:
-        return (False, str(e))
+def configure_bb(bb_num, pts, tcs, vlvs, fcip, bbip, tftpip):
+    eeprom_content = generate_bb_eeprom(bb_num, fcip, bbip, pts, tcs, vlvs)
+    send_eeprom_tftp(tftpip, eeprom_content)
 
 
-def configure_fr(FCIP, FRIP, TFTPIP) -> tuple[bool, str]:
-    try:
-        eeprom_content = generate_fr_eeprom(FCIP, FRIP)
-        send_eeprom_tftp(TFTPIP, eeprom_content)
-        return (True, "")
-    except Exception as e:
-        return (False, str(e))
+def configure_fr(fcip, frip, tftpip):
+    eeprom_content = generate_fr_eeprom(fcip, frip)
+    send_eeprom_tftp(tftpip, eeprom_content)
