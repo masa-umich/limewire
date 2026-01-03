@@ -1,8 +1,9 @@
 import asyncio
+import json
 import pathlib
 from datetime import datetime
 
-from nicegui import app, ui
+from nicegui import app, client, ui
 
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
 from lmp.util import Board, DeviceCommand
@@ -16,6 +17,7 @@ from .hydrant_system_config import (
     DEFAULT_FC_IP,
     DEFAULT_FR_IP,
 )
+from .hydrant_telemetry import BoardTelemetryUI, TelemetryListener
 from .hydrant_ui import (
     BBConfigUI,
     FCConfigUI,
@@ -37,7 +39,14 @@ class Hydrant:
                     print("Failed to parse error lookup table " + str(err))
             else:
                 print("Error lookup table file must be .csv")
-
+        channels_file = (
+            pathlib.Path(__file__).parent.parent
+            / "limewire"
+            / "data"
+            / "channels.json"
+        )
+        with channels_file.open() as f:
+            self.channels: dict[str, list[str]] = json.load(f)
         self.boards_available = {board.pretty_name: board for board in Board}
         self.commands_available = {cmd.name: cmd for cmd in DeviceCommand}
 
@@ -60,8 +69,10 @@ class Hydrant:
         ] = {}
 
         self.log_listener = EventLogListener()
-        # app.on_startup(self.connect_to_fc())
+        self.telem_listener = TelemetryListener()
+        app.on_startup(self.connect_to_fc())
         app.on_startup(self.log_listener.open_listener())
+        app.on_startup(self.telem_listener.open_listener())
 
     async def connect_to_fc(self):
         """Maintain connection to flight computer."""
@@ -81,7 +92,7 @@ class Hydrant:
                     *self.fc_address
                 )
                 print("Connection successful.")
-            except (ConnectionRefusedError, TimeoutError):
+            except (ConnectionRefusedError, TimeoutError, OSError):
                 await asyncio.sleep(1)
                 continue
 
@@ -131,10 +142,10 @@ class Hydrant:
                 case _:
                     continue
 
-    def main_page(self):
+    def main_page(self, client: client.Client):
         """Generates page outline and GUI"""
 
-        self.error_log = EventLogUI(self.log_lookup)
+        error_log = EventLogUI(self.log_lookup)
 
         ui.page_title("Hydrant")
         ui.dark_mode().enable()
@@ -169,7 +180,7 @@ class Hydrant:
                             {
                                 1: "Device Commands",
                                 2: "System Configuration",
-                                3: "Event Log",
+                                3: "Telemetry",
                             },
                             value=1,
                         )
@@ -247,7 +258,7 @@ class Hydrant:
                                 # ERROR LOG
                                 with ui.column().classes("w-full gap-4 h-full"):
                                     # ERROR LOG CARD
-                                    self.error_log.display()
+                                    error_log.display()
                         with ui.row().classes("w-full mx-auto no-wrap"):
                             # COMMAND HISTORY CARD
                             self.command_history_table()
@@ -264,7 +275,7 @@ class Hydrant:
                                 # ERROR LOG
                                 with ui.column().classes("w-full gap-4 h-full"):
                                     # ERROR LOG CARD
-                                    self.error_log.display()
+                                    error_log.display()
                         with ui.row().classes("w-full mx-auto no-wrap"):
                             # BOARD SPECIFIC CONFIG
                             with ui.card().classes(
@@ -339,6 +350,49 @@ class Hydrant:
                                             self.BB3_config = BBConfigUI(3)
                                         with ui.tab_panel(5).classes("p-0"):
                                             self.FR_config = FRConfigUI()
+                    with ui.tab_panel(3).classes("p-0"):
+                        # TELEMETRY
+                        with ui.row().classes("w-full no-wrap gap-0 h-[48em]"):
+                            # FLIGHT COMPUTER
+                            with ui.column().classes("w-1/2 pr-2 h-full"):
+                                fc_telemetry = BoardTelemetryUI(
+                                    self.channels["fc_timestamp"], Board.FC, 3
+                                )
+                                self.telem_listener.attach_ui(
+                                    fc_telemetry, Board.FC, client
+                                )
+                            with ui.column().classes("w-1/2 pl-2 h-full"):
+                                # ERROR LOG
+                                with ui.column().classes("w-full gap-4 h-full"):
+                                    # ERROR LOG CARD
+                                    error_log.display()
+                        with ui.row().classes("w-full no-wrap"):
+                            # BAY BOARD
+                            with ui.column().classes("w-full h-full"):
+                                bb1_telemetry = BoardTelemetryUI(
+                                    self.channels["bb1_timestamp"], Board.BB1, 6
+                                )
+                                self.telem_listener.attach_ui(
+                                    bb1_telemetry, Board.BB1, client
+                                )
+                                bb2_telemetry = BoardTelemetryUI(
+                                    self.channels["bb2_timestamp"], Board.BB2, 6
+                                )
+                                self.telem_listener.attach_ui(
+                                    bb2_telemetry, Board.BB2, client
+                                )
+                                bb3_telemetry = BoardTelemetryUI(
+                                    self.channels["bb3_timestamp"], Board.BB3, 6
+                                )
+                                self.telem_listener.attach_ui(
+                                    bb3_telemetry, Board.BB3, client
+                                )
+                                fr_telemetry = BoardTelemetryUI(
+                                    self.channels["fr_timestamp"], Board.FR, 5
+                                )
+                                self.telem_listener.attach_ui(
+                                    fr_telemetry, Board.FR, client
+                                )
         # FC CONNECTION DIV
         with (
             ui.element("div")
@@ -359,9 +413,9 @@ class Hydrant:
                             "text-bold"
                         )
                         ui.label("Trying to reconnect...")
-        ui.space().classes("h-32")
+        ui.space().classes("h-32")  # for better scrolling
 
-        self.log_listener.attach_ui(self.error_log)
+        self.log_listener.attach_ui(error_log, client)
 
     def warn_restore_defaults(self):
         with (

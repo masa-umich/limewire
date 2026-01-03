@@ -500,8 +500,8 @@ class SystemConfigUI:
                         .classes("h-8")
                         .on("click", self.handle_device_select)
                         .bind_value(self, "configure_fr")
-                        .props("disable")
                     )
+                    self.fr_select.disable()
             ui.separator().classes("w-full h-1")
             ui.label("Progress").classes("self-center text-lg")
             with ui.row().classes(
@@ -679,12 +679,12 @@ class SystemConfigUI:
 
     def handle_device_select(self, e):
         if (
-            self.ebox_select.value
-            and self.fc_select.value
-            and self.bb1_select.value
-            and self.bb2_select.value
-            and self.bb3_select.value
-            and self.fr_select.value
+            (self.ebox_select.value or not self.ebox_select.enabled)
+            and (self.fc_select.value or not self.fc_select.enabled)
+            and (self.bb1_select.value or not self.bb1_select.enabled)
+            and (self.bb2_select.value or not self.bb2_select.enabled)
+            and (self.bb3_select.value or not self.bb3_select.enabled)
+            and (self.fr_select.value or not self.fr_select.enabled)
         ):
             self.all_select.set_value(True)
         else:
