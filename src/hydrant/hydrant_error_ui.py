@@ -319,8 +319,6 @@ class EventLogListener:
                 ) = await loop.create_datagram_endpoint(
                     self.create_protocol,
                     ("0.0.0.0", EVENT_LOG_PORT),
-                    reuse_address=False,
-                    reuse_port=False,
                 )
             except Exception as err:
                 print(f"Error opening log listener: {str(err)}")

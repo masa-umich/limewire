@@ -179,8 +179,6 @@ class TelemetryListener:
                 ) = await loop.create_datagram_endpoint(
                     self.create_protocol,
                     ("0.0.0.0", TELEM_PORT),
-                    reuse_address=False,
-                    reuse_port=False,
                 )
             except Exception as err:
                 print(f"Error opening telemetry listener: {str(err)}")
