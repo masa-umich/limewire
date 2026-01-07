@@ -38,13 +38,19 @@ class FirmwareLog:
             log_str = log_bytes.decode().strip()
         except UnicodeDecodeError:
             raise ValueError("Message not ASCII-encoded.")
+        
+        if log_str[-1] == '\0':
+            log_str = log_str[:-1]
 
         timestamp = None  # default if no timestamp is given
         try:
             timestamp_str = log_str[:24]
-            timestamp = datetime.strptime(
-                timestamp_str, "%Y-%m-%dT%H:%M:%S.%fZ"
-            ).replace(tzinfo=timezone.utc)
+            if timestamp_str == "0000-00-00T00:00:00.000Z":
+                timestamp = datetime.fromtimestamp(0, tz=timezone.utc)
+            else:
+                timestamp = datetime.strptime(
+                    timestamp_str, "%Y-%m-%dT%H:%M:%S.%fZ"
+                ).replace(tzinfo=timezone.utc)
             log_str = log_str[24:]
             if log_str[0] == " ":
                 log_str = log_str[1:]
@@ -78,5 +84,5 @@ class FirmwareLog:
             timestamp = self.timestamp
             local_zone = datetime.now(timezone.utc).astimezone().tzinfo
             timestamp = timestamp.astimezone(local_zone)
-            time_str = timestamp.strftime("%b %d, %Y %I:%M:%S.%f %p %Z")
+            time_str = timestamp.strftime("%b %d, %Y %I:%M:%S.%f %p %z")
         return f"'{self.message}', Timestamp: {time_str}, Code: {self.status_code}, Board: {self.board.pretty_name if self.board is not None else None}"

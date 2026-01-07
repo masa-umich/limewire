@@ -42,7 +42,6 @@ class TelemetryMessage:
         obj.timestamp = int.from_bytes(
             msg_bytes[2:10], byteorder="big", signed=False
         )
-
         obj.values = []
         for chunk in iterate_chunks(
             msg_bytes[10:], TelemetryMessage.TELEM_VALUE_SIZE

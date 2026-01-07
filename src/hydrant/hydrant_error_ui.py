@@ -241,7 +241,7 @@ class EventLogUI:
             if localtime:
                 local_zone = datetime.now(timezone.utc).astimezone().tzinfo
                 timestamp = timestamp.astimezone(local_zone)
-            time_str = f"{timestamp.strftime('%b %d, %Y %I:%M:%S.')}{timestamp.microsecond // 1000} {timestamp.strftime('%p')} {timestamp.strftime('%Z')}"
+            time_str = f"{timestamp.strftime('%b %d, %Y %I:%M:%S.')}{(timestamp.microsecond // 1000):03d} {timestamp.strftime('%p')} {timestamp.strftime('%z')}"
 
         for x in self.tables:
             x.add_row(

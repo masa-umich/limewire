@@ -25,21 +25,21 @@ class TCGain(Enum):
     @classmethod
     def from_int(cls, gain: int):
         if gain == 1:
-            return TCGain.Gain_1x
+            return TCGain.X1
         elif gain == 2:
-            return TCGain.Gain_2x
+            return TCGain.X2
         elif gain == 4:
-            return TCGain.Gain_4x
+            return TCGain.X4
         elif gain == 8:
-            return TCGain.Gain_8x
+            return TCGain.X8
         elif gain == 16:
-            return TCGain.Gain_16x
+            return TCGain.X16
         elif gain == 32:
-            return TCGain.Gain_32x
+            return TCGain.X32
         elif gain == 64:
-            return TCGain.Gain_64x
+            return TCGain.X64
         elif gain == 128:
-            return TCGain.Gain_128x
+            return TCGain.X128
         else:
             raise Exception("TC gain must be a power of 2 from 1 to 128")
 

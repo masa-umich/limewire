@@ -29,7 +29,7 @@ class BoardTelemetryUI:
                 with ui.row().classes("no-wrap gap-1 items-center"):
                     ui.label("Timestamp: ")
                     ui.label().classes(
-                        "border w-[43ch] p-1 pl-2 pr-2 rounded-md"
+                        "border w-[45ch] p-1 pl-2 pr-2 rounded-md"
                     ).bind_text_from(
                         self, "timestamp", backward=process_timestamp
                     )
@@ -64,16 +64,30 @@ class BoardTelemetryUI:
                                         else " - ",
                                     )
                                     ui.label("")
+                                elif "current" in self.channels[x]:
+                                    ui.label(
+                                        f"{process_channel_name(self.channels[x])}:"
+                                    ).classes("justify-end text-right")
+                                    ui.label().classes(
+                                        "border w-[9ch] p-1 pl-2 pr-2 rounded-md overflow-hidden"
+                                    ).bind_text_from(
+                                        self,
+                                        self.channels[x],
+                                        backward=lambda v: f"{(v*1000):.5g}"
+                                        if v is not None
+                                        else " - ",
+                                    )
+                                    ui.label(get_channel_unit(self.channels[x]))
                                 else:
                                     ui.label(
                                         f"{process_channel_name(self.channels[x])}:"
                                     ).classes("justify-end text-right")
                                     ui.label().classes(
-                                        "border w-[9ch] p-1 pl-2 pr-2 rounded-md"
+                                        "border w-[9ch] p-1 pl-2 pr-2 rounded-md overflow-hidden"
                                     ).bind_text_from(
                                         self,
                                         self.channels[x],
-                                        backward=lambda v: v
+                                        backward=lambda v: f"{v:.5g}"
                                         if v is not None
                                         else " - ",
                                     )
@@ -85,7 +99,7 @@ class BoardTelemetryUI:
                 setattr(
                     self,
                     self.channels[x],
-                    ValveOLD(msg.values[x])
+                    ValveOLD.from_telem(msg.values[x])
                     if msg.values[x] is not None
                     else None,
                 )
@@ -107,8 +121,8 @@ def process_timestamp(v: datetime.datetime):
         datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
     )
     local_time = v.astimezone(local_zone)
-    diff = datetime.datetime.now(datetime.timezone.utc) - v
-    return f"{local_time.strftime('%b %d, %Y %I:%M:%S.')}{local_time.microsecond // 1000} {local_time.strftime('%p')} {local_time.strftime('%Z')} - {(diff.seconds // 3600):02d}:{((diff.seconds % 3600) // 60):02d}:{(diff.seconds % 60):02d}.{int(diff.microseconds // 1e3):03d}"
+    diff = abs(datetime.datetime.now(datetime.timezone.utc) - v)
+    return f"{local_time.strftime('%b %d, %Y %I:%M:%S.')}{(local_time.microsecond // 1000):03d} {local_time.strftime('%p')} {local_time.strftime('%z')} - {(diff.seconds // 3600):02d}:{((diff.seconds % 3600) // 60):02d}:{(diff.seconds % 60):02d}.{int(diff.microseconds // 1e3):03d}"
 
 
 def process_channel_name(name: str):
@@ -129,7 +143,7 @@ def get_channel_unit(name: str):
     elif "tc" in name:
         return "C\u00b0"
     elif "current" in name:
-        return "A"
+        return "mA"
     elif "bar" in name:
         return "hPa"
     elif "imu" in name:
@@ -151,9 +165,21 @@ def get_channel_unit(name: str):
 
 
 class ValveOLD(Enum):
-    En = (-1,)
-    NoLoad = (0,)
+    En = -1,
+    NoLoad = 0,
     Load = 1
+    
+    @classmethod
+    def from_telem(cls, val: float):
+        if val == -1.0:
+            return ValveOLD.En
+        elif val == 0.0:
+            return ValveOLD.NoLoad
+        elif val == 1.0:
+            return ValveOLD.Load
+        else:
+            raise ValueError(f"OLD value is not 0, 1, or -1: {val}")
+
 
 
 class TelemetryListener:
@@ -216,7 +242,7 @@ class TelemetryProtocol(asyncio.DatagramProtocol):
 
     def datagram_received(self, data, addr):
         try:
-            telemetry_msg = TelemetryMessage.from_bytes(data)
+            telemetry_msg = TelemetryMessage.from_bytes(data[1:])
             self.listener.send_to_UIs(telemetry_msg)
         except Exception as e:
             print("Invalid telemetry message: " + str(e))

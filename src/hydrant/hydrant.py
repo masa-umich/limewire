@@ -108,6 +108,8 @@ class Hydrant:
                 await fc_listen_task
             except asyncio.CancelledError:
                 print("Hydrant cancelled.")
+                self.fc_writer.close()
+                await self.fc_writer.wait_closed()
                 break
             except Exception as e:
                 print(f"Got exception: {e}")
