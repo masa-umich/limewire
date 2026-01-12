@@ -162,13 +162,12 @@ class Hydrant:
             except asyncio.TimeoutError:
                 pass
             
-            if time.monotonic() - start > 1:
-                print("heart")
+            """ if time.monotonic() - start > 1:
                 msg = HeartbeatMessage()
                 msg_bytes = bytes(msg)
                 self.fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
                 await self.fc_writer.drain()
-                start = time.monotonic()
+                start = time.monotonic() """
 
     def main_page(self, client: client.Client):
         """Generates page outline and GUI"""
