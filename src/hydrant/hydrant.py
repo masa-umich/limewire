@@ -1,13 +1,12 @@
 import asyncio
 import json
 import pathlib
-from datetime import datetime
 import socket
 import sys
+import time
+from datetime import datetime
 
 from nicegui import app, client, ui
-
-import time
 
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
 from lmp.heartbeat import HeartbeatMessage
@@ -83,7 +82,10 @@ class Hydrant:
         """Maintain connection to flight computer."""
         while True:
             self.fc_reader = None
-            self.fc_writer = None
+            if self.fc_writer is not None:
+                self.fc_writer.close()
+                await self.fc_writer.wait_closed()
+                self.fc_writer = None
             try:
                 self.start_fc_connection_status = False
                 self.fc_connection_status.set_visibility(True)
@@ -96,12 +98,7 @@ class Hydrant:
                 loop = asyncio.get_running_loop()
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.setblocking(False)
-                sock.settimeout(1.0)
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-                if sys.platform != "darwin":
-                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 2)
-                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 1)
-                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
+                sock.settimeout(5.0)
 
                 await loop.sock_connect(sock, self.fc_address)
                 self.fc_reader, self.fc_writer = await asyncio.open_connection(sock=sock)
@@ -125,42 +122,41 @@ class Hydrant:
                 self.fc_writer.close()
                 await self.fc_writer.wait_closed()
                 break
+            except asyncio.TimeoutError:
+                print("FC disconnected")
+                continue
             except Exception as e:
                 print(f"Got exception: {e}")
                 continue
 
     async def listen_for_acks(self):
-        start = time.monotonic()
+        #start = time.monotonic()
         while True:
             while self.fc_reader is None:
                 await asyncio.sleep(0.5)
-            try:
-                msg_length = await asyncio.wait_for(self.fc_reader.read(1), timeout=0.1)
-                if not msg_length:
-                    break
-
-                msg_length = int.from_bytes(msg_length)
-                msg_bytes = await asyncio.wait_for(self.fc_reader.readexactly(msg_length), timeout=0.1)
-                if not msg_bytes:
-                    break
-
-                msg_id = int.from_bytes(msg_bytes[0:1])
-                match msg_id:
-                    case DeviceCommandAckMessage.MSG_ID:
-                        msg = DeviceCommandAckMessage.from_bytes(msg_bytes)
-
-                        history_entry = self.device_command_recency.get(
-                            (msg.board, msg.command)
-                        )
-                        if history_entry is None:
-                            continue
-                        history_entry.set_ack(datetime.now(), msg.response_msg)
-
-                        self.refresh_history_table()
-                    case _:
+                
+            msg_length = await asyncio.wait_for(self.fc_reader.read(1), timeout=3)
+            if not msg_length:
+                break
+            
+            msg_length = int.from_bytes(msg_length)
+            msg_bytes = await asyncio.wait_for(self.fc_reader.readexactly(msg_length), timeout=3)
+            if not msg_bytes:
+                break
+            
+            msg_id = int.from_bytes(msg_bytes[0:1])
+            match msg_id:
+                case DeviceCommandAckMessage.MSG_ID:
+                    msg = DeviceCommandAckMessage.from_bytes(msg_bytes)
+                    history_entry = self.device_command_recency.get(
+                        (msg.board, msg.command)
+                    )
+                    if history_entry is None:
                         continue
-            except asyncio.TimeoutError:
-                pass
+                    history_entry.set_ack(datetime.now(), msg.response_msg)
+                    self.refresh_history_table()
+                case _:
+                    continue
             
             """ if time.monotonic() - start > 1:
                 msg = HeartbeatMessage()
