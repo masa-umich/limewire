@@ -144,13 +144,21 @@ class EventLogUI:
                     "align": "left",
                 },
                 {
+                    "name": "recv_timestamp",
+                    "label": "Receive Timestamp",
+                    "field": "recv_timestamp",
+                    "required": False,
+                    "sortable": True,
+                    "align": "left",
+                    "sortOrder": "da",
+                },
+                {
                     "name": "timestamp",
                     "label": "Timestamp",
                     "field": "timestamp",
                     "required": False,
                     "sortable": True,
                     "align": "left",
-                    "sortOrder": "da",
                 },
                 {
                     "name": "code",
@@ -193,7 +201,7 @@ class EventLogUI:
                 )
             )
             log_table.pagination = {
-                "sortBy": "timestamp",
+                "sortBy": "recv_timestamp",
                 "rowsPerPage": 0,
                 "descending": True,
             }
@@ -232,6 +240,7 @@ class EventLogUI:
     def add_log(
         self,
         log: FirmwareLog,
+        recv_dt: datetime,
         addr: ipaddress.IPv4Address = None,
         localtime: bool = True,
     ):
@@ -251,6 +260,7 @@ class EventLogUI:
                     if log.board is not None
                     else None,
                     "timestamp": time_str,
+                    "recv_timestamp": f"{recv_dt.strftime('%b %d, %Y %I:%M:%S.')}{(recv_dt.microsecond // 1000):03d} {recv_dt.strftime('%p')} {recv_dt.strftime('%z')}",
                     "code": log.status_code,
                     "ip": addr,
                     "id": self.cur_id,
@@ -304,7 +314,7 @@ class EventLogListener:
         self.log_UIs.append((ui, client))
         ui.attach_listener(self)
         for x in self.log_buffer:
-            ui.add_log(x[0], x[1])
+            ui.add_log(x[0], x[2], x[1])
 
     def cleanup(self, client: Client):
         self.log_UIs[:] = [x for x in self.log_UIs if x[1] == client]
@@ -338,10 +348,10 @@ class EventLogListener:
     def create_protocol(self):
         return EventLogProtocol(self)
 
-    def log_to_UIs(self, log: FirmwareLog, addr: ipaddress.IPv4Address):
-        self.log_buffer.append((log, addr))
+    def log_to_UIs(self, recv_dt: datetime, log: FirmwareLog, addr: ipaddress.IPv4Address):
+        self.log_buffer.append((log, addr, recv_dt))
         for x in self.log_UIs:
-            x[0].add_log(log, addr=addr, localtime=True)
+            x[0].add_log(log, recv_dt=recv_dt, addr=addr, localtime=True)
 
     async def setup_future(self) -> asyncio.Future:
         if self.eeprom_response is not None and not self.eeprom_response.done():
@@ -368,8 +378,11 @@ class EventLogProtocol(asyncio.DatagramProtocol):
         self.open = True
 
     def datagram_received(self, data, addr):
-        log = FirmwareLog.from_bytes(data)
-        self.listener.log_to_UIs(log, addr[0])
+        try:
+            log = FirmwareLog.from_bytes(data)
+        except Exception as err:
+            print(f"Error parsing log: {str(err)}")
+        self.listener.log_to_UIs(datetime.now().astimezone(), log, addr[0])
         if (
             log.status_code is not None
             and (log.status_code % 1000) in EEPROM_CODES

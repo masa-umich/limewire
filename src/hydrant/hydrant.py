@@ -2,10 +2,15 @@ import asyncio
 import json
 import pathlib
 from datetime import datetime
+import socket
+import sys
 
 from nicegui import app, client, ui
 
+import time
+
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
+from lmp.heartbeat import HeartbeatMessage
 from lmp.util import Board, DeviceCommand
 
 from .device_command_history import DeviceCommandHistoryEntry
@@ -88,9 +93,18 @@ class Hydrant:
                 print(
                     f"Connecting to FC at {self.fc_address[0]}:{self.fc_address[1]}..."
                 )
-                self.fc_reader, self.fc_writer = await asyncio.open_connection(
-                    *self.fc_address
-                )
+                loop = asyncio.get_running_loop()
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.setblocking(False)
+                sock.settimeout(1.0)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                if sys.platform != "darwin":
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 2)
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 1)
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
+
+                await loop.sock_connect(sock, self.fc_address)
+                self.fc_reader, self.fc_writer = await asyncio.open_connection(sock=sock)
                 print("Connection successful.")
             except (ConnectionRefusedError, TimeoutError, OSError):
                 await asyncio.sleep(1)
@@ -116,33 +130,45 @@ class Hydrant:
                 continue
 
     async def listen_for_acks(self):
+        start = time.monotonic()
         while True:
             while self.fc_reader is None:
                 await asyncio.sleep(0.5)
-            msg_length = await self.fc_reader.read(1)
-            if not msg_length:
-                break
+            try:
+                msg_length = await asyncio.wait_for(self.fc_reader.read(1), timeout=0.1)
+                if not msg_length:
+                    break
 
-            msg_length = int.from_bytes(msg_length)
-            msg_bytes = await self.fc_reader.readexactly(msg_length)
-            if not msg_bytes:
-                break
+                msg_length = int.from_bytes(msg_length)
+                msg_bytes = await asyncio.wait_for(self.fc_reader.readexactly(msg_length), timeout=0.1)
+                if not msg_bytes:
+                    break
 
-            msg_id = int.from_bytes(msg_bytes[0:1])
-            match msg_id:
-                case DeviceCommandAckMessage.MSG_ID:
-                    msg = DeviceCommandAckMessage.from_bytes(msg_bytes)
+                msg_id = int.from_bytes(msg_bytes[0:1])
+                match msg_id:
+                    case DeviceCommandAckMessage.MSG_ID:
+                        msg = DeviceCommandAckMessage.from_bytes(msg_bytes)
 
-                    history_entry = self.device_command_recency.get(
-                        (msg.board, msg.command)
-                    )
-                    if history_entry is None:
+                        history_entry = self.device_command_recency.get(
+                            (msg.board, msg.command)
+                        )
+                        if history_entry is None:
+                            continue
+                        history_entry.set_ack(datetime.now(), msg.response_msg)
+
+                        self.refresh_history_table()
+                    case _:
                         continue
-                    history_entry.set_ack(datetime.now(), msg.response_msg)
-
-                    self.refresh_history_table()
-                case _:
-                    continue
+            except asyncio.TimeoutError:
+                pass
+            
+            if time.monotonic() - start > 1:
+                print("heart")
+                msg = HeartbeatMessage()
+                msg_bytes = bytes(msg)
+                self.fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
+                await self.fc_writer.drain()
+                start = time.monotonic()
 
     def main_page(self, client: client.Client):
         """Generates page outline and GUI"""
