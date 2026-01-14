@@ -4,6 +4,7 @@ import datetime
 import ipaddress
 import traceback
 
+from loguru import logger
 from nicegui import run, ui
 
 from lmp.firmware_log import FirmwareLog
@@ -707,8 +708,8 @@ class SystemConfigUI:
         try:
             self.ICD_config = ICD(await e.file.read(), e.file.name)
         except (ValueError, KeyError) as e:
-            print("Error while processing ICD")
-            traceback.print_exception(type(e), e, e.__traceback__)
+            logger.error("Error while processing ICD")
+            logger.opt(exception=e).debug("Traceback", exc_info=True)
             with (
                 ui.dialog().props("persistent") as dialog,
                 ui.card().classes(
@@ -726,8 +727,8 @@ class SystemConfigUI:
                 dialog.open()
             return
         except ICDException as e:
-            print("Value error while processing ICD")
-            traceback.print_exception(type(e), e, e.__traceback__)
+            logger.error("Value error while processing ICD")
+            logger.opt(exception=e).debug("Traceback", exc_info=True)
             with (
                 ui.dialog().props("persistent").classes("") as dialog,
                 ui.card().classes(
@@ -870,7 +871,7 @@ class SystemConfigUI:
         self.fr_prog_tooltip.set_visibility(False)
 
     async def start_config_write(self):
-        print("Starting configuration")
+        logger.info("Starting configuration")
 
         # Make a copy of everything since this will take a while and we don't want things
         # changing mid configuration
@@ -934,9 +935,9 @@ class SystemConfigUI:
         self.reset_progress_indicators()
 
         if config_ebox:
-            print("Configuring EBox")
+            logger.info("Configuring EBox")
             if gse_channels is None:
-                print("ICD not loaded, skipping EBox")
+                logger.error("ICD not loaded, skipping EBox")
                 self.set_progress(
                     self.ebox_progress,
                     self.ebox_prog_tooltip,
@@ -962,15 +963,14 @@ class SystemConfigUI:
                     result,
                 )
                 self.ebox_loading = False
-                print(
+                logger.info(
                     "EBox configured!"
                     if result
                     else f"Failed to configure EBox: {msg}"
                 )
-            print("")
 
         if config_fc:
-            print("Configuring Flight Computer")
+            logger.info("Configuring Flight Computer")
             self.fc_loading = True
             eeprom_future = None
             if self.log_listener is not None:
@@ -991,7 +991,7 @@ class SystemConfigUI:
                     fc_tftp,
                 )
                 self.set_board_config_in_progress(self.fc_prog_tooltip)
-                print(
+                logger.info(
                     "Flight Computer config successfully sent, waiting for response."
                 )
                 if eeprom_future is not None:
@@ -1010,17 +1010,17 @@ class SystemConfigUI:
                                     "A successful response came from the wrong board: "
                                     + log.board.pretty_name
                                 )
-                                print(
+                                logger.warning(
                                     "Successful eeprom came from the wrong board: "
                                     + log.board.pretty_name
                                 )
                             else:
-                                print(
+                                logger.info(
                                     "Successful response from the Flight Computer"
                                 )
                         else:
                             future_msg = log.message
-                            print(
+                            logger.error(
                                 "Flight Computer config failed: " + log.message
                             )
                     except asyncio.CancelledError as err:
@@ -1028,10 +1028,10 @@ class SystemConfigUI:
                             "Error: configuration was started from a different source, "
                             + str(err)
                         )
-                        print("EEPROM config future was cancelled")
+                        logger.warning("EEPROM config future was cancelled, moving on...")
                     except TimeoutError:
                         future_msg = "Timed out waiting for response"
-                        print(
+                        logger.error(
                             "Flight Computer config timed out waiting for UDP response"
                         )
                     tooltip_msg = ""
@@ -1052,14 +1052,13 @@ class SystemConfigUI:
                 self.set_progress(
                     self.fc_progress, self.fc_prog_tooltip, tooltip_msg, False
                 )
-                print(
+                logger.error(
                     f"Failed to send Flight Computer EEPROM config over TFTP: {str(err)}"
                 )
             self.fc_loading = False
-            print("")
 
         if config_bb1:
-            print("Configuring Bay Board 1")
+            logger.info("Configuring Bay Board 1")
             self.bb1_loading = True
             eeprom_future = None
             if self.log_listener is not None:
@@ -1077,7 +1076,7 @@ class SystemConfigUI:
                     bb1_tftp,
                 )
                 self.set_board_config_in_progress(self.bb1_prog_tooltip)
-                print(
+                logger.info(
                     "Bay Board 1 config successfully sent, waiting for response."
                 )
                 if eeprom_future is not None:
@@ -1096,24 +1095,24 @@ class SystemConfigUI:
                                     "A successful response came from the wrong board: "
                                     + log.board.pretty_name
                                 )
-                                print(
+                                logger.warning(
                                     "Successful eeprom came from the wrong board: "
                                     + log.board.pretty_name
                                 )
                             else:
-                                print("Successful response from Bay Board 1")
+                                logger.info("Successful response from Bay Board 1")
                         else:
                             future_msg = log.message
-                            print("Bay Board 1 config failed: " + log.message)
+                            logger.error("Bay Board 1 config failed: " + log.message)
                     except asyncio.CancelledError as err:
                         future_msg = (
                             "Error: configuration was started from a different source, "
                             + str(err)
                         )
-                        print("EEPROM config future was cancelled")
+                        logger.error("EEPROM config future was cancelled, moving on...")
                     except TimeoutError:
                         future_msg = "Timed out waiting for response"
-                        print(
+                        logger.error(
                             "Bay Board 1 config timed out waiting for UDP response"
                         )
                     tooltip_msg = ""
@@ -1134,14 +1133,13 @@ class SystemConfigUI:
                 self.set_progress(
                     self.bb1_progress, self.bb1_prog_tooltip, tooltip_msg, False
                 )
-                print(
+                logger.error(
                     f"Failed to send Bay Board 1 EEPROM config over TFTP: {str(err)}"
                 )
             self.bb1_loading = False
-            print("")
 
         if config_bb2:
-            print("Configuring Bay Board 2")
+            logger.info("Configuring Bay Board 2")
             self.bb2_loading = True
             eeprom_future = None
             if self.log_listener is not None:
@@ -1159,7 +1157,7 @@ class SystemConfigUI:
                     bb2_tftp,
                 )
                 self.set_board_config_in_progress(self.bb2_prog_tooltip)
-                print(
+                logger.info(
                     "Bay Board 2 config successfully sent, waiting for response."
                 )
                 if eeprom_future is not None:
@@ -1178,24 +1176,24 @@ class SystemConfigUI:
                                     "A successful response came from the wrong board: "
                                     + log.board.pretty_name
                                 )
-                                print(
+                                logger.warning(
                                     "Successful eeprom came from the wrong board: "
                                     + log.board.pretty_name
                                 )
                             else:
-                                print("Successful response from Bay Board 2")
+                                logger.info("Successful response from Bay Board 2")
                         else:
                             future_msg = log.message
-                            print("Bay Board 2 config failed: " + log.message)
+                            logger.error("Bay Board 2 config failed: " + log.message)
                     except asyncio.CancelledError as err:
                         future_msg = (
                             "Error: configuration was started from a different source, "
                             + str(err)
                         )
-                        print("EEPROM config future was cancelled")
+                        logger.error("EEPROM config future was cancelled, moving on...")
                     except TimeoutError:
                         future_msg = "Timed out waiting for response"
-                        print(
+                        logger.error(
                             "Bay Board 2 config timed out waiting for UDP response"
                         )
                     tooltip_msg = ""
@@ -1216,14 +1214,13 @@ class SystemConfigUI:
                 self.set_progress(
                     self.bb2_progress, self.bb2_prog_tooltip, tooltip_msg, False
                 )
-                print(
+                logger.error(
                     f"Failed to send Bay Board 2 EEPROM config over TFTP: {str(err)}"
                 )
             self.bb2_loading = False
-            print("")
 
         if config_bb3:
-            print("Configuring Bay Board 3")
+            logger.info("Configuring Bay Board 3")
             self.bb3_loading = True
             eeprom_future = None
             if self.log_listener is not None:
@@ -1241,7 +1238,7 @@ class SystemConfigUI:
                     bb3_tftp,
                 )
                 self.set_board_config_in_progress(self.bb3_prog_tooltip)
-                print(
+                logger.info(
                     "Bay Board 3 config successfully sent, waiting for response."
                 )
                 if eeprom_future is not None:
@@ -1260,24 +1257,24 @@ class SystemConfigUI:
                                     "A successful response came from the wrong board: "
                                     + log.board.pretty_name
                                 )
-                                print(
+                                logger.warning(
                                     "Successful eeprom came from the wrong board: "
                                     + log.board.pretty_name
                                 )
                             else:
-                                print("Successful response from Bay Board 3")
+                                logger.info("Successful response from Bay Board 3")
                         else:
                             future_msg = log.message
-                            print("Bay Board 3 config failed: " + log.message)
+                            logger.error("Bay Board 3 config failed: " + log.message)
                     except asyncio.CancelledError as err:
                         future_msg = (
                             "Error: configuration was started from a different source, "
                             + str(err)
                         )
-                        print("EEPROM config future was cancelled")
+                        logger.error("EEPROM config future was cancelled, moving on...")
                     except TimeoutError:
                         future_msg = "Timed out waiting for response"
-                        print(
+                        logger.error(
                             "Bay Board 3 config timed out waiting for UDP response"
                         )
                     tooltip_msg = ""
@@ -1298,14 +1295,13 @@ class SystemConfigUI:
                 self.set_progress(
                     self.bb3_progress, self.bb3_prog_tooltip, tooltip_msg, False
                 )
-                print(
+                logger.error(
                     f"Failed to send Bay Board 3 EEPROM config over TFTP: {str(err)}"
                 )
             self.bb3_loading = False
-            print("")
 
         if config_fr:
-            print("Configuring Flight Recorder")
+            logger.info("Configuring Flight Recorder")
             self.fr_loading = True
             eeprom_future = None
             if self.log_listener is not None:
@@ -1314,7 +1310,7 @@ class SystemConfigUI:
             try:
                 await run.cpu_bound(configure_fr, fr_FCIP, fr_FRIP, fr_tftp)
                 self.set_board_config_in_progress(self.fr_prog_tooltip)
-                print(
+                logger.info(
                     "Flight Recorder config successfully sent, waiting for response."
                 )
                 if eeprom_future is not None:
@@ -1333,17 +1329,17 @@ class SystemConfigUI:
                                     "A successful response came from the wrong board: "
                                     + log.board.pretty_name
                                 )
-                                print(
+                                logger.warning(
                                     "Successful eeprom came from the wrong board: "
                                     + log.board.pretty_name
                                 )
                             else:
-                                print(
+                                logger.info(
                                     "Successful response from the Flight Recorder"
                                 )
                         else:
                             future_msg = log.message
-                            print(
+                            logger.error(
                                 "Flight Recorder config failed: " + log.message
                             )
                     except asyncio.CancelledError as err:
@@ -1351,10 +1347,10 @@ class SystemConfigUI:
                             "Error: configuration was started from a different source, "
                             + str(err)
                         )
-                        print("EEPROM config future was cancelled")
+                        logger.error("EEPROM config future was cancelled, moving on...")
                     except TimeoutError:
                         future_msg = "Timed out waiting for response"
-                        print(
+                        logger.error(
                             "Flight Recorder config timed out waiting for UDP response"
                         )
                     tooltip_msg = ""
@@ -1375,13 +1371,12 @@ class SystemConfigUI:
                 self.set_progress(
                     self.fr_progress, self.fr_prog_tooltip, tooltip_msg, False
                 )
-                print(
+                logger.error(
                     f"Failed to send Flight Recorder EEPROM config over TFTP: {str(err)}"
                 )
             self.fr_loading = False
-            print("")
 
-        print("System configuration done!\n")
+        logger.info("System configuration done!\n")
 
     def set_progress(
         self, icon: ui.icon, tooltip: ui.html, text: str, result: bool

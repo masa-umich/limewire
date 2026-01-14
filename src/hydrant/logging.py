@@ -21,6 +21,6 @@ def set_up_logging(debug: bool):
     logger.remove()  # Remove preconfigured handlers
     logger.add(log_file_path, format=log_format, level=log_level)
     logger.add(sys.stderr, colorize=True, format=log_format, level=log_level)
-    print(f"Logging to {log_dir}") # This should stay as a print statement
+    print(f"Logging to {log_dir}") # This should stay as a print statement, as it is just a message to aid in finding the log directory
     logger.level("EVENT", no=1, color="<white>")
     logger.add(event_file_path, format=log_format, level="EVENT", filter= lambda r: r["level"].name == "EVENT")

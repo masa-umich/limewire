@@ -4,6 +4,7 @@ import zlib
 from enum import Enum
 from io import BytesIO
 
+from loguru import logger
 import tftpy
 
 
@@ -108,7 +109,7 @@ def generate_bb_eeprom(
 def generate_fr_eeprom(
     fc_ip: ipaddress.IPv4Address, fr_ip: ipaddress.IPv4Address
 ):
-    print("Flight Recorder doesn't exist yet :(")
+    logger.warning("Flight Recorder doesn't exist yet :(")
     raise NotImplementedError(
         "Can't do this man, actually this shouldn't be possible"
     )
@@ -166,7 +167,7 @@ def generate_fc_eeprom(
 
 
 def send_eeprom_tftp(board: ipaddress.IPv4Address, content: bytes):
-    print("Sending eeprom config over TFTP to " + str(board))
+    logger.info("Sending eeprom config over TFTP to " + str(board))
     tftp_client = tftpy.TftpClient(str(board))
     tftp_client.upload("eeprom.bin", BytesIO(content))
 

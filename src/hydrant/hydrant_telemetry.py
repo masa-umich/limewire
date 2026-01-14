@@ -2,6 +2,7 @@ import asyncio
 import datetime
 from enum import Enum
 
+from loguru import logger
 from nicegui import Client, ui
 
 from lmp.telemetry import TelemetryMessage
@@ -207,7 +208,7 @@ class TelemetryListener:
                     ("0.0.0.0", TELEM_PORT),
                 )
             except Exception as err:
-                print(f"Error opening telemetry listener: {str(err)}")
+                logger.error(f"Error opening telemetry listener: {str(err)}")
                 await asyncio.sleep(1)
                 continue
 
@@ -215,10 +216,10 @@ class TelemetryListener:
                 if self.handler is not None:
                     await self.handler.wait_for_close()
             except asyncio.CancelledError:
-                print("Telemetry listener cancelled.")
+                logger.warn("Telemetry listener cancelled.")
                 break
             except Exception as e:
-                print(f"Got exception: {e}")
+                logger.error(f"Got exception: {e}")
                 continue
 
     def create_protocol(self):
@@ -245,7 +246,7 @@ class TelemetryProtocol(asyncio.DatagramProtocol):
             telemetry_msg = TelemetryMessage.from_bytes(data[1:])
             self.listener.send_to_UIs(telemetry_msg)
         except Exception as e:
-            print("Invalid telemetry message: " + str(e))
+            logger.error("Invalid telemetry message: " + str(e))
 
     def connection_lost(self, exc):
         self.open = False

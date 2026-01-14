@@ -1,7 +1,6 @@
 import asyncio
 import json
 import pathlib
-import socket
 from datetime import datetime
 
 from loguru import logger
@@ -39,9 +38,9 @@ class Hydrant:
                 try:
                     self.log_lookup = LogTable(log_table)
                 except Exception as err:
-                    print("Failed to parse error lookup table " + str(err))
+                    logger.error("Failed to parse error lookup table " + str(err))
             else:
-                print("Error lookup table file must be .csv")
+                logger.error("Error lookup table file must be .csv")
         channels_file = (
             pathlib.Path(__file__).parent.parent
             / "limewire"

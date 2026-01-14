@@ -1,12 +1,11 @@
 import asyncio
 import ipaddress
-from loguru import logger
-import os
 import pathlib
 from collections import deque
 from datetime import datetime, timezone
 
 import pandas as pd
+from loguru import logger
 from nicegui import Client, ui
 
 from lmp.firmware_log import FirmwareLog
@@ -315,7 +314,7 @@ class EventLogListener:
                     ("0.0.0.0", EVENT_LOG_PORT),
                 )
             except Exception as err:
-                print(f"Error opening log listener: {str(err)}")
+                logger.error(f"Error opening log listener: {str(err)}")
                 await asyncio.sleep(1)
                 continue
 
@@ -323,10 +322,10 @@ class EventLogListener:
                 if self.handler is not None:
                     await self.handler.wait_for_close()
             except asyncio.CancelledError:
-                print("Log listener cancelled.")
+                logger.warning("Log listener cancelled.")
                 break
             except Exception as e:
-                print(f"Got exception: {e}")
+                logger.error(f"Got exception: {e}")
                 continue
 
     def create_protocol(self):
@@ -365,7 +364,7 @@ class EventLogProtocol(asyncio.DatagramProtocol):
         try:
             log = FirmwareLog.from_bytes(data)
         except Exception as err:
-            print(f"Error parsing log: {str(err)}")
+            logger.error(f"Error parsing log: {str(err)}")
         self.listener.log_to_UIs(datetime.now().astimezone(), log, addr[0])
         if (
             log.status_code is not None
@@ -374,7 +373,7 @@ class EventLogProtocol(asyncio.DatagramProtocol):
             try:
                 self.listener.trigger_eeprom_response(log)
             except Exception as err:
-                print("Error triggering eeprom config response " + str(err))
+                logger.error("Error triggering eeprom config response " + str(err))
         logger.log("EVENT",
             log.to_log() + f", IP: {addr[0]}"
         )
