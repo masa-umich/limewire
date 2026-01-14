@@ -2,14 +2,13 @@ import asyncio
 import json
 import pathlib
 import socket
-import sys
-import time
 from datetime import datetime
 
+from loguru import logger
 from nicegui import app, client, ui
 
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
-from lmp.heartbeat import HeartbeatMessage
+from lmp.framer import FramingError, LMPFramer
 from lmp.util import Board, DeviceCommand
 
 from .device_command_history import DeviceCommandHistoryEntry
@@ -92,7 +91,7 @@ class Hydrant:
             except AttributeError:
                 pass
             try:
-                print(
+                logger.info(
                     f"Connecting to FC at {self.fc_address[0]}:{self.fc_address[1]}..."
                 )
                 loop = asyncio.get_running_loop()
@@ -102,7 +101,8 @@ class Hydrant:
 
                 await loop.sock_connect(sock, self.fc_address)
                 self.fc_reader, self.fc_writer = await asyncio.open_connection(sock=sock)
-                print("Connection successful.")
+                self.lmp_framer = LMPFramer(self.fc_reader, self.fc_writer)
+                logger.info("Connection successful.")
             except (ConnectionRefusedError, TimeoutError, OSError):
                 await asyncio.sleep(1)
                 continue
@@ -118,45 +118,37 @@ class Hydrant:
             try:
                 await fc_listen_task
             except asyncio.CancelledError:
-                print("Hydrant cancelled.")
+                logger.info("Hydrant cancelled.")
                 self.fc_writer.close()
                 await self.fc_writer.wait_closed()
                 break
             except asyncio.TimeoutError:
-                print("FC disconnected")
+                logger.info("FC disconnected")
                 continue
             except Exception as e:
-                print(f"Got exception: {e}")
+                logger.info(f"Got exception: {e}")
                 continue
 
     async def listen_for_acks(self):
         #start = time.monotonic()
         while True:
-            while self.fc_reader is None:
-                await asyncio.sleep(0.5)
-                
-            msg_length = await asyncio.wait_for(self.fc_reader.read(1), timeout=3)
-            if not msg_length:
-                break
-            
-            msg_length = int.from_bytes(msg_length)
-            msg_bytes = await asyncio.wait_for(self.fc_reader.readexactly(msg_length), timeout=3)
-            if not msg_bytes:
-                break
-            
-            msg_id = int.from_bytes(msg_bytes[0:1])
-            match msg_id:
-                case DeviceCommandAckMessage.MSG_ID:
-                    msg = DeviceCommandAckMessage.from_bytes(msg_bytes)
-                    history_entry = self.device_command_recency.get(
-                        (msg.board, msg.command)
-                    )
-                    if history_entry is None:
-                        continue
-                    history_entry.set_ack(datetime.now(), msg.response_msg)
-                    self.refresh_history_table()
-                case _:
+            try:
+                message = await asyncio.wait_for(self.lmp_framer.receive_message(), timeout=3)
+            except (FramingError, ValueError) as err:
+                logger.error(str(err))
+                logger.opt(exception=err).debug("Traceback", exc_info=True)
+                continue
+            if not message:
+                continue
+            if type(message) is DeviceCommandAckMessage:
+                history_entry = self.device_command_recency.get(
+                    (message.board, message.command)
+                )
+                if history_entry is None:
                     continue
+                history_entry.set_ack(datetime.now(), message.response_msg)
+
+                self.refresh_history_table()
             
             """ if time.monotonic() - start > 1:
                 msg = HeartbeatMessage()
@@ -507,15 +499,11 @@ class Hydrant:
         self.board = self.boards_available[self.selected_board_name]
         self.command = self.commands_available[self.selected_command_name]
         if self.fc_writer:
-            msg = DeviceCommandMessage(self.board, self.command)
-            msg_bytes = bytes(msg)
-
-            print(
+            logger.info(
                 f"Sending {self.selected_command_name} to board {self.selected_board_name}"
             )
-            self.fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
-            await self.fc_writer.drain()
-
+            msg = DeviceCommandMessage(self.board, self.command)
+            await self.lmp_framer.send_message(msg)
             new_entry = DeviceCommandHistoryEntry(
                 board=msg.board,
                 command=msg.command,
