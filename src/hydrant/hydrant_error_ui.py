@@ -1,6 +1,6 @@
 import asyncio
 import ipaddress
-import logging
+from loguru import logger
 import os
 import pathlib
 from collections import deque
@@ -293,22 +293,6 @@ class EventLogListener:
         self.log_UIs: list[tuple[EventLogUI, Client]] = []
         self.transport = None
         self.log_buffer = deque(maxlen=100)
-        log_setup = logging.getLogger("events")
-        logdir = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "logs"
-        )
-        os.makedirs(logdir, exist_ok=True)
-        log_file = os.path.join(
-            logdir, "system-events.log"
-        )  # TODO figure out logging location
-        formatter = logging.Formatter(
-            "%(levelname)s: %(asctime)s %(message)s",
-            datefmt="%m/%d/%Y %I:%M:%S %p %Z -",
-        )
-        filehandler = logging.FileHandler(log_file, mode="a")
-        filehandler.setFormatter(formatter)
-        log_setup.setLevel(logging.INFO)
-        log_setup.addHandler(filehandler)
 
     def attach_ui(self, ui: EventLogUI, client: Client):
         self.log_UIs.append((ui, client))
@@ -391,9 +375,9 @@ class EventLogProtocol(asyncio.DatagramProtocol):
                 self.listener.trigger_eeprom_response(log)
             except Exception as err:
                 print("Error triggering eeprom config response " + str(err))
-        logging.getLogger("events").info(
+        logger.log("EVENT",
             log.to_log() + f", IP: {addr[0]}"
-        )  # TODO change to a custom log level after merging with hydrant-reconnection
+        )
 
     def connection_lost(self, exc):
         self.open = False

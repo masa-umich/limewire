@@ -94,13 +94,7 @@ class Hydrant:
                 logger.info(
                     f"Connecting to FC at {self.fc_address[0]}:{self.fc_address[1]}..."
                 )
-                loop = asyncio.get_running_loop()
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.setblocking(False)
-                sock.settimeout(5.0)
-
-                await loop.sock_connect(sock, self.fc_address)
-                self.fc_reader, self.fc_writer = await asyncio.open_connection(sock=sock)
+                self.fc_reader, self.fc_writer = await asyncio.wait_for(asyncio.open_connection(*self.fc_address), timeout=5.0)
                 self.lmp_framer = LMPFramer(self.fc_reader, self.fc_writer)
                 logger.info("Connection successful.")
             except (ConnectionRefusedError, TimeoutError, OSError):
@@ -133,7 +127,7 @@ class Hydrant:
         #start = time.monotonic()
         while True:
             try:
-                message = await asyncio.wait_for(self.lmp_framer.receive_message(), timeout=3)
+                message = await asyncio.wait_for(self.lmp_framer.receive_message(), timeout=3.0)
             except (FramingError, ValueError) as err:
                 logger.error(str(err))
                 logger.opt(exception=err).debug("Traceback", exc_info=True)
