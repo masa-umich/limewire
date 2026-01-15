@@ -592,7 +592,7 @@ def create_tasks(client: sy.Synnax, frequency: int):
     logger.info("Creating tasks...")
     logger.info(" > Scanning for cards...")
     try:
-        analog_card = client.hardware.devices.retrieve(model=analog_card_model)
+        analog_card = client.devices.retrieve(model=analog_card_model)
         logger.info(
             " > Analog card '"
             + analog_card.make
@@ -608,7 +608,7 @@ def create_tasks(client: sy.Synnax, frequency: int):
         )
 
     try:
-        digital_card = client.hardware.devices.retrieve(
+        digital_card = client.devices.retrieve(
             model=digital_card_model
         )
         logger.info(
@@ -652,13 +652,13 @@ def configure_tasks(client: sy.Synnax, analog_task, digital_task):
         analog_task.config.channels != []
     ):  # only configure if there are channels
         logger.info(" > Attempting to configure analog task")
-        client.hardware.tasks.configure(
+        client.tasks.configure(
             task=analog_task, timeout=6000
         )  # long timeout cause our NI hardware is dumb
         logger.info(" > Successfully configured analog task!")
     if digital_task.config.channels != []:
         logger.info(" > Attempting to configure digital task")
-        client.hardware.tasks.configure(task=digital_task, timeout=500)
+        client.tasks.configure(task=digital_task, timeout=500)
         logger.info(" > Successfully configured digital task!")
     logger.info(" > All tasks have been successfully created!")
 
