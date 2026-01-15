@@ -10,7 +10,7 @@ from scapy.layers.ntp import NTPHeader
 async def send_all():
     await run.cpu_bound(send_ntp, ipaddress.IPv4Network("0.0.0.0/0"), True)
 
-async def send_ntp(network: ipaddress.IPv4Network, all_iface: bool):
+def send_ntp(network: ipaddress.IPv4Network, all_iface: bool):
     logger.info("Broadcasting NTP")
     if all_iface:
         broadcast_strs = []
