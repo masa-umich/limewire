@@ -579,6 +579,6 @@ class Hydrant:
             ui.label("Confirm send NTP sync").classes("text-xl")
             ui.button(
                 "Confirm",
-                on_click=self.send_ntp_after_warn,
+                on_click=lambda e: self.send_ntp_after_warn(dialog),
             )
             dialog.open()
