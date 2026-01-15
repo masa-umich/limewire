@@ -3,8 +3,8 @@ from io import BytesIO
 
 import pandas as pd
 import synnax as sy
+import synnax.ni as ni
 from loguru import logger
-from synnax.hardware import ni
 
 ICD_SHEET = "AVI Mappings 25-26"
 
