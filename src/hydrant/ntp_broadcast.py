@@ -1,4 +1,5 @@
 import ipaddress
+import sys
 from nicegui import run
 
 from loguru import logger
@@ -8,7 +9,10 @@ from scapy.layers.ntp import NTPHeader
 
 
 async def send_all():
-    await run.cpu_bound(send_ntp, ipaddress.IPv4Network("0.0.0.0/0"), True)
+    if sys.platform != "darwin":
+        await run.cpu_bound(send_ntp, ipaddress.IPv4Network("0.0.0.0/0"), True)
+    else:
+        await run.cpu_bound(send_ntp, ipaddress.IPv4Network("141.212.192.0/24"), False)
 
 def send_ntp(network: ipaddress.IPv4Network, all_iface: bool):
     logger.info("Broadcasting NTP")

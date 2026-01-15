@@ -60,7 +60,8 @@ class Hydrant:
         self.selected_board_name = None
         self.selected_command_name = None
 
-        self.start_fc_connection_status = False
+        self.fc_connected = False
+        self.fc_connection_status_list = []
 
         self.fc_writer = None
         self.fc_reader = None
@@ -85,11 +86,7 @@ class Hydrant:
                 self.fc_writer.close()
                 await self.fc_writer.wait_closed()
                 self.fc_writer = None
-            try:
-                self.start_fc_connection_status = False
-                self.fc_connection_status.set_visibility(True)
-            except AttributeError:
-                pass
+            self.fc_connected = False
             try:
                 logger.info(
                     f"Connecting to FC at {self.fc_address[0]}:{self.fc_address[1]}..."
@@ -101,11 +98,7 @@ class Hydrant:
                 await asyncio.sleep(1)
                 continue
 
-            try:
-                self.start_fc_connection_status = True
-                self.fc_connection_status.set_visibility(False)
-            except AttributeError:
-                pass
+            self.fc_connected = True
 
             fc_listen_task = asyncio.create_task(self.listen_for_acks())
 
@@ -176,7 +169,7 @@ class Hydrant:
                 ui.label("HYDRANT").classes(
                     "text-3xl font-extrabold tracking-wider"
                 )
-                ui.button("Send NTP sync", on_click=send_all).classes("absolute right-5")
+                ui.button("Send NTP sync", on_click=self.warn_send_ntp).classes("absolute right-5")
 
         # MAIN PAGE CONTENT
         with ui.row().classes("w-full mx-auto no-wrap") as main_page_content:
@@ -419,8 +412,8 @@ class Hydrant:
             )
             .classes("rounded-sm") as fc_conn_stat
         ):
-            self.fc_connection_status = fc_conn_stat
-            fc_conn_stat.set_visibility(not self.start_fc_connection_status)
+            self.fc_connection_status_list.append(fc_conn_stat)
+            fc_conn_stat.bind_visibility_from(self, "fc_connected", backward=lambda v: not v)
             with ui.card().classes(
                 "bg-transparent text-white p-6 pl-4 shadow-lg"
             ):
@@ -507,17 +500,18 @@ class Hydrant:
             self.device_command_history.append(new_entry)
             self.device_command_recency[(msg.board, msg.command)] = new_entry
         else:
-            self.fc_connection_status.classes(
-                add="animate-[flash-red_1s_ease-in-out_1]"
-            )
-            ui.timer(
-                1,
-                lambda: self.fc_connection_status.classes(
-                    remove="animate-[flash-red_1s_ease-in-out_1]"
-                ),
-                active=True,
-                once=True,
-            )
+            for x in self.fc_connection_status_list:
+                x.classes(
+                    add="animate-[flash-red_1s_ease-in-out_1]"
+                )
+                ui.timer(
+                    1,
+                    lambda: x.classes(
+                        remove="animate-[flash-red_1s_ease-in-out_1]"
+                    ),
+                    active=True,
+                    once=True,
+                )
         self.refresh_history_table()
 
     def refresh_history_table(self):
@@ -567,3 +561,24 @@ class Hydrant:
 
     def history_dict(self):
         return [entry.to_gui_dict() for entry in self.device_command_history]
+
+    async def send_ntp_after_warn(self, dialog):
+        dialog.close()
+        await send_all()
+
+    def warn_send_ntp(self):
+        with (
+            ui.dialog() as dialog,
+            ui.card().classes(
+                "w-100 h-30 flex flex-col justify-center items-center"
+            ),
+        ):
+            ui.button(icon="close", on_click=lambda e: dialog.close()).classes(
+                "absolute right-0 top-0 bg-transparent"
+            ).props('flat color="white" size="lg"')
+            ui.label("Confirm send NTP sync").classes("text-xl")
+            ui.button(
+                "Confirm",
+                on_click=self.send_ntp_after_warn,
+            )
+            dialog.open()
