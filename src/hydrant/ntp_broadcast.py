@@ -9,7 +9,7 @@ from scapy.layers.ntp import NTPHeader
 
 
 async def send_all():
-    if sys.platform != "darwin":
+    if sys.platform == "darwin":
         await run.cpu_bound(send_ntp, ipaddress.IPv4Network("0.0.0.0/0"), True)
     else:
         await run.cpu_bound(send_ntp, ipaddress.IPv4Network("141.212.192.0/24"), False)
