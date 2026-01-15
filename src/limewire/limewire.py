@@ -2,6 +2,8 @@ import asyncio
 import platform
 from asyncio.streams import StreamReader, StreamWriter
 from contextlib import asynccontextmanager
+import socket
+import sys
 
 import asyncudp
 import synnax as sy
@@ -17,7 +19,7 @@ from lmp import (
     ValveCommandMessage,
     ValveStateMessage,
 )
-from lmp.framer import FramingError
+from lmp.framer import FramingError, TelemetryProtocol
 
 from .ntp_sync import send_ntp_sync
 from .util import (
@@ -77,12 +79,25 @@ class Limewire:
                 sy.TimeStamp.now()
             )
             await asyncio.sleep(0.5)
-
-            telemetry_socket = await asyncudp.create_socket(
-                local_addr=("0.0.0.0", 6767)
-            )
-            self.telemetry_framer = TelemetryFramer(telemetry_socket)
-            logger.info("Listening for telemetry on UDP port 6767")
+            try:
+                loop = asyncio.get_event_loop()
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                if sys.platform != "win32":
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                sock.bind(("0.0.0.0", 6767))
+                (
+                    transport,
+                    handler,
+                ) = await loop.create_datagram_endpoint(
+                    TelemetryProtocol,
+                    sock=sock
+                )
+                self.telemetry_framer = TelemetryFramer(handler)
+                logger.info("Listening for telemetry on UDP port 6767")
+            except Exception as err:
+                logger.error(f"Error opening telemetry listener: {str(err)}")
 
             self.connected = False
             while True:
