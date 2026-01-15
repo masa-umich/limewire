@@ -2,6 +2,7 @@ import asyncio
 import datetime
 from enum import Enum
 import socket
+import sys
 
 from loguru import logger
 from nicegui import Client, ui
@@ -203,7 +204,8 @@ class TelemetryListener:
                 loop = asyncio.get_event_loop()
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+                if sys.platform != "win32":
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
                 sock.bind(("0.0.0.0", TELEM_PORT))
                 (
