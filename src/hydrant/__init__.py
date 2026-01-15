@@ -2,8 +2,8 @@ import os
 import pathlib
 
 import click
-from nicegui import app, ui
 from loguru import logger
+from nicegui import app, ui
 
 from hydrant.logging import set_up_logging
 from limewire.util import SocketAddress

@@ -2,7 +2,6 @@ import asyncio
 import copy
 import datetime
 import ipaddress
-import traceback
 
 from loguru import logger
 from nicegui import run, ui

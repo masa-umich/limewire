@@ -4,8 +4,8 @@ import zlib
 from enum import Enum
 from io import BytesIO
 
-from loguru import logger
 import tftpy
+from loguru import logger
 
 
 class ValveVoltage(Enum):

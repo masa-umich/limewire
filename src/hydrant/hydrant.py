@@ -1,4 +1,5 @@
 import asyncio
+import ipaddress
 import json
 import pathlib
 from datetime import datetime
@@ -6,6 +7,7 @@ from datetime import datetime
 from loguru import logger
 from nicegui import app, client, ui
 
+from hydrant.ntp_broadcast import send_ntp
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
 from lmp.framer import FramingError, LMPFramer
 from lmp.util import Board, DeviceCommand
@@ -175,6 +177,7 @@ class Hydrant:
                 ui.label("HYDRANT").classes(
                     "text-3xl font-extrabold tracking-wider"
                 )
+                ui.button("Send NTP sync", on_click=lambda: send_ntp(ipaddress.IPv4Network("0.0.0.0/0"), True)).classes("absolute right-5")
 
         # MAIN PAGE CONTENT
         with ui.row().classes("w-full mx-auto no-wrap") as main_page_content:

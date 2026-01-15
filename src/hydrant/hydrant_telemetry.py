@@ -216,7 +216,7 @@ class TelemetryListener:
                 if self.handler is not None:
                     await self.handler.wait_for_close()
             except asyncio.CancelledError:
-                logger.warn("Telemetry listener cancelled.")
+                logger.warning("Telemetry listener cancelled.")
                 break
             except Exception as e:
                 logger.error(f"Got exception: {e}")

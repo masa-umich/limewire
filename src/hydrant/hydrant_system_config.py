@@ -1,9 +1,9 @@
 import ipaddress
 from io import BytesIO
 
-from loguru import logger
 import pandas as pd
 import synnax as sy
+from loguru import logger
 from synnax.hardware import ni
 
 ICD_SHEET = "AVI Mappings 25-26"
