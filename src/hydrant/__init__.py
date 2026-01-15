@@ -10,7 +10,6 @@ from limewire.util import SocketAddress
 
 from .hydrant import Hydrant
 
-
 @click.command(context_settings={"help_option_names": ["--help", "-h"]})
 @click.argument(
     "fc_address", type=SocketAddress(), default="141.212.192.170:5000"
@@ -22,7 +21,7 @@ from .hydrant import Hydrant
 )
 @click.option("--debug", is_flag=True)
 def main(fc_address: tuple[str, int], log_table: pathlib.Path, debug: bool):
-    set_up_logging(debug)
+    set_up_logging(debug, True)
     if debug:
         logger.info(f"Hydrant running with FC address: {fc_address[0]}:{fc_address[1]}")
     else:
