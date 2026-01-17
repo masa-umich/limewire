@@ -1,6 +1,7 @@
 import asyncio
 import random
 import socket
+import sys
 from functools import partial
 
 import synnax as sy
@@ -41,33 +42,23 @@ class FCSimulator:
 
     async def generate_telemetry_data(self, run_time: float) -> None:
         """Send randomly generated telemetry data to Limewire."""
-
-        # Set up telemetry socket
-        # self.telemetry_socket = await asyncudp.create_socket(
-        #     remote_addr=("255.255.255.255", 6767)
-        # )
-        # self.telemetry_socket._transport.get_extra_info("socket").setsockopt(
-        #     socket.SOL_SOCKET, socket.SO_BROADCAST, 1
-        # )
         loop = asyncio.get_event_loop()
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if sys.platform != "win32":
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
         sock.bind(("0.0.0.0", 0))
+        # Connect to broadcast
         sock.connect(("255.255.255.255", 6767))
         (
             _,
             handler,
-        ) = await loop.create_datagram_endpoint(
-            lambda: TelemetryProtocol(), sock=sock
-        )
+        ) = await loop.create_datagram_endpoint(TelemetryProtocol, sock=sock)
 
         self.telemetry_framer = TelemetryFramer(sock=handler)
         print("Sending telemetry at 255.255.255.255:6767")
-
-        # self.telemetry_framer = TelemetryFramer(sock=self.telemetry_socket)
 
         start_time = asyncio.get_running_loop().time()
 
