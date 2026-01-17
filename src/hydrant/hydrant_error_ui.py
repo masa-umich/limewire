@@ -331,7 +331,9 @@ class EventLogListener:
     def create_protocol(self):
         return EventLogProtocol(self)
 
-    def log_to_UIs(self, recv_dt: datetime, log: FirmwareLog, addr: ipaddress.IPv4Address):
+    def log_to_UIs(
+        self, recv_dt: datetime, log: FirmwareLog, addr: ipaddress.IPv4Address
+    ):
         self.log_buffer.append((log, addr, recv_dt))
         for x in self.log_UIs:
             x[0].add_log(log, recv_dt=recv_dt, addr=addr, localtime=True)
@@ -373,10 +375,10 @@ class EventLogProtocol(asyncio.DatagramProtocol):
             try:
                 self.listener.trigger_eeprom_response(log)
             except Exception as err:
-                logger.error("Error triggering eeprom config response " + str(err))
-        logger.log("EVENT",
-            log.to_log() + f", IP: {addr[0]}"
-        )
+                logger.error(
+                    "Error triggering eeprom config response " + str(err)
+                )
+        logger.log("EVENT", log.to_log() + f", IP: {addr[0]}")
 
     def connection_lost(self, exc):
         self.open = False

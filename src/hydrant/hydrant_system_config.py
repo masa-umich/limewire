@@ -314,7 +314,9 @@ class ICD:
                             str(row["Max Pressure"]) == "N/A"
                             or str(row["Supply Voltage (V)"]) == "N/A"
                         ):
-                            logger.info("Skipping Flight Computer Fluctus channel")
+                            logger.info(
+                                "Skipping Flight Computer Fluctus channel"
+                            )
                             continue  # Special case for Fluctus channel
                         if (
                             pd.isna(row["Max Pressure"])
@@ -611,9 +613,7 @@ def create_tasks(client: sy.Synnax, frequency: int):
         )
 
     try:
-        digital_card = client.devices.retrieve(
-            model=digital_card_model
-        )
+        digital_card = client.devices.retrieve(model=digital_card_model)
         logger.info(
             " > Digital card '"
             + digital_card.make

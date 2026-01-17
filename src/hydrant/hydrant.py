@@ -39,7 +39,9 @@ class Hydrant:
                 try:
                     self.log_lookup = LogTable(log_table)
                 except Exception as err:
-                    logger.error("Failed to parse error lookup table " + str(err))
+                    logger.error(
+                        "Failed to parse error lookup table " + str(err)
+                    )
             else:
                 logger.error("Error lookup table file must be .csv")
         channels_file = (
@@ -91,7 +93,9 @@ class Hydrant:
                 logger.info(
                     f"Connecting to FC at {self.fc_address[0]}:{self.fc_address[1]}..."
                 )
-                self.fc_reader, self.fc_writer = await asyncio.wait_for(asyncio.open_connection(*self.fc_address), timeout=5.0)
+                self.fc_reader, self.fc_writer = await asyncio.wait_for(
+                    asyncio.open_connection(*self.fc_address), timeout=5.0
+                )
                 self.lmp_framer = LMPFramer(self.fc_reader, self.fc_writer)
                 logger.info("Connection successful.")
             except (ConnectionRefusedError, TimeoutError, OSError):
@@ -117,10 +121,12 @@ class Hydrant:
                 continue
 
     async def listen_for_acks(self):
-        #start = time.monotonic()
+        # start = time.monotonic()
         while True:
             try:
-                message = await asyncio.wait_for(self.lmp_framer.receive_message(), timeout=3.0)
+                message = await asyncio.wait_for(
+                    self.lmp_framer.receive_message(), timeout=3.0
+                )
             except (FramingError, ValueError) as err:
                 logger.error(str(err))
                 logger.opt(exception=err).debug("Traceback", exc_info=True)
@@ -136,7 +142,7 @@ class Hydrant:
                 history_entry.set_ack(datetime.now(), message.response_msg)
 
                 self.refresh_history_table()
-            
+
             """ if time.monotonic() - start > 1:
                 msg = HeartbeatMessage()
                 msg_bytes = bytes(msg)
@@ -169,7 +175,9 @@ class Hydrant:
                 ui.label("HYDRANT").classes(
                     "text-3xl font-extrabold tracking-wider"
                 )
-                ui.button("Send NTP sync", on_click=self.warn_send_ntp).classes("absolute right-5")
+                ui.button("Send NTP sync", on_click=self.warn_send_ntp).classes(
+                    "absolute right-5"
+                )
 
         # MAIN PAGE CONTENT
         with ui.row().classes("w-full mx-auto no-wrap") as main_page_content:
@@ -413,7 +421,9 @@ class Hydrant:
             .classes("rounded-sm") as fc_conn_stat
         ):
             self.fc_connection_status_list.append(fc_conn_stat)
-            fc_conn_stat.bind_visibility_from(self, "fc_connected", backward=lambda v: not v)
+            fc_conn_stat.bind_visibility_from(
+                self, "fc_connected", backward=lambda v: not v
+            )
             with ui.card().classes(
                 "bg-transparent text-white p-6 pl-4 shadow-lg"
             ):
@@ -501,9 +511,7 @@ class Hydrant:
             self.device_command_recency[(msg.board, msg.command)] = new_entry
         else:
             for x in self.fc_connection_status_list:
-                x.classes(
-                    add="animate-[flash-red_1s_ease-in-out_1]"
-                )
+                x.classes(add="animate-[flash-red_1s_ease-in-out_1]")
                 ui.timer(
                     1,
                     lambda: x.classes(

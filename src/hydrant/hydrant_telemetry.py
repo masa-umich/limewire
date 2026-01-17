@@ -1,8 +1,8 @@
 import asyncio
 import datetime
-from enum import Enum
 import socket
 import sys
+from enum import Enum
 
 from loguru import logger
 from nicegui import Client, ui
@@ -76,7 +76,7 @@ class BoardTelemetryUI:
                                     ).bind_text_from(
                                         self,
                                         self.channels[x],
-                                        backward=lambda v: f"{(v*1000):.5g}"
+                                        backward=lambda v: f"{(v * 1000):.5g}"
                                         if v is not None
                                         else " - ",
                                     )
@@ -171,7 +171,7 @@ class ValveOLD(Enum):
     En = -1,
     NoLoad = 0,
     Load = 1
-    
+
     @classmethod
     def from_telem(cls, val: float):
         if val == -1.0:
@@ -182,7 +182,6 @@ class ValveOLD(Enum):
             return ValveOLD.Load
         else:
             raise ValueError(f"OLD value is not 0, 1, or -1: {val}")
-
 
 
 class TelemetryListener:
@@ -212,8 +211,7 @@ class TelemetryListener:
                     self.transport,
                     self.handler,
                 ) = await loop.create_datagram_endpoint(
-                    self.create_protocol,
-                    sock=sock
+                    self.create_protocol, sock=sock
                 )
             except Exception as err:
                 logger.error(f"Error opening telemetry listener: {str(err)}")
