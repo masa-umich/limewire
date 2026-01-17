@@ -62,6 +62,7 @@ class LMPFramer:
         self.writer.close()
         await self.writer.wait_closed()
 
+
 class TelemetryProtocol(asyncio.DatagramProtocol):
     def __init__(self):
         super().__init__()
@@ -78,15 +79,30 @@ class TelemetryProtocol(asyncio.DatagramProtocol):
     def connection_lost(self, exc):
         self.open = False
 
+    def send_message(self, message: TelemetryMessage):
+        msg_bytes = bytes(message)
+        if self.transport and self.open:
+            # Send to default configured addr
+            try:
+                self.transport.sendto(
+                    len(msg_bytes).to_bytes(1) + msg_bytes,
+                    ("255.255.255.255", 6767),
+                )
+            except Exception as e:
+                print("NOOOO", e)
+        else:
+            print("Attempted to send on closed telemetry transport")
+
     async def wait_for_close(self):
         while self.open:
             await asyncio.sleep(0.5)
-    
+
     async def recvfrom(self):
         if self.open:
             return await self.packets.get()
         else:
             raise Exception("Telemetry UDP listener closed")
+
 
 class TelemetryFramer:
     """A class to handle framing/unframing telemetry data from a UDP socket."""
@@ -100,9 +116,10 @@ class TelemetryFramer:
         self.sock = sock
 
     def send_message(self, message: TelemetryMessage):
-        raise NotImplementedError("Can't send UDP over broadcast using this")
-        #msg_bytes = bytes(message)
-        #self.sock.sendto(len(msg_bytes).to_bytes(1) + msg_bytes)
+        # raise NotImplementedError("Can't send UDP over broadcast using this")
+        # msg_bytes = bytes(message)
+        self.sock.send_message(message)
+        # self.sock.sendto(len(msg_bytes).to_bytes(1) + msg_bytes)
 
     async def receive_message(self) -> TelemetryMessage:
         """Receive a message from the socket.
