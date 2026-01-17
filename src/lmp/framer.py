@@ -113,10 +113,7 @@ class TelemetryFramer:
         self.sock = sock
 
     def send_message(self, message: TelemetryMessage):
-        # raise NotImplementedError("Can't send UDP over broadcast using this")
-        # msg_bytes = bytes(message)
         self.sock.send_message(message)
-        # self.sock.sendto(len(msg_bytes).to_bytes(1) + msg_bytes)
 
     async def receive_message(self) -> TelemetryMessage:
         """Receive a message from the socket.
