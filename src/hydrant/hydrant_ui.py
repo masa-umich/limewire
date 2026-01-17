@@ -1027,7 +1027,9 @@ class SystemConfigUI:
                             "Error: configuration was started from a different source, "
                             + str(err)
                         )
-                        logger.warning("EEPROM config future was cancelled, moving on...")
+                        logger.warning(
+                            "EEPROM config future was cancelled, moving on..."
+                        )
                     except TimeoutError:
                         future_msg = "Timed out waiting for response"
                         logger.error(
@@ -1099,16 +1101,22 @@ class SystemConfigUI:
                                     + log.board.pretty_name
                                 )
                             else:
-                                logger.info("Successful response from Bay Board 1")
+                                logger.info(
+                                    "Successful response from Bay Board 1"
+                                )
                         else:
                             future_msg = log.message
-                            logger.error("Bay Board 1 config failed: " + log.message)
+                            logger.error(
+                                "Bay Board 1 config failed: " + log.message
+                            )
                     except asyncio.CancelledError as err:
                         future_msg = (
                             "Error: configuration was started from a different source, "
                             + str(err)
                         )
-                        logger.error("EEPROM config future was cancelled, moving on...")
+                        logger.error(
+                            "EEPROM config future was cancelled, moving on..."
+                        )
                     except TimeoutError:
                         future_msg = "Timed out waiting for response"
                         logger.error(
@@ -1180,16 +1188,22 @@ class SystemConfigUI:
                                     + log.board.pretty_name
                                 )
                             else:
-                                logger.info("Successful response from Bay Board 2")
+                                logger.info(
+                                    "Successful response from Bay Board 2"
+                                )
                         else:
                             future_msg = log.message
-                            logger.error("Bay Board 2 config failed: " + log.message)
+                            logger.error(
+                                "Bay Board 2 config failed: " + log.message
+                            )
                     except asyncio.CancelledError as err:
                         future_msg = (
                             "Error: configuration was started from a different source, "
                             + str(err)
                         )
-                        logger.error("EEPROM config future was cancelled, moving on...")
+                        logger.error(
+                            "EEPROM config future was cancelled, moving on..."
+                        )
                     except TimeoutError:
                         future_msg = "Timed out waiting for response"
                         logger.error(
@@ -1261,16 +1275,22 @@ class SystemConfigUI:
                                     + log.board.pretty_name
                                 )
                             else:
-                                logger.info("Successful response from Bay Board 3")
+                                logger.info(
+                                    "Successful response from Bay Board 3"
+                                )
                         else:
                             future_msg = log.message
-                            logger.error("Bay Board 3 config failed: " + log.message)
+                            logger.error(
+                                "Bay Board 3 config failed: " + log.message
+                            )
                     except asyncio.CancelledError as err:
                         future_msg = (
                             "Error: configuration was started from a different source, "
                             + str(err)
                         )
-                        logger.error("EEPROM config future was cancelled, moving on...")
+                        logger.error(
+                            "EEPROM config future was cancelled, moving on..."
+                        )
                     except TimeoutError:
                         future_msg = "Timed out waiting for response"
                         logger.error(
@@ -1346,7 +1366,9 @@ class SystemConfigUI:
                             "Error: configuration was started from a different source, "
                             + str(err)
                         )
-                        logger.error("EEPROM config future was cancelled, moving on...")
+                        logger.error(
+                            "EEPROM config future was cancelled, moving on..."
+                        )
                     except TimeoutError:
                         future_msg = "Timed out waiting for response"
                         logger.error(

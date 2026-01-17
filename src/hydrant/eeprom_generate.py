@@ -175,7 +175,7 @@ def send_eeprom_tftp(board: ipaddress.IPv4Address, content: bytes):
 
 
 def configure_fc(
-    pts, tcs, vlvs, gseip, fcip, bb1ip, bb2ip, bb3ip, frip, tftpip, log = logger
+    pts, tcs, vlvs, gseip, fcip, bb1ip, bb2ip, bb3ip, frip, tftpip, log=logger
 ):
     set_up_logging(False)
     eeprom_content = generate_fc_eeprom(
