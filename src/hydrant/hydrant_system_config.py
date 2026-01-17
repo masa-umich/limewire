@@ -6,8 +6,6 @@ import synnax as sy
 import synnax.ni as ni
 from loguru import logger
 
-from hydrant.logging import set_up_logging
-
 ICD_SHEET = "AVI Mappings 25-26"
 
 DEFAULT_GSE_IP = ipaddress.IPv4Address("141.212.192.160")
@@ -382,7 +380,6 @@ def calculate_tc_gain(range):
 
 
 def configure_ebox(channels) -> tuple[bool, str]:
-    set_up_logging(False)
     try:
         synnax_client = synnax_login(
             "127.0.0.1"

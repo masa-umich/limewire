@@ -7,8 +7,6 @@ from io import BytesIO
 import tftpy
 from loguru import logger
 
-from hydrant.logging import set_up_logging
-
 
 class ValveVoltage(Enum):
     V12 = 0  # 12V
@@ -177,7 +175,6 @@ def send_eeprom_tftp(board: ipaddress.IPv4Address, content: bytes):
 def configure_fc(
     pts, tcs, vlvs, gseip, fcip, bb1ip, bb2ip, bb3ip, frip, tftpip, log=logger
 ):
-    set_up_logging(False)
     eeprom_content = generate_fc_eeprom(
         pts, tcs, vlvs, gseip, fcip, bb1ip, bb2ip, bb3ip, frip
     )
@@ -185,12 +182,10 @@ def configure_fc(
 
 
 def configure_bb(bb_num, pts, tcs, vlvs, fcip, bbip, tftpip):
-    set_up_logging(False)
     eeprom_content = generate_bb_eeprom(bb_num, fcip, bbip, pts, tcs, vlvs)
     send_eeprom_tftp(tftpip, eeprom_content)
 
 
 def configure_fr(fcip, frip, tftpip):
-    set_up_logging(False)
     eeprom_content = generate_fr_eeprom(fcip, frip)
     send_eeprom_tftp(tftpip, eeprom_content)

@@ -168,9 +168,9 @@ def get_channel_unit(name: str):
 
 
 class ValveOLD(Enum):
-    En = (-1,)
-    NoLoad = (0,)
     Load = 1
+    NoLoad = 0
+    En = -1
 
     @classmethod
     def from_telem(cls, val: float):

@@ -4,7 +4,7 @@ import datetime
 import ipaddress
 
 from loguru import logger
-from nicegui import run, ui
+from nicegui import ui
 
 from lmp.firmware_log import FirmwareLog
 from lmp.util import Board
@@ -949,7 +949,7 @@ class SystemConfigUI:
                     self.ebox_prog_tooltip,
                     "Configuring, this may take a while...",
                 )
-                (result, msg) = await run.cpu_bound(
+                (result, msg) = await asyncio.to_thread(
                     configure_ebox, gse_channels
                 )
                 tooltip_msg = f"Used ICD '{ICD_name}'" + (
@@ -976,7 +976,7 @@ class SystemConfigUI:
                 eeprom_future = await self.log_listener.setup_future()
             self.set_board_tftp_in_progress(self.fc_prog_tooltip)
             try:
-                await run.cpu_bound(
+                await asyncio.to_thread(
                     configure_fc,
                     fc_PTs,
                     fc_TCs,
@@ -1066,7 +1066,7 @@ class SystemConfigUI:
                 eeprom_future = await self.log_listener.setup_future()
             self.set_board_tftp_in_progress(self.bb1_prog_tooltip)
             try:
-                await run.cpu_bound(
+                await asyncio.to_thread(
                     configure_bb,
                     1,
                     bb1_PTs,
@@ -1153,7 +1153,7 @@ class SystemConfigUI:
                 eeprom_future = await self.log_listener.setup_future()
             self.set_board_tftp_in_progress(self.bb2_prog_tooltip)
             try:
-                await run.cpu_bound(
+                await asyncio.to_thread(
                     configure_bb,
                     2,
                     bb2_PTs,
@@ -1240,7 +1240,7 @@ class SystemConfigUI:
                 eeprom_future = await self.log_listener.setup_future()
             self.set_board_tftp_in_progress(self.bb3_prog_tooltip)
             try:
-                await run.cpu_bound(
+                await asyncio.to_thread(
                     configure_bb,
                     3,
                     bb3_PTs,
@@ -1327,7 +1327,7 @@ class SystemConfigUI:
                 eeprom_future = await self.log_listener.setup_future()
             self.set_board_tftp_in_progress(self.fr_prog_tooltip)
             try:
-                await run.cpu_bound(configure_fr, fr_FCIP, fr_FRIP, fr_tftp)
+                await asyncio.to_thread(configure_fr, fr_FCIP, fr_FRIP, fr_tftp)
                 self.set_board_config_in_progress(self.fr_prog_tooltip)
                 logger.info(
                     "Flight Recorder config successfully sent, waiting for response."
