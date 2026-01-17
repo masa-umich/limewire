@@ -3,9 +3,12 @@ import json
 import pathlib
 from datetime import datetime
 
+from loguru import logger
 from nicegui import app, client, ui
 
+from hydrant.ntp_broadcast import send_all
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
+from lmp.framer import FramingError, LMPFramer
 from lmp.util import Board, DeviceCommand
 
 from .device_command_history import DeviceCommandHistoryEntry
@@ -36,9 +39,11 @@ class Hydrant:
                 try:
                     self.log_lookup = LogTable(log_table)
                 except Exception as err:
-                    print("Failed to parse error lookup table " + str(err))
+                    logger.error(
+                        "Failed to parse error lookup table " + str(err)
+                    )
             else:
-                print("Error lookup table file must be .csv")
+                logger.error("Error lookup table file must be .csv")
         channels_file = (
             pathlib.Path(__file__).parent.parent
             / "limewire"
@@ -57,7 +62,8 @@ class Hydrant:
         self.selected_board_name = None
         self.selected_command_name = None
 
-        self.start_fc_connection_status = False
+        self.fc_connected = False
+        self.fc_connection_status_list = []
 
         self.fc_writer = None
         self.fc_reader = None
@@ -78,71 +84,71 @@ class Hydrant:
         """Maintain connection to flight computer."""
         while True:
             self.fc_reader = None
-            self.fc_writer = None
+            if self.fc_writer is not None:
+                self.fc_writer.close()
+                await self.fc_writer.wait_closed()
+                self.fc_writer = None
+            self.fc_connected = False
             try:
-                self.start_fc_connection_status = False
-                self.fc_connection_status.set_visibility(True)
-            except AttributeError:
-                pass
-            try:
-                print(
+                logger.info(
                     f"Connecting to FC at {self.fc_address[0]}:{self.fc_address[1]}..."
                 )
-                self.fc_reader, self.fc_writer = await asyncio.open_connection(
-                    *self.fc_address
+                self.fc_reader, self.fc_writer = await asyncio.wait_for(
+                    asyncio.open_connection(*self.fc_address), timeout=5.0
                 )
-                print("Connection successful.")
+                self.lmp_framer = LMPFramer(self.fc_reader, self.fc_writer)
+                logger.info("Connection successful.")
             except (ConnectionRefusedError, TimeoutError, OSError):
                 await asyncio.sleep(1)
                 continue
 
-            try:
-                self.start_fc_connection_status = True
-                self.fc_connection_status.set_visibility(False)
-            except AttributeError:
-                pass
+            self.fc_connected = True
 
             fc_listen_task = asyncio.create_task(self.listen_for_acks())
 
             try:
                 await fc_listen_task
             except asyncio.CancelledError:
-                print("Hydrant cancelled.")
+                logger.info("Hydrant cancelled.")
                 self.fc_writer.close()
                 await self.fc_writer.wait_closed()
                 break
+            except asyncio.TimeoutError:
+                logger.info("FC disconnected")
+                continue
             except Exception as e:
-                print(f"Got exception: {e}")
+                logger.info(f"Got exception: {e}")
                 continue
 
     async def listen_for_acks(self):
+        # start = time.monotonic()
         while True:
-            while self.fc_reader is None:
-                await asyncio.sleep(0.5)
-            msg_length = await self.fc_reader.read(1)
-            if not msg_length:
-                break
-
-            msg_length = int.from_bytes(msg_length)
-            msg_bytes = await self.fc_reader.readexactly(msg_length)
-            if not msg_bytes:
-                break
-
-            msg_id = int.from_bytes(msg_bytes[0:1])
-            match msg_id:
-                case DeviceCommandAckMessage.MSG_ID:
-                    msg = DeviceCommandAckMessage.from_bytes(msg_bytes)
-
-                    history_entry = self.device_command_recency.get(
-                        (msg.board, msg.command)
-                    )
-                    if history_entry is None:
-                        continue
-                    history_entry.set_ack(datetime.now(), msg.response_msg)
-
-                    self.refresh_history_table()
-                case _:
+            try:
+                message = await asyncio.wait_for(
+                    self.lmp_framer.receive_message(), timeout=3.0
+                )
+            except (FramingError, ValueError) as err:
+                logger.error(str(err))
+                logger.opt(exception=err).debug("Traceback", exc_info=True)
+                continue
+            if not message:
+                continue
+            if type(message) is DeviceCommandAckMessage:
+                history_entry = self.device_command_recency.get(
+                    (message.board, message.command)
+                )
+                if history_entry is None:
                     continue
+                history_entry.set_ack(datetime.now(), message.response_msg)
+
+                self.refresh_history_table()
+
+            """ if time.monotonic() - start > 1:
+                msg = HeartbeatMessage()
+                msg_bytes = bytes(msg)
+                self.fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
+                await self.fc_writer.drain()
+                start = time.monotonic() """
 
     def main_page(self, client: client.Client):
         """Generates page outline and GUI"""
@@ -168,6 +174,9 @@ class Hydrant:
             with ui.row().classes("items-center gap-3"):
                 ui.label("HYDRANT").classes(
                     "text-3xl font-extrabold tracking-wider"
+                )
+                ui.button("Send NTP sync", on_click=self.warn_send_ntp).classes(
+                    "absolute right-5"
                 )
 
         # MAIN PAGE CONTENT
@@ -411,8 +420,10 @@ class Hydrant:
             )
             .classes("rounded-sm") as fc_conn_stat
         ):
-            self.fc_connection_status = fc_conn_stat
-            fc_conn_stat.set_visibility(not self.start_fc_connection_status)
+            self.fc_connection_status_list.append(fc_conn_stat)
+            fc_conn_stat.bind_visibility_from(
+                self, "fc_connected", backward=lambda v: not v
+            )
             with ui.card().classes(
                 "bg-transparent text-white p-6 pl-4 shadow-lg"
             ):
@@ -486,15 +497,11 @@ class Hydrant:
         self.board = self.boards_available[self.selected_board_name]
         self.command = self.commands_available[self.selected_command_name]
         if self.fc_writer:
-            msg = DeviceCommandMessage(self.board, self.command)
-            msg_bytes = bytes(msg)
-
-            print(
+            logger.info(
                 f"Sending {self.selected_command_name} to board {self.selected_board_name}"
             )
-            self.fc_writer.write(len(msg_bytes).to_bytes(1) + msg_bytes)
-            await self.fc_writer.drain()
-
+            msg = DeviceCommandMessage(self.board, self.command)
+            await self.lmp_framer.send_message(msg)
             new_entry = DeviceCommandHistoryEntry(
                 board=msg.board,
                 command=msg.command,
@@ -503,17 +510,16 @@ class Hydrant:
             self.device_command_history.append(new_entry)
             self.device_command_recency[(msg.board, msg.command)] = new_entry
         else:
-            self.fc_connection_status.classes(
-                add="animate-[flash-red_1s_ease-in-out_1]"
-            )
-            ui.timer(
-                1,
-                lambda: self.fc_connection_status.classes(
-                    remove="animate-[flash-red_1s_ease-in-out_1]"
-                ),
-                active=True,
-                once=True,
-            )
+            for x in self.fc_connection_status_list:
+                x.classes(add="animate-[flash-red_1s_ease-in-out_1]")
+                ui.timer(
+                    1,
+                    lambda: x.classes(
+                        remove="animate-[flash-red_1s_ease-in-out_1]"
+                    ),
+                    active=True,
+                    once=True,
+                )
         self.refresh_history_table()
 
     def refresh_history_table(self):
@@ -563,3 +569,24 @@ class Hydrant:
 
     def history_dict(self):
         return [entry.to_gui_dict() for entry in self.device_command_history]
+
+    async def send_ntp_after_warn(self, dialog):
+        dialog.close()
+        await send_all()
+
+    def warn_send_ntp(self):
+        with (
+            ui.dialog() as dialog,
+            ui.card().classes(
+                "w-100 h-30 flex flex-col justify-center items-center"
+            ),
+        ):
+            ui.button(icon="close", on_click=lambda e: dialog.close()).classes(
+                "absolute right-0 top-0 bg-transparent"
+            ).props('flat color="white" size="lg"')
+            ui.label("Confirm send NTP sync").classes("text-xl")
+            ui.button(
+                "Confirm",
+                on_click=lambda e: self.send_ntp_after_warn(dialog),
+            )
+            dialog.open()

@@ -5,6 +5,9 @@ from enum import Enum
 from io import BytesIO
 
 import tftpy
+from loguru import logger
+
+from hydrant.logging import set_up_logging
 
 
 class ValveVoltage(Enum):
@@ -108,7 +111,7 @@ def generate_bb_eeprom(
 def generate_fr_eeprom(
     fc_ip: ipaddress.IPv4Address, fr_ip: ipaddress.IPv4Address
 ):
-    print("Flight Recorder doesn't exist yet :(")
+    logger.warning("Flight Recorder doesn't exist yet :(")
     raise NotImplementedError(
         "Can't do this man, actually this shouldn't be possible"
     )
@@ -166,14 +169,15 @@ def generate_fc_eeprom(
 
 
 def send_eeprom_tftp(board: ipaddress.IPv4Address, content: bytes):
-    print("Sending eeprom config over TFTP to " + str(board))
+    logger.info("Sending eeprom config over TFTP to " + str(board))
     tftp_client = tftpy.TftpClient(str(board))
     tftp_client.upload("eeprom.bin", BytesIO(content))
 
 
 def configure_fc(
-    pts, tcs, vlvs, gseip, fcip, bb1ip, bb2ip, bb3ip, frip, tftpip
+    pts, tcs, vlvs, gseip, fcip, bb1ip, bb2ip, bb3ip, frip, tftpip, log=logger
 ):
+    set_up_logging(False)
     eeprom_content = generate_fc_eeprom(
         pts, tcs, vlvs, gseip, fcip, bb1ip, bb2ip, bb3ip, frip
     )
@@ -181,10 +185,12 @@ def configure_fc(
 
 
 def configure_bb(bb_num, pts, tcs, vlvs, fcip, bbip, tftpip):
+    set_up_logging(False)
     eeprom_content = generate_bb_eeprom(bb_num, fcip, bbip, pts, tcs, vlvs)
     send_eeprom_tftp(tftpip, eeprom_content)
 
 
 def configure_fr(fcip, frip, tftpip):
+    set_up_logging(False)
     eeprom_content = generate_fr_eeprom(fcip, frip)
     send_eeprom_tftp(tftpip, eeprom_content)

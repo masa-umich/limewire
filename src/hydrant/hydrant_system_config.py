@@ -3,7 +3,10 @@ from io import BytesIO
 
 import pandas as pd
 import synnax as sy
-from synnax.hardware import ni
+import synnax.ni as ni
+from loguru import logger
+
+from hydrant.logging import set_up_logging
 
 ICD_SHEET = "AVI Mappings 25-26"
 
@@ -311,7 +314,9 @@ class ICD:
                             str(row["Max Pressure"]) == "N/A"
                             or str(row["Supply Voltage (V)"]) == "N/A"
                         ):
-                            print("Skipping Flight Computer Fluctus channel")
+                            logger.info(
+                                "Skipping Flight Computer Fluctus channel"
+                            )
                             continue  # Special case for Fluctus channel
                         if (
                             pd.isna(row["Max Pressure"])
@@ -377,6 +382,7 @@ def calculate_tc_gain(range):
 
 
 def configure_ebox(channels) -> tuple[bool, str]:
+    set_up_logging(False)
     try:
         synnax_client = synnax_login(
             "127.0.0.1"
@@ -394,27 +400,27 @@ def configure_ebox(channels) -> tuple[bool, str]:
 def setup_channels(
     client: sy.Synnax, channels, analog_task, digital_task, analog_card
 ):
-    print("Creating channels in Synnax")
+    logger.info("Creating channels in Synnax")
     # yes_to_all = False # create new synnax channels for all items in the sheet?
 
     for channel in channels:
         if channel["type"] == "PT":
-            print(f" > Creating PT: {channel['name']}")
+            logger.info(f" > Creating PT: {channel['name']}")
             setup_pt(client, channel, analog_task, analog_card)
         elif channel["type"] == "VLV":
-            print(f" > Creating VLV: {channel['name']}")
+            logger.info(f" > Creating VLV: {channel['name']}")
             setup_vlv(client, channel, digital_task)
         elif channel["type"] == "TC":
-            print(f" > Creating TC: {channel['name']}")
+            logger.info(f" > Creating TC: {channel['name']}")
             setup_tc(client, channel, analog_task, analog_card)
         elif channel["type"] == "Thermistor":
-            print(" > Creating Thermistor")
+            logger.info(" > Creating Thermistor")
             setup_thermistor(client, channel, analog_task, analog_card)
         else:
             raise Exception(
                 f"Sensor type {channel['type']} in channels dict not recognized (issue with the script)"
             )
-    print(" > Successfully created channels in Synnax")
+    logger.info(" > Successfully created channels in Synnax")
 
 
 def setup_pt(client: sy.Synnax, channel, analog_task, analog_card):
@@ -588,11 +594,11 @@ def synnax_login(cluster: str) -> sy.Synnax:
 
 
 def create_tasks(client: sy.Synnax, frequency: int):
-    print("Creating tasks...")
-    print(" > Scanning for cards...")
+    logger.info("Creating tasks...")
+    logger.info(" > Scanning for cards...")
     try:
-        analog_card = client.hardware.devices.retrieve(model=analog_card_model)
-        print(
+        analog_card = client.devices.retrieve(model=analog_card_model)
+        logger.info(
             " > Analog card '"
             + analog_card.make
             + " "
@@ -607,10 +613,8 @@ def create_tasks(client: sy.Synnax, frequency: int):
         )
 
     try:
-        digital_card = client.hardware.devices.retrieve(
-            model=digital_card_model
-        )
-        print(
+        digital_card = client.devices.retrieve(model=digital_card_model)
+        logger.info(
             " > Digital card '"
             + digital_card.make
             + " "
@@ -626,6 +630,7 @@ def create_tasks(client: sy.Synnax, frequency: int):
 
     analog_task = ni.AnalogReadTask(
         name=analog_task_name,
+        device=analog_card.key,
         sample_rate=sy.Rate.HZ * frequency,
         stream_rate=sy.Rate.HZ * frequency / 2,
         data_saving=True,
@@ -644,21 +649,21 @@ def create_tasks(client: sy.Synnax, frequency: int):
 
 
 def configure_tasks(client: sy.Synnax, analog_task, digital_task):
-    print("Configuring tasks... (this may take a while)")
+    logger.info("Configuring tasks... (this may take a while)")
 
     if (
         analog_task.config.channels != []
     ):  # only configure if there are channels
-        print(" > Attempting to configure analog task")
-        client.hardware.tasks.configure(
+        logger.info(" > Attempting to configure analog task")
+        client.tasks.configure(
             task=analog_task, timeout=6000
         )  # long timeout cause our NI hardware is dumb
-        print(" > Successfully configured analog task!")
+        logger.info(" > Successfully configured analog task!")
     if digital_task.config.channels != []:
-        print(" > Attempting to configure digital task")
-        client.hardware.tasks.configure(task=digital_task, timeout=500)
-        print(" > Successfully configured digital task!")
-    print(" > All tasks have been successfully created!")
+        logger.info(" > Attempting to configure digital task")
+        client.tasks.configure(task=digital_task, timeout=500)
+        logger.info(" > Successfully configured digital task!")
+    logger.info(" > All tasks have been successfully created!")
 
 
 class ICDException(Exception):

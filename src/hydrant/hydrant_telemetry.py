@@ -1,7 +1,10 @@
 import asyncio
 import datetime
+import socket
+import sys
 from enum import Enum
 
+from loguru import logger
 from nicegui import Client, ui
 
 from lmp.telemetry import TelemetryMessage
@@ -73,7 +76,7 @@ class BoardTelemetryUI:
                                     ).bind_text_from(
                                         self,
                                         self.channels[x],
-                                        backward=lambda v: f"{(v*1000):.5g}"
+                                        backward=lambda v: f"{(v * 1000):.5g}"
                                         if v is not None
                                         else " - ",
                                     )
@@ -168,7 +171,7 @@ class ValveOLD(Enum):
     En = -1,
     NoLoad = 0,
     Load = 1
-    
+
     @classmethod
     def from_telem(cls, val: float):
         if val == -1.0:
@@ -179,7 +182,6 @@ class ValveOLD(Enum):
             return ValveOLD.Load
         else:
             raise ValueError(f"OLD value is not 0, 1, or -1: {val}")
-
 
 
 class TelemetryListener:
@@ -199,15 +201,20 @@ class TelemetryListener:
         while True:
             try:
                 loop = asyncio.get_event_loop()
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                if sys.platform != "win32":
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                sock.bind(("0.0.0.0", TELEM_PORT))
                 (
                     self.transport,
                     self.handler,
                 ) = await loop.create_datagram_endpoint(
-                    self.create_protocol,
-                    ("0.0.0.0", TELEM_PORT),
+                    self.create_protocol, sock=sock
                 )
             except Exception as err:
-                print(f"Error opening telemetry listener: {str(err)}")
+                logger.error(f"Error opening telemetry listener: {str(err)}")
                 await asyncio.sleep(1)
                 continue
 
@@ -215,10 +222,10 @@ class TelemetryListener:
                 if self.handler is not None:
                     await self.handler.wait_for_close()
             except asyncio.CancelledError:
-                print("Telemetry listener cancelled.")
+                logger.warning("Telemetry listener cancelled.")
                 break
             except Exception as e:
-                print(f"Got exception: {e}")
+                logger.error(f"Got exception: {e}")
                 continue
 
     def create_protocol(self):
@@ -245,7 +252,7 @@ class TelemetryProtocol(asyncio.DatagramProtocol):
             telemetry_msg = TelemetryMessage.from_bytes(data[1:])
             self.listener.send_to_UIs(telemetry_msg)
         except Exception as e:
-            print("Invalid telemetry message: " + str(e))
+            logger.error("Invalid telemetry message: " + str(e))
 
     def connection_lost(self, exc):
         self.open = False

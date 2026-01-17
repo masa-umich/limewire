@@ -2,8 +2,10 @@ import os
 import pathlib
 
 import click
+from loguru import logger
 from nicegui import app, ui
 
+from hydrant.logging import set_up_logging
 from limewire.util import SocketAddress
 
 from .hydrant import Hydrant
@@ -18,8 +20,17 @@ from .hydrant import Hydrant
     default=None,
     type=click.Path(exists=True, dir_okay=False, path_type=pathlib.Path),
 )
-def main(fc_address: tuple[str, int], log_table: pathlib.Path):
-    print("! HYDRANT RUNNING !")
+@click.option("--debug", is_flag=True)
+def main(fc_address: tuple[str, int], log_table: pathlib.Path, debug: bool):
+    set_up_logging(debug, True)
+    if debug:
+        logger.info(
+            f"Hydrant running with FC address: {fc_address[0]}:{fc_address[1]}"
+        )
+    else:
+        logger.info(
+            f"Hydrant running with FC address: {fc_address[0]}:{fc_address[1]} {f'and log table {log_table}' if log_table is not None else ''}"
+        )
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
