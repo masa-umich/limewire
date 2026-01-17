@@ -1,11 +1,10 @@
 import asyncio
 import platform
-from asyncio.streams import StreamReader, StreamWriter
-from contextlib import asynccontextmanager
 import socket
 import sys
+from asyncio.streams import StreamReader, StreamWriter
+from contextlib import asynccontextmanager
 
-import asyncudp
 import synnax as sy
 from loguru import logger
 
@@ -91,8 +90,7 @@ class Limewire:
                     transport,
                     handler,
                 ) = await loop.create_datagram_endpoint(
-                    TelemetryProtocol,
-                    sock=sock
+                    TelemetryProtocol, sock=sock
                 )
                 self.telemetry_framer = TelemetryFramer(handler)
                 logger.info("Listening for telemetry on UDP port 6767")
