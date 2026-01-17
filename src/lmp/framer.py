@@ -83,13 +83,10 @@ class TelemetryProtocol(asyncio.DatagramProtocol):
         msg_bytes = bytes(message)
         if self.transport and self.open:
             # Send to default configured addr
-            try:
-                self.transport.sendto(
-                    len(msg_bytes).to_bytes(1) + msg_bytes,
-                    ("255.255.255.255", 6767),
-                )
-            except Exception as e:
-                print("NOOOO", e)
+            self.transport.sendto(
+                len(msg_bytes).to_bytes(1) + msg_bytes,
+                ("255.255.255.255", 6767),
+            )
         else:
             print("Attempted to send on closed telemetry transport")
 
