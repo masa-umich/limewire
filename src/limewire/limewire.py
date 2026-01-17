@@ -240,6 +240,10 @@ class Limewire:
         Returns:
             The number of telemetry values processed.
         """
+
+        # Timeout in seconds for no data received
+        READ_TIMEOUT = 5.0
+
         while True:
             if self.lmp_framer is None:
                 # Yield control back to runtime
@@ -247,18 +251,38 @@ class Limewire:
                 continue
 
             try:
-                message = await self.lmp_framer.receive_message()
+                # Use wait_for to implement a timeout on receive_message
+                message = await asyncio.wait_for(
+                    self.lmp_framer.receive_message(),
+                    timeout=READ_TIMEOUT
+                )
+
+            except asyncio.TimeoutError:
+                # No data received for READ_TIMEOUT seconds
+                logger.error(
+                    f"No data received from flight computer for {READ_TIMEOUT} seconds. "
+                    "Connection may be lost."
+                )
+                raise ConnectionResetError(
+                    f"Flight computer read timeout: no data for {READ_TIMEOUT} seconds"
+                )
+
             except (FramingError, ValueError) as err:
                 logger.error(str(err))
                 logger.opt(exception=err).debug("Traceback: ", exc_info=True)
                 continue
 
             if message is None:
+                # This indicates the connection was closed gracefully
+                logger.info("Flight computer closed the connection.")
                 break
 
             if type(message) is ValveStateMessage:
                 await self.queue.put(message)
+            elif type(message) is HeartbeatMessage:
+                logger.debug("Received heartbeat response from flight computer")
             else:
+                logger.warning(f"Received unexpected message type: {type(message)}")
                 pass
                 # TODO: log warning
 
