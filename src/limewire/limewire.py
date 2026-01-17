@@ -87,11 +87,10 @@ class Limewire:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
                 sock.bind(("0.0.0.0", 6767))
                 (
-                    transport,
+                    _,  # transport
                     handler,
                 ) = await loop.create_datagram_endpoint(
-                    TelemetryProtocol,
-                    sock=sock
+                    TelemetryProtocol, sock=sock
                 )
                 self.telemetry_framer = TelemetryFramer(handler)
                 logger.info("Listening for telemetry on UDP port 6767")
@@ -252,8 +251,7 @@ class Limewire:
             try:
                 # Use wait_for to implement a timeout on receive_message
                 message = await asyncio.wait_for(
-                    self.lmp_framer.receive_message(),
-                    timeout=READ_TIMEOUT
+                    self.lmp_framer.receive_message(), timeout=READ_TIMEOUT
                 )
 
             except asyncio.TimeoutError:
@@ -281,7 +279,9 @@ class Limewire:
             elif type(message) is HeartbeatMessage:
                 logger.debug("Received heartbeat response from flight computer")
             else:
-                logger.warning(f"Received unexpected message type: {type(message)}")
+                logger.warning(
+                    f"Received unexpected message type: {type(message)}"
+                )
                 pass
                 # TODO: log warning
 

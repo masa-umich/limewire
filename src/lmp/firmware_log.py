@@ -38,8 +38,8 @@ class FirmwareLog:
             log_str = log_bytes.decode().strip()
         except UnicodeDecodeError:
             raise ValueError("Message not ASCII-encoded.")
-        
-        if log_str[-1] == '\0':
+
+        if log_str[-1] == "\0":
             log_str = log_str[:-1]
 
         timestamp = None  # default if no timestamp is given
