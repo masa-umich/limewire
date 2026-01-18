@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime
 
 from loguru import logger
 from platformdirs import user_log_dir
@@ -7,7 +8,9 @@ from platformdirs import user_log_dir
 
 def set_up_logging(debug: bool):
     log_dir = user_log_dir("limewire", "masa", ensure_exists=True)
-    log_file_path = os.path.join(log_dir, "limewire.log")
+    log_file_path = os.path.join(
+        log_dir, f"limewire_{datetime.now().strftime('%Y-%m-%d')}.log"
+    )
 
     log_format = "<green>{time}</> <level>{level}</> {message}"
     log_level = "DEBUG" if debug else "INFO"

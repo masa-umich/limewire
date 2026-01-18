@@ -572,7 +572,7 @@ class Hydrant:
 
     async def send_ntp_after_warn(self, dialog):
         dialog.close()
-        await send_all()
+        await asyncio.to_thread(send_all)
 
     def warn_send_ntp(self):
         with (
