@@ -710,7 +710,7 @@ class SystemConfigUI:
             logger.error("Error while processing ICD")
             logger.opt(exception=e).debug("Traceback", exc_info=True)
             with (
-                ui.dialog().props("persistent") as dialog,
+                ui.dialog().props("") as dialog,
                 ui.card().classes(
                     "bg-[#990000] w-250 h-40 flex flex-col justify-center items-center"
                 ),
@@ -729,7 +729,7 @@ class SystemConfigUI:
             logger.error("Value error while processing ICD")
             logger.opt(exception=e).debug("Traceback", exc_info=True)
             with (
-                ui.dialog().props("persistent").classes("") as dialog,
+                ui.dialog().props("").classes("") as dialog,
                 ui.card().classes(
                     "bg-[#990000] max-w-[90vw] h-60 flex flex-col justify-center items-center"
                 ),

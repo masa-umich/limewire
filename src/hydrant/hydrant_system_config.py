@@ -87,8 +87,8 @@ class ICD:
                     if row["Name"] == "":
                         continue
                     try:
-                        if "Margin" in row["Name"]:
-                            continue
+                        #if "Margin" in row["Name"]:
+                        #    continue
                         if "Broken Channel" in row["Name"]:
                             continue
                     except Exception:
