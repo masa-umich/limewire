@@ -270,8 +270,7 @@ class Limewire:
                 continue
 
             if message is None:
-                # This indicates the connection was closed gracefully
-                logger.info("Flight computer closed the connection.")
+                logger.error("None type message received. Closing. ")
                 break
 
             if type(message) is ValveStateMessage:
@@ -283,7 +282,6 @@ class Limewire:
                     f"Received unexpected message type: {type(message)}"
                 )
                 pass
-                # TODO: log warning
 
     async def _fc_telemetry_listen(self):
         """Listen for telemetry messages."""
