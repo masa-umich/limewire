@@ -3,7 +3,7 @@ import pathlib
 
 import click
 from loguru import logger
-from nicegui import app, ui, binding
+from nicegui import app, binding, ui
 
 from hydrant.logging import set_up_logging
 from limewire.util import SocketAddress
