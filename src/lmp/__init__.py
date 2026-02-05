@@ -6,6 +6,7 @@ __all__ = [
     "ValveStateMessage",
     "DeviceCommandMessage",
     "DeviceCommandAckMessage",
+    "HandoffMessage",
     "HeartbeatMessage",
     "LMPMessage",
     "TelemetryFramer",
@@ -17,6 +18,7 @@ from .device_command import (
     DeviceCommandMessage,
 )
 from .framer import LMPFramer, LMPMessage, TelemetryFramer
+from .handoff import HandoffMessage
 from .heartbeat import HeartbeatMessage
 from .telemetry import TelemetryMessage
 from .util import Board, Valve

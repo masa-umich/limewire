@@ -1,6 +1,7 @@
 import asyncio
 
 from .device_command import DeviceCommandAckMessage, DeviceCommandMessage
+from .handoff import HandoffMessage
 from .heartbeat import HeartbeatMessage
 from .telemetry import TelemetryMessage
 from .valve import ValveCommandMessage, ValveStateMessage
@@ -12,6 +13,7 @@ type LMPMessage = (
     | TelemetryMessage
     | ValveCommandMessage
     | ValveStateMessage
+    | HandoffMessage
 )
 
 
