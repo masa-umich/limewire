@@ -9,6 +9,7 @@ import synnax as sy
 from loguru import logger
 
 from lmp import (
+    HandoffMessage,
     HeartbeatMessage,
     LMPFramer,
     LMPMessage,
@@ -22,6 +23,8 @@ from lmp.framer import FramingError, TelemetryProtocol
 
 from .ntp_sync import send_ntp_sync
 from .util import (
+    FlightPhase,
+    SwitchNetwork,
     get_write_time_channel_name,
     is_valve_command_channel,
     synnax_init,
@@ -42,20 +45,33 @@ class Limewire:
     overwrite_timestamps: bool
     connected: bool
 
-    def __init__(self, overwrite_timestamps: bool = False) -> None:
+    def __init__(
+        self,
+        fc_addr: tuple[str, int],
+        gs_addr: tuple[str, int],
+        overwrite_timestamps: bool = False,
+    ) -> None:
         logger.info(
             f"Limewire started (overwrite_timestamps={overwrite_timestamps})."
         )
 
         self.synnax_client, self.channels = synnax_init()
         self.synnax_writer = None
+
         self.lmp_framer = None
         self.telemetry_framer = None
         self.queue = asyncio.Queue()
         self.overwrite_timestamps = overwrite_timestamps
-        self.connected = False
 
-    async def start(self, fc_addr: tuple[str, int]) -> None:
+        self.connected = False
+        self.configs = {
+            FlightPhase.ETHERNET: fc_addr,
+            FlightPhase.RADIO: gs_addr,
+        }
+        self.current_phase = FlightPhase.ETHERNET  # Default is ethernet
+        self.handoff_channel = "handoff_channel"
+
+    async def start(self) -> None:
         """Open a connection to the flight computer and start Limewire.
 
         Args:
@@ -103,14 +119,15 @@ class Limewire:
                 # telemetry message timestamps.
                 send_ntp_sync(logger)
 
+                conn_addr = self.configs[self.current_phase]
                 try:
                     logger.info(
-                        f"Connecting to flight computer at {fc_addr[0]}:{fc_addr[1]}..."
+                        f"Connecting to flight computer at {conn_addr[0]}:{conn_addr[1]}..."
                     )
 
                     async with asyncio.timeout(5):
                         tcp_reader, tcp_writer = await self._connect_fc(
-                            *fc_addr
+                            *conn_addr
                         )
                         self.lmp_framer = LMPFramer(tcp_reader, tcp_writer)
                         self.connected = True
@@ -144,13 +161,23 @@ class Limewire:
                 try:
                     # Set up async tasks
                     async with asyncio.TaskGroup() as tg:
+                        # Only needed before handoff
+                        if self.current_phase == FlightPhase.ETHERNET:
+                            tg.create_task(self._relay_valve_cmds())
+                            # GFC doesn't need to know that limewire is alive
+                            tg.create_task(self._send_heartbeat())
+
+                        # Needed before/after handoff
+                        # I think we'll need this so that limewire knows gs is up
                         tg.create_task(self._fc_tcp_read())
+                        tg.create_task(self._listen_handoff_channel())
                         tg.create_task(self._fc_telemetry_listen())
                         tg.create_task(self._synnax_write())
-                        tg.create_task(self._relay_valve_cmds())
-                        tg.create_task(self._send_heartbeat())
                 except* ConnectionResetError:
                     logger.error("Connection to flight computer lost.")
+                    reconnect = True
+                except* SwitchNetwork:
+                    logger.error("Switching connection to ", self.current_phase)
                     reconnect = True
                 except* OSError as eg:
                     for err in eg.exceptions:
@@ -403,6 +430,32 @@ class Limewire:
         )
 
         return writer
+
+    async def _listen_handoff_channel(self):
+        """Signal handoff (ethernet to radio) to the FC"""
+        # TODO: I assume you just check the channel continuously. Does this end this run when exception is raised
+        async with await self.synnax_client.open_async_streamer(
+            "handoff_channel"
+        ) as streamer:
+            async for frame in streamer:
+                for _, series in frame.items():
+                    signal = series[-1]
+                    msg = HandoffMessage(signal)
+                    if self.lmp_framer is None:
+                        continue
+
+                    await self.lmp_framer.send_message(msg)
+                    if (
+                        self.current_phase == FlightPhase.ETHERNET
+                        and signal == 1
+                    ):
+                        self.current_phase = FlightPhase.RADIO
+                        raise SwitchNetwork()
+                    elif (
+                        self.current_phase == FlightPhase.RADIO and signal == 0
+                    ):
+                        self.current_phase = FlightPhase.ETHERNET
+                        raise SwitchNetwork()
 
     async def _relay_valve_cmds(self):
         """Relay valve commands from Synnax to the flight computer."""

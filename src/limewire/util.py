@@ -6,6 +6,7 @@ import json
 import os
 import re
 import sys
+from enum import Enum
 from pathlib import Path
 from typing import override
 
@@ -45,6 +46,15 @@ class SocketAddress(click.ParamType):
         return ip, port
 
 
+class FlightPhase(Enum):
+    ETHERNET = "Ethernet"
+    RADIO = "Radio"
+
+
+class SwitchNetwork(Exception):
+    pass
+
+
 def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     """Load channels.json and retrieve channels from Synnax.
 
@@ -61,8 +71,10 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     SYNNAX_PORT = int(os.getenv("SYNNAX_PORT") or 9090)
     SYNNAX_USERNAME = os.getenv("SYNNAX_USERNAME") or "synnax"
     SYNNAX_PASSWORD = os.getenv("SYNNAX_PASSWORD") or "seldon"
-    SYNNAX_SECURE = bool(os.getenv("SYNNAX_SECURE") or False)
-    LIMEWIRE_DEV_SYNNAX = bool(os.getenv("LIMEWIRE_DEV_SYNNAX") or False)
+    SYNNAX_SECURE = False  # bool(os.getenv("SYNNAX_SECURE") or False)
+    LIMEWIRE_DEV_SYNNAX = (
+        False  # bool(os.getenv("LIMEWIRE_DEV_SYNNAX") or False)
+    )
 
     try:
         client = sy.Synnax(
