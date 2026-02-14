@@ -395,5 +395,8 @@
         "fr_bar_2",
         "fr_board_temp",
         "fr_limewire_write_time"
+    ],
+    "handoff_timestamp": [
+        "handoff_channel"
     ]
 }
