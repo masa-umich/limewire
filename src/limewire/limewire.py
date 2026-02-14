@@ -326,7 +326,12 @@ class Limewire:
                 await asyncio.sleep(0)
                 continue
 
-            message = await telemetry_framer.receive_message()
+            try:
+                message = await self.telemetry_framer.receive_message()
+            except (FramingError, ValueError) as err:
+                logger.error(str(err))
+                logger.opt(exception=err).debug("Traceback: ", exc_info=True)
+                continue
 
             if self.overwrite_timestamps:
                 message.timestamp = sy.TimeStamp.now()

@@ -19,6 +19,7 @@ from lmp import (
     ValveStateMessage,
 )
 from lmp.framer import TelemetryProtocol
+from lmp.handoff import ControlSignal
 from lmp.util import DeviceCommand
 
 
@@ -138,9 +139,31 @@ class FCSimulator:
             if not response_msg:
                 continue
 
-            if response_msg.MSG_ID == HandoffMessage.MSG_ID:
+            if (
+                response_msg.MSG_ID == HandoffMessage.MSG_ID
+                and type(response_msg) is HandoffMessage
+            ):
                 # Handoff is happening
-                raise SwitchNetwork()
+                if (
+                    response_msg.confirmation_seq
+                    != HandoffMessage.DEFAULT_CONFIRMATION_SEQ
+                ):
+                    continue
+
+                if (
+                    self.config == FlightPhase.ETHERNET
+                    and response_msg.control_signal == ControlSignal.HANDOFF
+                ):
+                    self.config = FlightPhase.RADIO
+                    raise SwitchNetwork()
+                elif (
+                    self.config == FlightPhase.RADIO
+                    and response_msg.control_signal == ControlSignal.ABORT
+                ):
+                    self.config = FlightPhase.ETHERNET
+                    raise SwitchNetwork()
+                else:
+                    continue
 
             response_bytes = bytes(response_msg)
             writer.write(len(response_bytes).to_bytes(1) + response_bytes)
@@ -204,9 +227,12 @@ class FCSimulator:
         self.tcp_aborted = False
 
         listen_task = asyncio.create_task(self.handle_commands(reader, writer))
-        # handoff_task = asyncio.create_task(self.handle_handoff(reader, writer))
 
-        await listen_task
+        try:
+            await listen_task
+        except SwitchNetwork:
+            self.switch = True
+            self.server.close()
 
         if not self.tcp_aborted:
             writer.close()
@@ -230,23 +256,31 @@ class FCSimulator:
         # expects a function with only two arguments. functools.partial()
         # "fills in" the run_time argument for us and returns a new function
         # with only the two expected arguments.
-        try:
-            server = await asyncio.start_server(
+        while True:
+            self.switch = False
+            self.server = await asyncio.start_server(
                 partial(self.handle_client, run_time=self.run_time),
                 *self.configs[self.config],
             )
 
-            addr = server.sockets[0].getsockname()
-            print(f"Serving on {format_socket_address(addr)}.")
+            addr = self.server.sockets[0].getsockname()
+            print(
+                f"Serving on {format_socket_address(addr)}. Config: {self.config.value}"
+            )
 
-            async with server:
-                await server.serve_forever()
+            try:
+                async with self.server:
+                    await self.server.serve_forever()
 
-            await telemetry_task
+                print("Restarting telemetry task")
+                await telemetry_task
 
-            while True:
-                self.log_socket.sendto(
-                    b"Hello, world!\r\n", ("127.0.0.1", self.UDP_PORT)
-                )
-        except SwitchNetwork:
-            print("Switching networks")
+                while True:
+                    self.log_socket.sendto(
+                        b"Hello, world!\r\n", ("127.0.0.1", self.UDP_PORT)
+                    )
+            except asyncio.CancelledError:
+                if self.switch:
+                    continue
+                else:
+                    break

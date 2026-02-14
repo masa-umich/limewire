@@ -62,9 +62,9 @@ class BoardTelemetryUI:
                                     ).bind_text_from(
                                         self,
                                         self.channels[x],
-                                        backward=lambda v: v.name
-                                        if v is not None
-                                        else " - ",
+                                        backward=lambda v: (
+                                            v.name if v is not None else " - "
+                                        ),
                                     )
                                     ui.label("")
                                 elif "current" in self.channels[x]:
@@ -76,9 +76,11 @@ class BoardTelemetryUI:
                                     ).bind_text_from(
                                         self,
                                         self.channels[x],
-                                        backward=lambda v: f"{(v * 1000):.5g}"
-                                        if v is not None
-                                        else " - ",
+                                        backward=lambda v: (
+                                            f"{(v * 1000):.5g}"
+                                            if v is not None
+                                            else " - "
+                                        ),
                                     )
                                     ui.label(get_channel_unit(self.channels[x]))
                                 else:
@@ -90,9 +92,11 @@ class BoardTelemetryUI:
                                     ).bind_text_from(
                                         self,
                                         self.channels[x],
-                                        backward=lambda v: f"{v:.5g}"
-                                        if v is not None
-                                        else " - ",
+                                        backward=lambda v: (
+                                            f"{v:.5g}"
+                                            if v is not None
+                                            else " - "
+                                        ),
                                     )
                                     ui.label(get_channel_unit(self.channels[x]))
 

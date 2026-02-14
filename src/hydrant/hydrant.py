@@ -232,16 +232,18 @@ class Hydrant:
                                             options=list(
                                                 self.boards_available.keys()
                                             ),
-                                            on_change=lambda e: self.command_select.set_options(
-                                                [
-                                                    cmd.name
-                                                    for cmd in DeviceCommand
-                                                    if cmd.available_on_board(
-                                                        self.boards_available[
-                                                            self.board_select.value
-                                                        ]
-                                                    )
-                                                ]
+                                            on_change=lambda e: (
+                                                self.command_select.set_options(
+                                                    [
+                                                        cmd.name
+                                                        for cmd in DeviceCommand
+                                                        if cmd.available_on_board(
+                                                            self.boards_available[
+                                                                self.board_select.value
+                                                            ]
+                                                        )
+                                                    ]
+                                                )
                                             ),
                                         ).classes("w-full")
                                         # Command
@@ -257,13 +259,17 @@ class Hydrant:
                                             with ui.row():
                                                 ui.button(
                                                     "YES",
-                                                    on_click=lambda: self.send_after_confirm(
-                                                        dialog
+                                                    on_click=lambda: (
+                                                        self.send_after_confirm(
+                                                            dialog
+                                                        )
                                                     ),
                                                 )
                                                 ui.button(
                                                     "NO",
-                                                    on_click=lambda: dialog.close(),
+                                                    on_click=lambda: (
+                                                        dialog.close()
+                                                    ),
                                                 )
                                         ui.button(
                                             "SEND",
