@@ -6,7 +6,6 @@ import json
 import os
 import re
 import sys
-from enum import Enum
 from pathlib import Path
 from typing import override
 

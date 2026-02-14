@@ -18,6 +18,7 @@ from lmp import (
     ValveStateMessage,
 )
 from lmp.framer import FramingError
+from lmp.handoff import ControlSignal
 
 from ..utils.connection_utils import setup_udp_listener
 from ..utils.limewire_utils import (
@@ -41,11 +42,6 @@ class FlightPhase(Enum):
     GROUND_IDLE = "Ethernet"  # Phase 0
     LAUNCH_PRIMED = "Handoff"  # Phase 1
     FLIGHT = "Radio"  # Phase 2
-
-
-class ControlSignal(Enum):
-    HANDOFF = 1.0
-    ABORT = 0.0
 
 
 class Limewire:

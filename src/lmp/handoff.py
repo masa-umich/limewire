@@ -1,4 +1,9 @@
-from limewire.util import ControlSignal
+from enum import Enum
+
+
+class ControlSignal(Enum):
+    HANDOFF = 1.0
+    ABORT = 0.0
 
 
 class HandoffMessage:
