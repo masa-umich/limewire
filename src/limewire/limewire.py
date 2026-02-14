@@ -126,7 +126,7 @@ class Limewire:
                     self.state == FlightPhase.GROUND_IDLE
                     or self.state == FlightPhase.LAUNCH_PRIMED
                 ):
-                    connected = self._connect_fc(
+                    connected = await self._connect_fc(
                         self.fc_addr[0], self.fc_addr[1]
                     )
                     if not connected:
