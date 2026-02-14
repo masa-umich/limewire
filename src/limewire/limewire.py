@@ -1,9 +1,7 @@
 import asyncio
 import platform
-import socket
-import sys
-from asyncio.streams import StreamReader, StreamWriter
 from contextlib import asynccontextmanager
+from enum import Enum
 
 import synnax as sy
 from loguru import logger
@@ -19,25 +17,42 @@ from lmp import (
     ValveCommandMessage,
     ValveStateMessage,
 )
-from lmp.framer import FramingError, TelemetryProtocol
+from lmp.framer import FramingError
 
-from .ntp_sync import send_ntp_sync
-from .util import (
-    FlightPhase,
-    SwitchNetwork,
-    get_write_time_channel_name,
+from ..utils.connection_utils import setup_udp_listener
+from ..utils.limewire_utils import (
     is_valve_command_channel,
     synnax_init,
 )
+from ..utils.synnax_framer import SynnaxFramer
+from .ntp_sync import send_ntp_sync
 
 WINERROR_SEMAPHORE_TIMEOUT = 121
+
+# Config variables
+FC_UDP_PORT = 6767
+FC_READ_TIMEOUT = 5.0
+FC_CONNECT_TIMEOUT = 5.0
+GS_UDP_PORT = 6969
+HEARTBEAT_INTERVAL = 1.0
+
+
+class FlightPhase(Enum):
+    GROUND_IDLE = "Ethernet"  # Phase 0
+    LAUNCH_PRIMED = "Handoff"  # Phase 1
+    FLIGHT = "Radio"  # Phase 2
+
+
+class ControlSignal(Enum):
+    HANDOFF = 1.0
+    ABORT = 0.0
 
 
 class Limewire:
     """A class to manage Limewire's resources."""
 
-    synnax_client: sy.Synnax
     channels: dict[str, list[str]]
+    synnax_client: sy.Synnax
     synnax_writer: sy.Writer | None
     lmp_framer: LMPFramer | None
     telemetry_framer: TelemetryFramer | None
@@ -48,36 +63,33 @@ class Limewire:
     def __init__(
         self,
         fc_addr: tuple[str, int],
-        gs_addr: tuple[str, int],
+        # gs_addr: tuple[str, int],
         overwrite_timestamps: bool = False,
     ) -> None:
         logger.info(
             f"Limewire started (overwrite_timestamps={overwrite_timestamps})."
         )
 
+        self.fc_addr = fc_addr
+
+        # Set up Synnax
         self.synnax_client, self.channels = synnax_init()
         self.synnax_writer = None
-
-        self.lmp_framer = None
-        self.telemetry_framer = None
-        self.queue = asyncio.Queue()
+        self.synnax_framer = SynnaxFramer(self.channels)
         self.overwrite_timestamps = overwrite_timestamps
 
+        # Set up framers and message queue
+        self.lmp_framer = None
+        self.fc_telemetry_framer = None
+        self.gs_telemetry_framer = None
+        self.queue = asyncio.Queue()
+
+        # Set up state variables
         self.connected = False
-        self.configs = {
-            FlightPhase.ETHERNET: fc_addr,
-            FlightPhase.RADIO: gs_addr,
-        }
-        self.current_phase = FlightPhase.ETHERNET  # Default is ethernet
-        self.handoff_channel = "handoff_channel"
+        self.state = FlightPhase.GROUND_IDLE  # Default is on pad
 
     async def start(self) -> None:
-        """Open a connection to the flight computer and start Limewire.
-
-        Args:
-            fc_addr: A tuple (ip_addr, port) indicating the flight
-                computer's TCP socket address.
-        """
+        """Open a connection to the flight computer and start Limewire."""
 
         # We need to define an asynccontextmanager to ensure that shutdown
         # code runs after the task is canceled because of e.g. Ctrl+C
@@ -93,91 +105,59 @@ class Limewire:
             self.synnax_writer = await self._open_synnax_writer(
                 sy.TimeStamp.now()
             )
-            await asyncio.sleep(0.5)
+
             try:
                 loop = asyncio.get_event_loop()
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                if sys.platform != "win32":
-                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-                sock.bind(("0.0.0.0", 6767))
-                (
-                    _,  # transport
-                    handler,
-                ) = await loop.create_datagram_endpoint(
-                    TelemetryProtocol, sock=sock
+
+                # Set up both UDP ports
+                fc_transport, fc_handler = await setup_udp_listener(
+                    loop, FC_UDP_PORT
                 )
-                self.telemetry_framer = TelemetryFramer(handler)
+                self.fc_telemetry_framer = TelemetryFramer(fc_handler)
                 logger.info("Listening for telemetry on UDP port 6767")
+
+                gs_transport, gs_handler = await setup_udp_listener(
+                    loop, GS_UDP_PORT
+                )
+                self.gs_telemetry_framer = TelemetryFramer(gs_handler)
+                logger.info("Listening for telemetry on UDP port 6969")
             except Exception as err:
                 logger.error(f"Error opening telemetry listener: {str(err)}")
 
             self.connected = False
             while True:
-                # Send NTP sync before connecting to ensure correct
-                # telemetry message timestamps.
-                send_ntp_sync(logger)
-
-                conn_addr = self.configs[self.current_phase]
-                try:
-                    logger.info(
-                        f"Connecting to flight computer at {conn_addr[0]}:{conn_addr[1]}..."
+                if (
+                    self.state == FlightPhase.GROUND_IDLE
+                    or self.state == FlightPhase.LAUNCH_PRIMED
+                ):
+                    connected = self._connect_fc(
+                        self.fc_addr[0], self.fc_addr[1]
                     )
-
-                    async with asyncio.timeout(5):
-                        tcp_reader, tcp_writer = await self._connect_fc(
-                            *conn_addr
-                        )
-                        self.lmp_framer = LMPFramer(tcp_reader, tcp_writer)
-                        self.connected = True
-                except TimeoutError:
-                    logger.warning("Connection attempt timed out.")
-                    continue
-                except ConnectionRefusedError:
-                    logger.warning("Connection refused.")
-                    await asyncio.sleep(1)
-                    continue
-                except OSError as err:
-                    if (
-                        platform.system() == "Windows"
-                        and getattr(err, "winerr", None)
-                        == WINERROR_SEMAPHORE_TIMEOUT
-                    ):
-                        logger.warning(
-                            f"Connection attempt timed out (Windows OSError: {str(err)})."
-                        )
+                    if not connected:
                         continue
-                    else:
-                        raise err
-
-                peername = tcp_writer.get_extra_info("peername")  # pyright: ignore[reportAny]
-                logger.info(
-                    f"Connected to flight computer at {peername[0]}:{peername[1]}."
-                )
 
                 # Track whether you need to reconnect
                 reconnect = False
                 try:
                     # Set up async tasks
                     async with asyncio.TaskGroup() as tg:
-                        # Only needed before handoff
-                        if self.current_phase == FlightPhase.ETHERNET:
-                            tg.create_task(self._relay_valve_cmds())
-                            # GFC doesn't need to know that limewire is alive
-                            tg.create_task(self._send_heartbeat())
-
-                        # Needed before/after handoff
-                        # I think we'll need this so that limewire knows gs is up
-                        tg.create_task(self._fc_tcp_read())
-                        tg.create_task(self._listen_handoff_channel())
-                        tg.create_task(self._fc_telemetry_listen())
+                        # Always on
                         tg.create_task(self._synnax_write())
+                        tg.create_task(self._listen_handoff_channel())
+                        # Only needed before handoff
+                        if self.state == FlightPhase.FLIGHT:
+                            tg.create_task(
+                                self._telemetry_listen(self.gs_telemetry_framer)
+                            )
+                        else:
+                            tg.create_task(
+                                self._telemetry_listen(self.fc_telemetry_framer)
+                            )
+                            tg.create_task(self._fc_tcp_read())
+                            tg.create_task(self._relay_valve_cmds())
+                            tg.create_task(self._send_heartbeat())
                 except* ConnectionResetError:
                     logger.error("Connection to flight computer lost.")
-                    reconnect = True
-                except* SwitchNetwork:
-                    logger.error("Switching connection to ", self.current_phase)
                     reconnect = True
                 except* OSError as eg:
                     for err in eg.exceptions:
@@ -220,7 +200,6 @@ class Limewire:
         logger.info("=" * 60)
 
     async def _send_heartbeat(self):
-        HEARTBEAT_INTERVAL = 1
         while True:
             await asyncio.sleep(HEARTBEAT_INTERVAL)
 
@@ -234,9 +213,7 @@ class Limewire:
             except ConnectionResetError as err:
                 raise err
 
-    async def _connect_fc(
-        self, ip_addr: str, port: int
-    ) -> tuple[StreamReader, StreamWriter]:
+    async def _connect_fc(self, ip_addr: str, port: int) -> bool:
         """Establish the TCP connection to the flight computer.
 
         Args:
@@ -252,12 +229,48 @@ class Limewire:
                 flight computer at the given socket address.
         """
         try:
-            return await asyncio.open_connection(ip_addr, port)
+            # Send NTP sync before connecting to ensure correct
+            # telemetry message timestamps.
+            send_ntp_sync(logger)
+
+            logger.info(f"Connecting to flight computer at {ip_addr}:{port}...")
+
+            async with asyncio.timeout(5):
+                (
+                    self.tcp_reader,
+                    self.tcp_writer,
+                ) = await asyncio.open_connection(ip_addr, port)
+                self.lmp_framer = LMPFramer(self.tcp_reader, self.tcp_writer)
+                self.connected = True
+        except TimeoutError:
+            logger.warning("Connection attempt timed out")
+            return False
         except ConnectionRefusedError:
-            # Give a more descriptive error message
-            raise ConnectionRefusedError(
-                f"Unable to connect to flight computer at {ip_addr}:{port}."
-            )
+            logger.warning(f"Connection refused at {ip_addr}:{port}")
+            return False
+        except OSError as err:
+            if (
+                platform.system() == "Windows"
+                and getattr(err, "winerr", None) == WINERROR_SEMAPHORE_TIMEOUT
+            ):
+                logger.warning(
+                    f"Connection attempt timed out (Windows OSError: {str(err)})."
+                )
+                return False
+            else:
+                raise err
+        peername = self.tcp_writer.get_extra_info("peername")  # pyright: ignore[reportAny]
+        logger.info(
+            f"Connected to flight computer at {peername[0]}:{peername[1]}."
+        )
+        return True
+        # try:
+        #     return await asyncio.open_connection(ip_addr, port)
+        # except ConnectionRefusedError:
+        #     # Give a more descriptive error message
+        #     raise ConnectionRefusedError(
+        #         f"Unable to connect to flight computer at {ip_addr}:{port}."
+        #     )
 
     async def _fc_tcp_read(self):
         """Handle incoming data from the TCP connection.
@@ -267,7 +280,6 @@ class Limewire:
         """
 
         # Timeout in seconds for no data received
-        READ_TIMEOUT = 5.0
 
         while True:
             if self.lmp_framer is None:
@@ -278,17 +290,17 @@ class Limewire:
             try:
                 # Use wait_for to implement a timeout on receive_message
                 message = await asyncio.wait_for(
-                    self.lmp_framer.receive_message(), timeout=READ_TIMEOUT
+                    self.lmp_framer.receive_message(), timeout=FC_READ_TIMEOUT
                 )
 
             except asyncio.TimeoutError:
                 # No data received for READ_TIMEOUT seconds
                 logger.error(
-                    f"No data received from flight computer for {READ_TIMEOUT} seconds. "
+                    f"No data received from flight computer for {FC_READ_TIMEOUT} seconds. "
                     "Connection may be lost."
                 )
                 raise ConnectionResetError(
-                    f"Flight computer read timeout: no data for {READ_TIMEOUT} seconds"
+                    f"Flight computer read timeout: no data for {FC_READ_TIMEOUT} seconds"
                 )
 
             except (FramingError, ValueError) as err:
@@ -310,15 +322,15 @@ class Limewire:
                 )
                 pass
 
-    async def _fc_telemetry_listen(self):
+    async def _telemetry_listen(self, telemetry_framer: TelemetryFramer | None):
         """Listen for telemetry messages."""
         while True:
-            if self.telemetry_framer is None:
+            if telemetry_framer is None:
                 # Yield control back to runtime
                 await asyncio.sleep(0)
                 continue
 
-            message = await self.telemetry_framer.receive_message()
+            message = await telemetry_framer.receive_message()
 
             if self.overwrite_timestamps:
                 message.timestamp = sy.TimeStamp.now()
@@ -339,7 +351,13 @@ class Limewire:
                 self.queue.task_done()
                 continue
 
-            frame = self._build_synnax_frame(message)
+            try:
+                frame = self.synnax_framer.build_synnax_frame(message)
+            except (KeyError, ValueError) as err:
+                logger.error(str(err))
+                self.queue.task_done()
+                continue
+
             if frame is None:
                 self.queue.task_done()
                 continue
@@ -382,59 +400,6 @@ class Limewire:
 
             self.queue.task_done()
 
-    def _build_synnax_frame(
-        self, msg: TelemetryMessage | ValveStateMessage
-    ) -> dict[str, float] | None:
-        if isinstance(msg, TelemetryMessage):
-            try:
-                frame = self._build_telemetry_frame(msg)
-            except KeyError as err:
-                logger.error(str(err))
-                return None
-        else:
-            frame = self._build_valve_state_frame(msg)
-
-        return frame
-
-    def _build_telemetry_frame(self, msg: TelemetryMessage) -> dict[str, float]:
-        """Construct a frame to write to Synnax from a telemetry message.
-
-        Raises:
-            KeyError: Index channel for given message is not loaded.
-        """
-
-        # Check if index channel is loaded
-        if msg.index_channel not in self.channels:
-            raise KeyError(
-                f"Channel {msg.index_channel} not active! Is LIMEWIRE_DEV_SYNNAX enabled?"
-            )
-
-        data_channels = self.channels[msg.index_channel].copy()
-        limewire_write_time_channel = get_write_time_channel_name(
-            msg.index_channel
-        )
-        data_channels.remove(limewire_write_time_channel)
-        frame = {
-            channel: value for channel, value in zip(data_channels, msg.values)
-        }
-        frame[msg.index_channel] = msg.timestamp
-        frame[limewire_write_time_channel] = sy.TimeStamp.now()
-
-        return frame
-
-    def _build_valve_state_frame(
-        self, msg: ValveStateMessage
-    ) -> dict[str, float]:
-        """Construct a frame to write to Synnax from a valve state message."""
-        frame: dict[str, float] = {}
-        frame[msg.valve.state_channel_index] = msg.timestamp
-        frame[msg.valve.state_channel] = int(msg.state)
-        limewire_write_time_channel = get_write_time_channel_name(
-            msg.valve.state_channel_index
-        )
-        frame[limewire_write_time_channel] = sy.TimeStamp.now()
-        return frame
-
     async def _open_synnax_writer(self, timestamp: int) -> sy.Writer:
         """Return an initialized Synnax writer using the given timestamp."""
 
@@ -456,7 +421,6 @@ class Limewire:
 
     async def _listen_handoff_channel(self):
         """Signal handoff (ethernet to radio) to the FC"""
-        # TODO: I assume you just check the channel continuously. Does this end this run when exception is raised
         async with await self.synnax_client.open_async_streamer(
             "handoff_channel"
         ) as streamer:
@@ -469,16 +433,20 @@ class Limewire:
 
                     await self.lmp_framer.send_message(msg)
                     if (
-                        self.current_phase == FlightPhase.ETHERNET
-                        and signal == 1
+                        self.state == FlightPhase.GROUND_IDLE
+                        and ControlSignal(signal) == ControlSignal.HANDOFF
                     ):
-                        self.current_phase = FlightPhase.RADIO
-                        raise SwitchNetwork()
+                        self.state = FlightPhase.LAUNCH_PRIMED
                     elif (
-                        self.current_phase == FlightPhase.RADIO and signal == 0
+                        self.current_phase == FlightPhase.LAUNCH_PRIMED
+                        and ControlSignal(signal) == ControlSignal.ABORT
                     ):
-                        self.current_phase = FlightPhase.ETHERNET
-                        raise SwitchNetwork()
+                        self.current_phase = FlightPhase.GROUND_IDLE
+                    elif (
+                        self.current_phase == FlightPhase.FLIGHT
+                        and ControlSignal(signal) == ControlSignal.ABORT
+                    ):
+                        self.current_phase = FlightPhase.GROUND_IDLE
 
     async def _relay_valve_cmds(self):
         """Relay valve commands from Synnax to the flight computer."""
