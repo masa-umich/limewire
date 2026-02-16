@@ -39,20 +39,25 @@ HEARTBEAT_INTERVAL = 1.0
 
 
 class FlightPhase(Enum):
-    GROUND_IDLE = "Ethernet"  # Phase 0
-    LAUNCH_PRIMED = "Handoff"  # Phase 1
-    FLIGHT = "Radio"  # Phase 2
+    GROUND = "Ethernet"  # Phase 0
+    FLIGHT = "Radio"  # Phase 1
 
 
 class Limewire:
     """A class to manage Limewire's resources."""
 
+    # Synnax
     channels: dict[str, list[str]]
     synnax_client: sy.Synnax
     synnax_writer: sy.Writer | None
+    synnax_framer: SynnaxFramer
+
+    # Framers
     lmp_framer: LMPFramer | None
     telemetry_framer: TelemetryFramer | None
     queue: asyncio.Queue[LMPMessage]
+
+    # State booleans
     overwrite_timestamps: bool
     connected: bool
 
@@ -82,7 +87,7 @@ class Limewire:
 
         # Set up state variables
         self.connected = False
-        self.state = FlightPhase.GROUND_IDLE  # Default is on pad
+        self.state = FlightPhase.GROUND  # Default is on pad
 
     async def start(self) -> None:
         """Open a connection to the flight computer and start Limewire."""
@@ -122,10 +127,7 @@ class Limewire:
 
             self.connected = False
             while True:
-                if (
-                    self.state == FlightPhase.GROUND_IDLE
-                    or self.state == FlightPhase.LAUNCH_PRIMED
-                ):
+                if self.state == FlightPhase.GROUND:
                     connected = self._connect_fc(
                         self.fc_addr[0], self.fc_addr[1]
                     )
@@ -140,18 +142,21 @@ class Limewire:
                         # Always on
                         tg.create_task(self._synnax_write())
                         tg.create_task(self._listen_handoff_channel())
-                        # Only needed before handoff
-                        if self.state == FlightPhase.FLIGHT:
-                            tg.create_task(
-                                self._telemetry_listen(self.gs_telemetry_framer)
-                            )
-                        else:
-                            tg.create_task(
-                                self._telemetry_listen(self.fc_telemetry_framer)
-                            )
+                        # Always listen to both since we have unique channels for both
+                        tg.create_task(
+                            self._telemetry_listen(self.fc_telemetry_framer)
+                        )
+                        tg.create_task(
+                            self._telemetry_listen(self.gs_telemetry_framer)
+                        )
+                        # Only needed when ethernet is connected
+                        if self.state != FlightPhase.FLIGHT:
                             tg.create_task(self._fc_tcp_read())
                             tg.create_task(self._relay_valve_cmds())
                             tg.create_task(self._send_heartbeat())
+                        else:
+                            # Always try to reconnect to the flight computer in the background
+                            tg.create_task(self._connect_fc(*self.fc_addr))
                 except* ConnectionResetError:
                     logger.error("Connection to flight computer lost.")
                     reconnect = True
@@ -327,7 +332,7 @@ class Limewire:
                 continue
 
             try:
-                message = await self.telemetry_framer.receive_message()
+                message = await telemetry_framer.receive_message()
             except (FramingError, ValueError) as err:
                 logger.error(str(err))
                 logger.opt(exception=err).debug("Traceback: ", exc_info=True)
@@ -434,10 +439,10 @@ class Limewire:
 
                     await self.lmp_framer.send_message(msg)
                     if (
-                        self.state == FlightPhase.GROUND_IDLE
+                        self.state == FlightPhase.GROUND
                         and ControlSignal(signal) == ControlSignal.HANDOFF
                     ):
-                        self.state = FlightPhase.LAUNCH_PRIMED
+                        self.state = FlightPhase.FLIGHT
                     elif (
                         self.current_phase == FlightPhase.LAUNCH_PRIMED
                         and ControlSignal(signal) == ControlSignal.ABORT
