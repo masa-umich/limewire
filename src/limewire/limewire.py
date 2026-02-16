@@ -38,11 +38,6 @@ GS_UDP_PORT = 6969
 HEARTBEAT_INTERVAL = 1.0
 
 
-class FlightPhase(Enum):
-    GROUND = "Ethernet"  # Phase 0
-    FLIGHT = "Radio"  # Phase 1
-
-
 class Limewire:
     """A class to manage Limewire's resources."""
 
@@ -87,7 +82,6 @@ class Limewire:
 
         # Set up state variables
         self.connected = False
-        self.state = FlightPhase.GROUND  # Default is on pad
 
     async def start(self) -> None:
         """Open a connection to the flight computer and start Limewire."""
@@ -117,18 +111,16 @@ class Limewire:
                 self.fc_telemetry_framer = TelemetryFramer(fc_handler)
                 logger.info("Listening for telemetry on UDP port 6767")
 
-                gs_transport, gs_handler = await setup_udp_listener(
-                    loop, GS_UDP_PORT
-                )
-                self.gs_telemetry_framer = TelemetryFramer(gs_handler)
-                logger.info("Listening for telemetry on UDP port 6969")
             except Exception as err:
                 logger.error(f"Error opening telemetry listener: {str(err)}")
 
             self.connected = False
             while True:
-                if self.state == FlightPhase.GROUND:
-                    connected = self._connect_fc(
+                if (
+                    self.state == FlightPhase.GROUND_IDLE
+                    or self.state == FlightPhase.LAUNCH_PRIMED
+                ):
+                    connected = await self._connect_fc(
                         self.fc_addr[0], self.fc_addr[1]
                     )
                     if not connected:
@@ -145,9 +137,6 @@ class Limewire:
                         # Always listen to both since we have unique channels for both
                         tg.create_task(
                             self._telemetry_listen(self.fc_telemetry_framer)
-                        )
-                        tg.create_task(
-                            self._telemetry_listen(self.gs_telemetry_framer)
                         )
                         # Only needed when ethernet is connected
                         if self.state != FlightPhase.FLIGHT:
