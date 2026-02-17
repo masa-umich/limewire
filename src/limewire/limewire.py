@@ -83,6 +83,13 @@ class Limewire:
             for ch in data_channels:
                 self.writer_channels.append(ch)
 
+        # Create a list of all valve command channels
+        self.cmd_channels: list[str] = []
+        for data_channel_names in self.channels.values():
+            for channel_name in data_channel_names:
+                if is_valve_command_channel(channel_name):
+                    self.cmd_channels.append(channel_name)
+
         # Set up framers and message queue
         self.lmp_framer = None
         self.telemetry_framer = None
@@ -126,7 +133,6 @@ class Limewire:
             # Spawn tasks
             async with asyncio.TaskGroup() as tg:
                 tg.create_task(self._synnax_write())
-                tg.create_task(self._listen_handoff_channel())
                 tg.create_task(self._telemetry_listen())
                 tg.create_task(self._connect_fc())
 
@@ -211,9 +217,9 @@ class Limewire:
                 # Set up flight tcp async tasks that are only needed when flight computer is connected
                 async with asyncio.TaskGroup() as tg:
                     tg.create_task(self._fc_tcp_read())
+                    tg.create_task(self._listen_handoff_channel())
                     tg.create_task(self._relay_valve_cmds())
                     tg.create_task(self._send_heartbeat())
-
             except* ConnectionResetError:
                 logger.error("Connection to flight computer lost.")
             except* OSError as eg:
@@ -233,6 +239,8 @@ class Limewire:
                 logger.error(f"Tasks failed with {len(eg.exceptions)} error(s)")
                 for exc in eg.exceptions:
                     logger.opt(exception=exc).error("Traceback: ")
+
+            self.lmp_framer = None
 
     async def _send_heartbeat(self):
         while True:
@@ -386,30 +394,24 @@ class Limewire:
 
     async def _listen_handoff_channel(self):
         """Signal handoff (ethernet to radio) to the FC"""
+        prev_signal = None
         async with await self.synnax_client.open_async_streamer(
             "handoff_channel"
         ) as streamer:
             async for frame in streamer:
                 for _, series in frame.items():
-                    signal = series[-1]
-                    msg = HandoffMessage(signal)
                     if self.lmp_framer is None:
                         continue
 
-                    await self.lmp_framer.send_message(msg)
+                    signal = series[-1]
+                    if signal != prev_signal:
+                        msg = HandoffMessage(signal)
+                        await self.lmp_framer.send_message(msg)
 
     async def _relay_valve_cmds(self):
         """Relay valve commands from Synnax to the flight computer."""
-
-        # Create a list of all valve command channels
-        cmd_channels: list[str] = []
-        for data_channel_names in self.channels.values():
-            for channel_name in data_channel_names:
-                if is_valve_command_channel(channel_name):
-                    cmd_channels.append(channel_name)
-
         async with await self.synnax_client.open_async_streamer(
-            cmd_channels
+            self.cmd_channels
         ) as streamer:
             async for frame in streamer:
                 for channel, series in frame.items():
