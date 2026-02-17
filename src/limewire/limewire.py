@@ -76,6 +76,13 @@ class Limewire:
         self.synnax_framer = SynnaxFramer(self.channels)
         self.overwrite_timestamps = overwrite_timestamps
 
+        # Create a list of all channels here, so you don't have to recalculate at every reinit of the synnax writer
+        self.writer_channels: list[str] = []
+        for index_channel, data_channels in self.channels.items():
+            self.writer_channels.append(index_channel)
+            for ch in data_channels:
+                self.writer_channels.append(ch)
+
         # Set up framers and message queue
         self.lmp_framer = None
         self.telemetry_framer = None
@@ -368,16 +375,9 @@ class Limewire:
     async def _open_synnax_writer(self, timestamp: int) -> sy.Writer:
         """Return an initialized Synnax writer using the given timestamp."""
 
-        # Create a list of all channels
-        writer_channels: list[str] = []
-        for index_channel, data_channels in self.channels.items():
-            writer_channels.append(index_channel)
-            for ch in data_channels:
-                writer_channels.append(ch)
-
         writer = self.synnax_client.open_writer(
             start=timestamp,
-            channels=writer_channels,
+            channels=self.writer_channels,
             enable_auto_commit=True,
             authorities=0,  # Limewire should never control command channels,
         )
