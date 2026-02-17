@@ -38,6 +38,7 @@ HEARTBEAT_INTERVAL = 1.0
 class Limewire:
     """A class to manage Limewire's resources."""
 
+    # Addresses
     fc_addr: tuple[str, int]
     gs_addr: tuple[str, int]
 
@@ -77,8 +78,7 @@ class Limewire:
 
         # Set up framers and message queue
         self.lmp_framer = None
-        self.fc_telemetry_framer = None
-        self.gs_telemetry_framer = None
+        self.telemetry_framer = None
         self.queue = asyncio.Queue()
 
         # Set up state variables
@@ -107,7 +107,9 @@ class Limewire:
 
                 # Set up UDP port listener
                 transport, handler = await setup_udp_listener(loop, UDP_PORT)
-                self.telemetry_framer = TelemetryFramer(handler)
+                self.telemetry_framer = TelemetryFramer(handler, transport)
+
+                # NTP syncs to both IPs
                 send_ntp_sync(*self.fc_addr, logger)
                 send_ntp_sync(*self.gs_addr, logger)
 
@@ -136,6 +138,9 @@ class Limewire:
                     "Ignoring Synnax writer internal validation error(s)."
                 )
 
+        if self.telemetry_framer is not None:
+            await self.telemetry_framer.close()
+
         logger.info("=" * 60)
 
     async def _connect_fc(self):
@@ -163,11 +168,11 @@ class Limewire:
                     f"Connecting to flight computer at {self.fc_addr[0]}:{self.fc_addr[1]}..."
                 )
 
-                self.tcp_reader, self.tcp_writer = await asyncio.wait_for(
+                tcp_reader, tcp_writer = await asyncio.wait_for(
                     asyncio.open_connection(*self.fc_addr),
                     timeout=FC_CONNECT_TIMEOUT,
                 )
-                self.lmp_framer = LMPFramer(self.tcp_reader, self.tcp_writer)
+                self.lmp_framer = LMPFramer(tcp_reader, tcp_writer)
                 self.connected = True
             except TimeoutError:
                 logger.warning("Connection attempt timed out.")
@@ -191,22 +196,20 @@ class Limewire:
                 else:
                     raise err
 
-            peername = self.tcp_writer.get_extra_info("peername")  # pyright: ignore[reportAny]
+            peername = tcp_writer.get_extra_info("peername")  # pyright: ignore[reportAny]
             logger.info(
                 f"Connected to flight computer at {peername[0]}:{peername[1]}."
             )
 
-            # Track whether you need to reconnect
-            reconnect = False
             try:
                 # Set up flight tcp async tasks that are only needed when flight computer is connected
                 async with asyncio.TaskGroup() as tg:
                     tg.create_task(self._fc_tcp_read())
                     tg.create_task(self._relay_valve_cmds())
                     tg.create_task(self._send_heartbeat())
+
             except* ConnectionResetError:
                 logger.error("Connection to flight computer lost.")
-                reconnect = True
             except* OSError as eg:
                 for err in eg.exceptions:
                     if (
@@ -217,31 +220,23 @@ class Limewire:
                         logger.warning(
                             f"Connection attempt timed out (Windows OSError: {str(err)})."
                         )
-                        reconnect = True
                 else:
                     raise eg
             except* Exception as eg:
+                # TODO: Reconnect here too?
                 logger.error(f"Tasks failed with {len(eg.exceptions)} error(s)")
                 for exc in eg.exceptions:
                     logger.opt(exception=exc).error("Traceback: ")
-            if reconnect:
-                continue
-            else:
-                break
 
     async def _send_heartbeat(self):
         while True:
             await asyncio.sleep(HEARTBEAT_INTERVAL)
-
             logger.debug(f"Queue size: {self.queue.qsize()}")
-
-            if self.lmp_framer is None:
-                continue
-
-            try:
-                await self.lmp_framer.send_message(HeartbeatMessage())
-            except ConnectionResetError as err:
-                raise err
+            if self.lmp_framer is not None:
+                try:
+                    await self.lmp_framer.send_message(HeartbeatMessage())
+                except ConnectionResetError as err:
+                    raise err
 
     async def _fc_tcp_read(self):
         """Handle incoming data from the TCP connection.
@@ -263,25 +258,20 @@ class Limewire:
                 message = await asyncio.wait_for(
                     self.lmp_framer.receive_message(), timeout=FC_READ_TIMEOUT
                 )
-
             except asyncio.TimeoutError:
                 # No data received for READ_TIMEOUT seconds
-                logger.error(
-                    f"No data received from flight computer for {FC_READ_TIMEOUT} seconds. "
-                    "Connection may be lost."
-                )
                 raise ConnectionResetError(
                     f"Flight computer read timeout: no data for {FC_READ_TIMEOUT} seconds"
                 )
-
             except (FramingError, ValueError) as err:
                 logger.error(str(err))
                 logger.opt(exception=err).debug("Traceback: ", exc_info=True)
                 continue
 
             if message is None:
-                logger.error("None type message received. Closing. ")
-                break
+                raise ConnectionResetError(
+                    "None type message received. Closing."
+                )
 
             if type(message) is ValveStateMessage:
                 await self.queue.put(message)
@@ -426,6 +416,8 @@ class Limewire:
         ) as streamer:
             async for frame in streamer:
                 for channel, series in frame.items():
+                    # TODO: Is it right to just get the last value?
+
                     valve = Valve.from_channel_name(channel)  # pyright: ignore[reportArgumentType]
                     # For now, let's assume that if multiple values are in the
                     # frame, we only care about the most recent one

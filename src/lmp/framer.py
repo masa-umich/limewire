@@ -106,13 +106,16 @@ class TelemetryProtocol(asyncio.DatagramProtocol):
 class TelemetryFramer:
     """A class to handle framing/unframing telemetry data from a UDP socket."""
 
-    def __init__(self, sock: TelemetryProtocol):
+    def __init__(
+        self, sock: TelemetryProtocol, transport: asyncio.DatagramTransport
+    ):
         """Initialize the TelemetryFramer.
 
         If sending messages with this framer, the remote address must be set
         before passing the socket into this function.
         """
         self.sock = sock
+        self.transport = transport
 
     def send_message(self, message: TelemetryMessage):
         self.sock.send_message(message)
@@ -143,3 +146,6 @@ class TelemetryFramer:
             raise err
 
         return message
+
+    async def close(self):
+        self.transport.close()
