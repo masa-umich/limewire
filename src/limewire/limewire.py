@@ -111,7 +111,6 @@ class Limewire:
 
                 # NTP syncs to both IPs
                 send_ntp_sync(*self.fc_addr, logger)
-                send_ntp_sync(*self.gs_addr, logger)
 
                 logger.info("Listening for telemetry on UDP port 6767")
             except Exception as err:
@@ -338,7 +337,6 @@ class Limewire:
                         f"Synnax validation error '{str(err)}', skipping frame"
                     )
                     send_ntp_sync(*self.fc_addr, logger)
-                    send_ntp_sync(*self.gs_addr, logger)
                     continue
 
             try:
@@ -364,7 +362,6 @@ class Limewire:
                 self.synnax_writer = None
 
                 send_ntp_sync(*self.fc_addr, logger)
-                send_ntp_sync(*self.gs_addr, logger)
 
             self.queue.task_done()
 
