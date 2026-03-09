@@ -149,6 +149,7 @@ class Limewire:
                         tg.create_task(self._synnax_write())
                         tg.create_task(self._relay_valve_cmds())
                         tg.create_task(self._send_heartbeat())
+                        tg.create_task(self._send_ntp_sync())
                 except* ConnectionResetError:
                     logger.error("Connection to flight computer lost.")
                     reconnect = True
@@ -453,3 +454,13 @@ class Limewire:
                         continue
 
                     await self.lmp_framer.send_message(msg)
+
+    async def _send_ntp_sync(self):
+        """Send an NTP broadcast packet every 60 seconds."""
+        while True:
+            try:
+                send_ntp_sync(logger)
+            except Exception:
+                # send_ntp_sync already logs; we just want to avoid crashing the task
+                pass
+            await asyncio.sleep(60)
