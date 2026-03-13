@@ -454,13 +454,6 @@ class Hydrant:
 
         self.log_listener.attach_ui(error_log, client)
 
-        ui.button(
-            "random",
-            on_click=lambda: map.update_marker(
-                (random.randint(-90, 90), random.randint(-180, 180))
-            ),
-        )
-
     def warn_restore_defaults(self):
         with (
             ui.dialog() as dialog,
