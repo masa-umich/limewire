@@ -10,7 +10,7 @@ class Map_UI:
         self.map.clear_layers()
         self.map.tile_layer(
             url_template="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-            options={"maxZoom": 18},
+            options={"maxZoom": 19},
         )
         self.map.on("mousedown", self.on_press)
         self.map.on("mouseup", self.on_release)
