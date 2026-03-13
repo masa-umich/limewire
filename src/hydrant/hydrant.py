@@ -1,11 +1,13 @@
 import asyncio
 import json
 import pathlib
+import random
 from datetime import datetime
 
 from loguru import logger
 from nicegui import app, client, ui
 
+from hydrant.map_ui import Map_UI
 from hydrant.ntp_broadcast import send_all
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
 from lmp.framer import FramingError, LMPFramer
@@ -150,7 +152,7 @@ class Hydrant:
                 await self.fc_writer.drain()
                 start = time.monotonic() """
 
-    def main_page(self, client: client.Client):
+    async def main_page(self, client: client.Client):
         """Generates page outline and GUI"""
 
         error_log = EventLogUI(self.log_lookup)
@@ -166,6 +168,8 @@ class Hydrant:
             }
             </style>
         """)
+        
+        ui.add_head_html('<style>.leaflet-container { background: transparent !important; }</style>')
 
         # HEADER
         with ui.header().classes(
@@ -192,6 +196,7 @@ class Hydrant:
                                 1: "Device Commands",
                                 2: "System Configuration",
                                 3: "Telemetry",
+                                4: "Map",
                             },
                             value=1,
                         )
@@ -418,6 +423,9 @@ class Hydrant:
                                 self.telem_listener.attach_ui(
                                     fr_telemetry, Board.FR, client
                                 )
+                    with ui.tab_panel(4).classes("p-0"):
+                        map = Map_UI()
+                        self.telem_listener.attach_map(map)
         # FC CONNECTION DIV
         with (
             ui.element("div")
@@ -441,8 +449,10 @@ class Hydrant:
                         )
                         ui.label("Trying to reconnect...")
         ui.space().classes("h-32")  # for better scrolling
-
+        
         self.log_listener.attach_ui(error_log, client)
+        
+        ui.button("random", on_click=lambda: map.update_marker((random.randint(-90, 90), random.randint(-180, 180))))
 
     def warn_restore_defaults(self):
         with (
