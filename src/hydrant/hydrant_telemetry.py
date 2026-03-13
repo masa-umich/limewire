@@ -242,15 +242,15 @@ class TelemetryListener:
         for x in self.telemetry_UIs:
             if x[0] == msg.board:
                 x[1].process_message(msg)
-        
+
         for x in self.telemetry_UIs:
             if msg.board == Board.FC and x[0] == msg.board:
                 self.update_location((x[1].fc_gps_lat, x[1].fc_gps_long))
                 break
-                
+
     def attach_map(self, m: ui.leaflet):
         self.map_UIs.append(m)
-    
+
     def update_location(self, loc: tuple[float, float]):
         for m in self.map_UIs:
             m.update_marker(loc)

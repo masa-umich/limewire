@@ -168,8 +168,10 @@ class Hydrant:
             }
             </style>
         """)
-        
-        ui.add_head_html('<style>.leaflet-container { background: transparent !important; }</style>')
+
+        ui.add_head_html(
+            "<style>.leaflet-container { background: transparent !important; }</style>"
+        )
 
         # HEADER
         with ui.header().classes(
@@ -449,10 +451,15 @@ class Hydrant:
                         )
                         ui.label("Trying to reconnect...")
         ui.space().classes("h-32")  # for better scrolling
-        
+
         self.log_listener.attach_ui(error_log, client)
-        
-        ui.button("random", on_click=lambda: map.update_marker((random.randint(-90, 90), random.randint(-180, 180))))
+
+        ui.button(
+            "random",
+            on_click=lambda: map.update_marker(
+                (random.randint(-90, 90), random.randint(-180, 180))
+            ),
+        )
 
     def warn_restore_defaults(self):
         with (
