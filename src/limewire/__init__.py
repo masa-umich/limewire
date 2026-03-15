@@ -2,9 +2,10 @@ import asyncio
 
 import click
 
+from utils import SocketAddress
+
 from .limewire import Limewire
 from .logging import set_up_logging
-from .util import SocketAddress
 
 
 @click.command(context_settings={"help_option_names": ["--help", "-h"]})

@@ -29,7 +29,8 @@ from ..utils.synnax_framer import SynnaxFramer
 WINERROR_SEMAPHORE_TIMEOUT = 121
 
 # Config variables
-UDP_PORT = 6767
+FC_UDP_PORT = 6767
+GS_UDP_PORT = 6969
 FC_READ_TIMEOUT = 5.0
 FC_CONNECT_TIMEOUT = 5.0
 HEARTBEAT_INTERVAL = 1.0
@@ -60,7 +61,7 @@ class Limewire:
     def __init__(
         self,
         fc_addr: tuple[str, int],
-        gs_addr: tuple[str, int],
+        # gs_addr: tuple[str, int],
         overwrite_timestamps: bool = False,
     ) -> None:
         logger.info(
@@ -68,7 +69,7 @@ class Limewire:
         )
 
         self.fc_addr = fc_addr
-        self.gs_addr = gs_addr
+        # self.gs_addr = gs_addr
 
         # Set up Synnax
         self.synnax_client, self.channels = synnax_init()
@@ -120,8 +121,18 @@ class Limewire:
                 loop = asyncio.get_event_loop()
 
                 # Set up UDP port listener
-                transport, handler = await setup_udp_listener(loop, UDP_PORT)
-                self.telemetry_framer = TelemetryFramer(handler, transport)
+                fc_transport, fc_handler = await setup_udp_listener(
+                    loop, FC_UDP_PORT
+                )
+                self.fc_telemetry_framer = TelemetryFramer(
+                    fc_handler, fc_transport
+                )
+                gs_transport, gs_handler = await setup_udp_listener(
+                    loop, GS_UDP_PORT
+                )
+                self.gs_telemetry_framer = TelemetryFramer(
+                    gs_handler, gs_transport
+                )
 
                 # NTP syncs to both IPs
                 send_ntp_sync(*self.fc_addr, logger)
@@ -133,7 +144,8 @@ class Limewire:
             # Spawn tasks
             async with asyncio.TaskGroup() as tg:
                 tg.create_task(self._synnax_write())
-                tg.create_task(self._telemetry_listen())
+                tg.create_task(self._telemetry_listen(self.fc_telemetry_framer))
+                tg.create_task(self._telemetry_listen(self.gs_telemetry_framer))
                 tg.create_task(self._connect_fc())
 
     async def stop(self):
@@ -297,16 +309,16 @@ class Limewire:
                 )
                 pass
 
-    async def _telemetry_listen(self):
+    async def _telemetry_listen(self, telemetry_framer):
         """Listen for telemetry messages."""
         while True:
-            if self.telemetry_framer is None:
+            if telemetry_framer is None:
                 # Yield control back to runtime
                 await asyncio.sleep(0)
                 continue
 
             try:
-                message = await self.telemetry_framer.receive_message()
+                message = await telemetry_framer.receive_message()
             except (FramingError, ValueError) as err:
                 logger.error(str(err))
                 logger.opt(exception=err).debug("Traceback: ", exc_info=True)
