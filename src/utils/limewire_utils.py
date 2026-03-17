@@ -89,8 +89,10 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
         f"Connected to Synnax at {SYNNAX_HOST}:{SYNNAX_PORT} (LIMEWIRE_DEV_SYNNAX={LIMEWIRE_DEV_SYNNAX})"
     )
 
-    # channels_file = Path(__file__).parent / "data" / "channels.json"
-    channels_file = Path(__file__) / "data" / "channels.json"
+    channels_file = (
+        Path(__file__).parent.parent / "limewire" / "data" / "channels.json"
+    )
+    # channels_file = Path(__file__) / "data" / "channels.json"
     with channels_file.open() as f:
         channels: dict[str, list[str]] = json.load(f)
 
