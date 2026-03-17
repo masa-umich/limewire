@@ -17,14 +17,13 @@ from lmp import (
     ValveStateMessage,
 )
 from lmp.framer import FramingError
-
-from ..utils.connection_utils import setup_udp_listener
-from ..utils.limewire_utils import (
+from utils.connection_utils import setup_udp_listener
+from utils.limewire_utils import (
     is_valve_command_channel,
     synnax_init,
 )
-from ..utils.ntp_sync import send_ntp_sync
-from ..utils.synnax_framer import SynnaxFramer
+from utils.ntp_sync import send_ntp_sync
+from utils.synnax_framer import SynnaxFramer
 
 WINERROR_SEMAPHORE_TIMEOUT = 121
 
