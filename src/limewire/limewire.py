@@ -22,7 +22,9 @@ from utils.limewire_utils import (
     is_valve_command_channel,
     synnax_init,
 )
-from utils.ntp_sync import send_ntp_sync
+
+# from utils.ntp_sync import send_notp_sync
+from utils.ntp_sync import send_all
 from utils.synnax_framer import SynnaxFramer
 
 WINERROR_SEMAPHORE_TIMEOUT = 121
@@ -134,7 +136,8 @@ class Limewire:
                 )
 
                 # NTP syncs to both IPs
-                send_ntp_sync(*self.fc_addr, logger)
+                # send_ntp_sync(*self.fc_addr, logger)
+                send_all()
 
                 logger.info("Listening for telemetry on UDP port 6767")
             except Exception as err:
@@ -184,7 +187,8 @@ class Limewire:
         while True:
             # Send NTP sync before connecting to ensure correct telemetry message timestamps.
             self.connected = False
-            send_ntp_sync(*self.fc_addr, logger)
+            # send_ntp_sync(*self.fc_addr, logger)
+            send_all()
 
             try:
                 logger.info(
@@ -362,7 +366,8 @@ class Limewire:
                     logger.warning(
                         f"Synnax validation error '{str(err)}', skipping frame"
                     )
-                    send_ntp_sync(*self.fc_addr, logger)
+                    # send_ntp_sync(*self.fc_addr, logger)
+                    send_all()
                     continue
 
             try:
@@ -387,7 +392,8 @@ class Limewire:
                 # Writer will get re-initialzed during next loop iteration
                 self.synnax_writer = None
 
-                send_ntp_sync(*self.fc_addr, logger)
+                # send_ntp_sync(*self.fc_addr, logger)
+                send_all()
 
             self.queue.task_done()
 

@@ -1,18 +1,50 @@
+# from scapy.all import IP, UDP, send
+# from scapy.error import Scapy_Exception
+# from scapy.layers.ntp import NTPHeader
+import ipaddress
+import sys
+
+from loguru import logger
 from scapy.all import IP, UDP, send
-from scapy.error import Scapy_Exception
+from scapy.interfaces import get_working_ifaces
 from scapy.layers.ntp import NTPHeader
 
 
-def send_ntp_sync(ip_addr: str, port: int, logger=None):
-    if logger is not None:
-        logger.info("Sending NTP sync.")
+# def send_ntp_sync(ip_addr: str, port: int, logger=None):
+#     if logger is not None:
+#         logger.info("Sending NTP sync.")
 
-    ntp_packet = NTPHeader(mode=5)
-    # packet = IP(dst="141.212.192.255") / UDP(dport=123) / ntp_packet
-    packet = IP(dst=ip_addr) / UDP(dport=port) / ntp_packet
+#     ntp_packet = NTPHeader(mode=5)
+#     # packet = IP(dst="141.212.192.255") / UDP(dport=123) / ntp_packet
+#     packet = IP(dst=ip_addr) / UDP(dport=port) / ntp_packet
 
-    try:
-        send(packet)
-    except Scapy_Exception:
-        if logger is not None:
-            logger.warning("NTP sync failed.")
+#     try:
+#         send(packet)
+#     except Scapy_Exception:
+#         if logger is not None:
+#             logger.warning("NTP sync failed.")
+
+
+def send_all():
+    if sys.platform == "darwin":
+        send_ntp(ipaddress.IPv4Network("0.0.0.0/0"), True)
+    else:
+        send_ntp(ipaddress.IPv4Network("141.212.192.0/24"), False)
+
+
+def send_ntp(network: ipaddress.IPv4Network, all_iface: bool):
+    # set_up_logging(False)
+    logger.info("Broadcasting NTP")
+    if all_iface:
+        broadcast_strs = []
+        for iface in get_working_ifaces():
+            if iface.ip is not None and iface.ip.strip() != "":
+                broadcast_strs.append(
+                    f"{network.broadcast_address}%{iface.name}"
+                )
+    else:
+        broadcast_strs = [str(network.broadcast_address)]
+
+    for b in broadcast_strs:
+        ntp_packet = NTPHeader(mode=5)
+        send(IP(dst=b) / UDP(dport=123) / ntp_packet)
