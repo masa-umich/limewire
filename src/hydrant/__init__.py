@@ -6,7 +6,7 @@ from loguru import logger
 from nicegui import app, binding, ui
 
 from hydrant.logging import set_up_logging
-from limewire.util import SocketAddress
+from utils import SocketAddress
 
 from .hydrant import Hydrant
 
