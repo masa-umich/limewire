@@ -7,13 +7,10 @@ __all__ = [
     "is_valve_state_channel",
     "synnax_init",
     "send_all",
-    # "send_ntp_sync",
     "SynnaxFramer",
 ]
 
 from .connection_utils import setup_udp_listener
-
-# from .hydrant_utils import
 from .limewire_utils import (
     SocketAddress,
     get_data_type,
