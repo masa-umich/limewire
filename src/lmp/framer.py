@@ -1,5 +1,7 @@
 import asyncio
 
+from loguru import logger
+
 from .device_command import DeviceCommandAckMessage, DeviceCommandMessage
 from .handoff import HandoffMessage
 from .heartbeat import HeartbeatMessage
@@ -105,6 +107,9 @@ class TelemetryProtocol(asyncio.DatagramProtocol):
 
 class TelemetryFramer:
     """A class to handle framing/unframing telemetry data from a UDP socket."""
+
+    sock: TelemetryProtocol
+    transport: asyncio.DatagramTransport
 
     def __init__(
         self, sock: TelemetryProtocol, transport: asyncio.DatagramTransport
