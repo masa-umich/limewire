@@ -6,6 +6,7 @@ import synnax as sy
 from loguru import logger
 
 from lmp import (
+    DeviceCommandAckMessage,
     HandoffMessage,
     HeartbeatMessage,
     LMPFramer,
@@ -322,6 +323,9 @@ class Limewire:
                 await self.queue.put(message)
             elif type(message) is HeartbeatMessage:
                 logger.debug("Received heartbeat response from flight computer")
+            elif type(message) is DeviceCommandAckMessage:
+                # Due to hydrant, limewire doesn't care
+                pass
             else:
                 logger.warning(
                     f"Received unexpected message type: {type(message)}"
