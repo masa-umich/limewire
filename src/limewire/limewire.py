@@ -468,10 +468,15 @@ class Limewire:
         while True:
             msg = await self.dump_queue.get()
             data_channels = self.frame_channels[msg.index_channel]
+            limewire_write_time_channel = get_write_time_channel_name(
+                msg.index_channel
+            )
             logger.bind(dump=True).info(str(msg))
 
-            # limewire_write_time_channel = get_write_time_channel_name(
-            #     msg.index_channel
-            # )
             for channel, val in zip(data_channels, msg.values):
                 logger.bind(dump=True).info(f"{channel}: {val}")
+
+            logger.bind(dump=True).info(f"{msg.index_channel}: {msg.timestamp}")
+            logger.bind(dump=True).info(
+                f"{limewire_write_time_channel}: {sy.TimeStamp.now()}"
+            )
