@@ -1,7 +1,5 @@
 import asyncio
 
-from loguru import logger
-
 from .device_command import DeviceCommandAckMessage, DeviceCommandMessage
 from .handoff import HandoffMessage
 from .heartbeat import HeartbeatMessage

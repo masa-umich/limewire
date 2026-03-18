@@ -19,6 +19,7 @@ from lmp import (
 from lmp.framer import FramingError
 from utils.connection_utils import setup_udp_listener
 from utils.limewire_utils import (
+    get_write_time_channel_name,
     is_valve_command_channel,
     synnax_init,
 )
@@ -46,6 +47,12 @@ class Limewire:
 
     # Synnax
     channels: dict[str, list[str]]
+    # Channels to write to
+    writer_channels: list[str]
+    # For getting valve commands from Synnax
+    cmd_channels: list[str]
+    # Get necessary frame fields
+    frame_channels: dict[str, list[str]]
     synnax_client: sy.Synnax
     synnax_writer: sy.Writer | None
     synnax_framer: SynnaxFramer
@@ -54,9 +61,12 @@ class Limewire:
     lmp_framer: LMPFramer | None
     telemetry_framer: TelemetryFramer | None
     queue: asyncio.Queue[LMPMessage]
+    # Special radio dump queue
+    dump_queue: asyncio.Queue[TelemetryMessage]
 
     # State booleans
     overwrite_timestamps: bool
+    periodic_sync: bool
     connected: bool
 
     def __init__(
@@ -64,6 +74,7 @@ class Limewire:
         fc_addr: tuple[str, int],
         # gs_addr: tuple[str, int],
         overwrite_timestamps: bool = False,
+        periodic_sync: bool = False,
     ) -> None:
         logger.info(
             f"Limewire started (overwrite_timestamps={overwrite_timestamps})."
@@ -74,28 +85,32 @@ class Limewire:
 
         # Set up Synnax
         self.synnax_client, self.channels = synnax_init()
-        self.synnax_writer = None
-        self.synnax_framer = SynnaxFramer(self.channels)
-        self.overwrite_timestamps = overwrite_timestamps
 
-        # Create a list of all channels here, so you don't have to recalculate at every reinit of the synnax writer
-        self.writer_channels: list[str] = []
+        # Cache all necessary channel lists to prevent recalculation
         for index_channel, data_channels in self.channels.items():
+            self.frame_channels[index_channel] = data_channels.copy()
+            self.frame_channels[index_channel].remove(
+                get_write_time_channel_name(index_channel)
+            )
+
             self.writer_channels.append(index_channel)
             for ch in data_channels:
                 self.writer_channels.append(ch)
 
-        # Create a list of all valve command channels
-        self.cmd_channels: list[str] = []
-        for data_channel_names in self.channels.values():
-            for channel_name in data_channel_names:
+            for channel_name in data_channels:
                 if is_valve_command_channel(channel_name):
                     self.cmd_channels.append(channel_name)
+
+        self.synnax_writer = None
+        self.synnax_framer = SynnaxFramer(self.channels, self.frame_channels)
+        self.overwrite_timestamps = overwrite_timestamps
 
         # Set up framers and message queue
         self.lmp_framer = None
         self.telemetry_framer = None
         self.queue = asyncio.Queue()
+        self.periodic_sync = periodic_sync
+        self.dump_queue = asyncio.Queue()
 
         # Set up state variables
         self.connected = False
@@ -135,8 +150,6 @@ class Limewire:
                     gs_handler, gs_transport
                 )
 
-                # NTP syncs to both IPs
-                # send_ntp_sync(*self.fc_addr, logger)
                 send_all()
 
                 logger.info("Listening for telemetry on UDP port 6767")
@@ -147,7 +160,11 @@ class Limewire:
             async with asyncio.TaskGroup() as tg:
                 tg.create_task(self._synnax_write())
                 tg.create_task(self._telemetry_listen(self.fc_telemetry_framer))
-                tg.create_task(self._telemetry_listen(self.gs_telemetry_framer))
+                tg.create_task(
+                    self._telemetry_listen(
+                        self.gs_telemetry_framer, self.dump_queue
+                    )
+                )
                 tg.create_task(self._connect_fc())
 
     async def stop(self):
@@ -187,7 +204,6 @@ class Limewire:
         while True:
             # Send NTP sync before connecting to ensure correct telemetry message timestamps.
             self.connected = False
-            # send_ntp_sync(*self.fc_addr, logger)
             send_all()
 
             try:
@@ -312,7 +328,11 @@ class Limewire:
                 )
                 pass
 
-    async def _telemetry_listen(self, telemetry_framer):
+    async def _telemetry_listen(
+        self,
+        telemetry_framer: TelemetryFramer,
+        dump_queue: asyncio.Queue | None = None,
+    ):
         """Listen for telemetry messages."""
         while True:
             if telemetry_framer is None:
@@ -331,6 +351,8 @@ class Limewire:
                 message.timestamp = sy.TimeStamp.now()
 
             await self.queue.put(message)
+            if dump_queue is not None:
+                await dump_queue.put(message)
 
     async def _synnax_write(self) -> None:
         """Write telemetry data and valve state data to Synnax."""
@@ -366,7 +388,6 @@ class Limewire:
                     logger.warning(
                         f"Synnax validation error '{str(err)}', skipping frame"
                     )
-                    # send_ntp_sync(*self.fc_addr, logger)
                     send_all()
                     continue
 
@@ -392,7 +413,6 @@ class Limewire:
                 # Writer will get re-initialzed during next loop iteration
                 self.synnax_writer = None
 
-                # send_ntp_sync(*self.fc_addr, logger)
                 send_all()
 
             self.queue.task_done()
@@ -443,3 +463,15 @@ class Limewire:
                         continue
 
                     await self.lmp_framer.send_message(msg)
+
+    async def _dump_telem_messages(self):
+        while True:
+            msg = await self.dump_queue.get()
+            data_channels = self.frame_channels[msg.index_channel]
+            logger.bind(dump=True).info(str(msg))
+
+            # limewire_write_time_channel = get_write_time_channel_name(
+            #     msg.index_channel
+            # )
+            for channel, val in zip(data_channels, msg.values):
+                logger.bind(dump=True).info(f"{channel}: {val}")

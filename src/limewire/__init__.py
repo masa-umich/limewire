@@ -19,17 +19,19 @@ from .logging import set_up_logging
 # )
 @click.option("--debug", is_flag=True)
 @click.option("--overwrite-timestamps", is_flag=True)
+@click.option("--periodic-sync", is_flag=True)
 def main(
     fc_address: tuple[str, int],
     # gs_address: tuple[str, int],
     debug: bool,
     overwrite_timestamps: bool,
+    periodic_sync: bool,
 ):
     """Run Limewire."""
 
     set_up_logging(debug)
 
-    limewire = Limewire(fc_address, overwrite_timestamps)
+    limewire = Limewire(fc_address, overwrite_timestamps, periodic_sync)
 
     try:
         asyncio.run(limewire.start())  # pyright: ignore[reportPrivateLocalImportUsage]
