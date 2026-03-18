@@ -6,7 +6,8 @@ __all__ = [
     "is_valve_command_channel",
     "is_valve_state_channel",
     "synnax_init",
-    "send_ntp_sync",
+    "send_all",
+    # "send_ntp_sync",
     "SynnaxFramer",
 ]
 
@@ -21,5 +22,5 @@ from .limewire_utils import (
     is_valve_state_channel,
     synnax_init,
 )
-from .ntp_sync import send_ntp_sync
+from .ntp_sync import send_all
 from .synnax_framer import SynnaxFramer
