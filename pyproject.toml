@@ -41,7 +41,8 @@ dev = [
 includes = [
     "src/limewire",
     "src/hydrant",
-    "src/lmp"
+    "src/lmp",
+    "src/utils",
 ]
 
 

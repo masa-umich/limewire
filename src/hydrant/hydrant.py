@@ -1,7 +1,6 @@
 import asyncio
 import json
 import pathlib
-import random
 from datetime import datetime
 
 from loguru import logger
@@ -424,6 +423,14 @@ class Hydrant:
                                 )
                                 self.telem_listener.attach_ui(
                                     fr_telemetry, Board.FR, client
+                                )
+                                gs_telemetry = BoardTelemetryUI(
+                                    self.channels["radio_timestamp"],
+                                    Board.GS,
+                                    1,
+                                )
+                                self.telem_listener.attach_ui(
+                                    gs_telemetry, Board.GS, client
                                 )
                     with ui.tab_panel(4).classes("p-0"):
                         map = Map_UI()

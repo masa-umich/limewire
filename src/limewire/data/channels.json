@@ -29,6 +29,7 @@
         "fc_gps_lat",
         "fc_gps_long",
         "fc_gps_alt",
+        "fc_gps_sats",
         "fc_bar_1",
         "fc_bar_2",
         "fc_24V_voltage",
@@ -40,6 +41,7 @@
         "fc_3V3_voltage",
         "fc_3V3_current",
         "fc_board_temp",
+        "fc_auto_state",
         "fc_limewire_write_time"
     ],
     "fc_vlv_1_timestamp": [
@@ -395,5 +397,13 @@
         "fr_bar_2",
         "fr_board_temp",
         "fr_limewire_write_time"
+    ],
+    "handoff_timestamp": [
+        "handoff_channel"
+    ],
+    "radio_timestamp": [
+        "radio_gps_lat",
+        "radio_gps_long",
+        "radio_gps_alt"
     ]
 }

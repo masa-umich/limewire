@@ -53,11 +53,11 @@ class FCSimulator:
         # Connect to broadcast
         sock.connect(("255.255.255.255", 6767))
         (
-            _,
+            transport,
             handler,
         ) = await loop.create_datagram_endpoint(TelemetryProtocol, sock=sock)
 
-        self.telemetry_framer = TelemetryFramer(sock=handler)
+        self.telemetry_framer = TelemetryFramer(handler, transport)
         print("Sending telemetry at 255.255.255.255:6767")
 
         start_time = asyncio.get_running_loop().time()
