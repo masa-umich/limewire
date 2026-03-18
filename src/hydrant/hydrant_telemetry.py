@@ -141,7 +141,7 @@ def process_channel_name(name: str):
     name = name.replace("vlv", "VLV")
     name = name.replace("gps", "GPS")
     name = name.replace("imu", "IMU")
-    return name[0].upper() + name[1:] if name != "" else ""
+    return name[0].upper() + name[1:] if name != "" else name
 
 
 def get_channel_unit(name: str):

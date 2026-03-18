@@ -43,6 +43,7 @@ class Board(Enum):
     BB2 = 2
     BB3 = 3
     FR = 4
+    GS = 5
 
     @property
     def num_values(self) -> int:
@@ -53,6 +54,7 @@ class Board(Enum):
             Board.BB2: 53,
             Board.BB3: 53,
             Board.FR: 15,
+            Board.GS: 3,
         }
         return NUM_VALUES[self]
 
@@ -65,6 +67,7 @@ class Board(Enum):
             Board.BB2: 7,
             Board.BB3: 7,
             Board.FR: 0,
+            Board.GS: 0,
         }
         return NUM_VALVES[self]
 
@@ -85,6 +88,7 @@ class Board(Enum):
             Board.BB2: "Bay Board 2 (Intertank)",
             Board.BB3: "Bay Board 3 (Engine)",
             Board.FR: "Flight Recorder",
+            Board.GS: "Ground Station",
         }
         return P_NAMES[self]
 

@@ -418,6 +418,12 @@ class Hydrant:
                                 self.telem_listener.attach_ui(
                                     fr_telemetry, Board.FR, client
                                 )
+                                gs_telemetry = BoardTelemetryUI(
+                                    self.channels["radio_timestamp"], Board.GS, 1
+                                )
+                                self.telem_listener.attach_ui(
+                                    gs_telemetry, Board.GS, client
+                                )
         # FC CONNECTION DIV
         with (
             ui.element("div")
