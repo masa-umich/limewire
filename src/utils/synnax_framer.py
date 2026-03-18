@@ -6,8 +6,16 @@ from .limewire_utils import get_write_time_channel_name
 
 
 class SynnaxFramer:
-    def __init__(self, channels: dict[str, list[str]]):
+    channels: dict[str, list[str]]
+    frame_channels: dict[str, list[str]]
+
+    def __init__(
+        self,
+        channels: dict[str, list[str]],
+        frame_channels: dict[str, list[str]],
+    ):
         self.channels = channels
+        self.frame_channels = frame_channels
 
     def build_synnax_frame(self, msg: LMPMessage) -> dict[str, float] | None:
         if isinstance(msg, TelemetryMessage):
@@ -29,13 +37,20 @@ class SynnaxFramer:
                 f"Channel {msg.index_channel} not active! Is LIMEWIRE_DEV_SYNNAX enabled?"
             )
 
-        data_channels = self.channels[msg.index_channel].copy()
+        # data_channels = self.channels[msg.index_channel].copy()
+        # limewire_write_time_channel = get_write_time_channel_name(
+        #     msg.index_channel
+        # )
+        # data_channels.remove(limewire_write_time_channel)
+
         limewire_write_time_channel = get_write_time_channel_name(
             msg.index_channel
         )
-        data_channels.remove(limewire_write_time_channel)
         frame = {
-            channel: value for channel, value in zip(data_channels, msg.values)
+            channel: value
+            for channel, value in zip(
+                self.frame_channels[msg.index_channel], msg.values
+            )
         }
         frame[msg.index_channel] = msg.timestamp
         frame[limewire_write_time_channel] = sy.TimeStamp.now()
