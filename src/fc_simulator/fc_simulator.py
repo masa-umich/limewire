@@ -6,12 +6,10 @@ from functools import partial
 
 import synnax as sy
 
-from limewire.util import FlightPhase, SwitchNetwork
 from lmp import (
     Board,
     DeviceCommandAckMessage,
     DeviceCommandMessage,
-    HandoffMessage,
     HeartbeatMessage,
     TelemetryFramer,
     TelemetryMessage,
@@ -19,7 +17,6 @@ from lmp import (
     ValveStateMessage,
 )
 from lmp.framer import TelemetryProtocol
-from lmp.handoff import ControlSignal
 from lmp.util import DeviceCommand
 
 
@@ -34,17 +31,9 @@ class FCSimulator:
 
     UDP_PORT: int = 1234
 
-    def __init__(
-        self,
-        fc_addr: tuple[str, int],
-        gs_addr: tuple[str, int],
-        run_time: float,
-    ):
-        self.configs = {
-            FlightPhase.ETHERNET: fc_addr,
-            FlightPhase.RADIO: gs_addr,
-        }
-        self.config = FlightPhase.ETHERNET
+    def __init__(self, ip_addr: str, tcp_port: int, run_time: float):
+        self.ip_addr = ip_addr
+        self.tcp_port = tcp_port
         self.run_time = run_time
 
         self.log_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -64,11 +53,11 @@ class FCSimulator:
         # Connect to broadcast
         sock.connect(("255.255.255.255", 6767))
         (
-            _,
+            transport,
             handler,
         ) = await loop.create_datagram_endpoint(TelemetryProtocol, sock=sock)
 
-        self.telemetry_framer = TelemetryFramer(sock=handler)
+        self.telemetry_framer = TelemetryFramer(handler, transport)
         print("Sending telemetry at 255.255.255.255:6767")
 
         start_time = asyncio.get_running_loop().time()
@@ -86,13 +75,10 @@ class FCSimulator:
         while True:
             loop_start_time = asyncio.get_running_loop().time()
             for board in boards:
-                if board == Board.FR:
-                    values = [float("nan") for i in range(board.num_values)]
-                else:
-                    values = [
-                        i * random.uniform(0, 1)
-                        for i in range(board.num_values)
-                    ]
+                values = [
+                    i * random.uniform(0, 1) for i in range(board.num_values)
+                ]
+
                 # Send a 0-timestamped telemetry message every 100 messages
                 if loop_counter % 100 == 0:
                     timestamp = loop_counter
@@ -135,43 +121,17 @@ class FCSimulator:
             if not msg_bytes:
                 break
 
-            response_msg = await self.handle_message(msg_bytes)
+            response_msg = await self.get_response_msg(msg_bytes)
             if not response_msg:
                 continue
-
-            if (
-                response_msg.MSG_ID == HandoffMessage.MSG_ID
-                and type(response_msg) is HandoffMessage
-            ):
-                # Handoff is happening
-                if (
-                    response_msg.confirmation_seq
-                    != HandoffMessage.DEFAULT_CONFIRMATION_SEQ
-                ):
-                    continue
-
-                if (
-                    self.config == FlightPhase.ETHERNET
-                    and response_msg.control_signal == ControlSignal.HANDOFF
-                ):
-                    self.config = FlightPhase.RADIO
-                    raise SwitchNetwork()
-                elif (
-                    self.config == FlightPhase.RADIO
-                    and response_msg.control_signal == ControlSignal.ABORT
-                ):
-                    self.config = FlightPhase.ETHERNET
-                    raise SwitchNetwork()
-                else:
-                    continue
 
             response_bytes = bytes(response_msg)
             writer.write(len(response_bytes).to_bytes(1) + response_bytes)
             await writer.drain()
 
-    async def handle_message(
+    async def get_response_msg(
         self, msg_bytes: bytes
-    ) -> ValveStateMessage | DeviceCommandAckMessage | HandoffMessage | None:
+    ) -> ValveStateMessage | DeviceCommandAckMessage | None:
         """Return the response message associated with the command message.
 
         Args:
@@ -207,9 +167,6 @@ class FCSimulator:
                         pass
 
                 return response
-            case HandoffMessage.MSG_ID:
-                handoff_msg = HandoffMessage.from_bytes(msg_bytes)
-                return handoff_msg
             case HeartbeatMessage.MSG_ID:
                 pass
             case _:
@@ -226,13 +183,9 @@ class FCSimulator:
 
         self.tcp_aborted = False
 
-        listen_task = asyncio.create_task(self.handle_commands(reader, writer))
+        valve_task = asyncio.create_task(self.handle_commands(reader, writer))
 
-        try:
-            await listen_task
-        except SwitchNetwork:
-            self.switch = True
-            self.server.close()
+        await valve_task
 
         if not self.tcp_aborted:
             writer.close()
@@ -256,31 +209,21 @@ class FCSimulator:
         # expects a function with only two arguments. functools.partial()
         # "fills in" the run_time argument for us and returns a new function
         # with only the two expected arguments.
+        server = await asyncio.start_server(
+            partial(self.handle_client, run_time=self.run_time),
+            self.ip_addr,
+            self.tcp_port,
+        )
+
+        addr = server.sockets[0].getsockname()
+        print(f"Serving on {format_socket_address(addr)}.")
+
+        async with server:
+            await server.serve_forever()
+
+        await telemetry_task
+
         while True:
-            self.switch = False
-            self.server = await asyncio.start_server(
-                partial(self.handle_client, run_time=self.run_time),
-                *self.configs[self.config],
+            self.log_socket.sendto(
+                b"Hello, world!\r\n", ("127.0.0.1", self.UDP_PORT)
             )
-
-            addr = self.server.sockets[0].getsockname()
-            print(
-                f"Serving on {format_socket_address(addr)}. Config: {self.config.value}"
-            )
-
-            try:
-                async with self.server:
-                    await self.server.serve_forever()
-
-                print("Restarting telemetry task")
-                await telemetry_task
-
-                while True:
-                    self.log_socket.sendto(
-                        b"Hello, world!\r\n", ("127.0.0.1", self.UDP_PORT)
-                    )
-            except asyncio.CancelledError:
-                if self.switch:
-                    continue
-                else:
-                    break
