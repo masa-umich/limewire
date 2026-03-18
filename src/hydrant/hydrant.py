@@ -1,11 +1,13 @@
 import asyncio
 import json
 import pathlib
+import random
 from datetime import datetime
 
 from loguru import logger
 from nicegui import app, client, ui
 
+from hydrant.map_ui import Map_UI
 from hydrant.ntp_broadcast import send_all
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
 from lmp.framer import FramingError, LMPFramer
@@ -150,7 +152,7 @@ class Hydrant:
                 await self.fc_writer.drain()
                 start = time.monotonic() """
 
-    def main_page(self, client: client.Client):
+    async def main_page(self, client: client.Client):
         """Generates page outline and GUI"""
 
         error_log = EventLogUI(self.log_lookup)
@@ -166,6 +168,10 @@ class Hydrant:
             }
             </style>
         """)
+
+        ui.add_head_html(
+            "<style>.leaflet-container { background: transparent !important; }</style>"
+        )
 
         # HEADER
         with ui.header().classes(
@@ -192,6 +198,7 @@ class Hydrant:
                                 1: "Device Commands",
                                 2: "System Configuration",
                                 3: "Telemetry",
+                                4: "Map",
                             },
                             value=1,
                         )
@@ -419,11 +426,16 @@ class Hydrant:
                                     fr_telemetry, Board.FR, client
                                 )
                                 gs_telemetry = BoardTelemetryUI(
-                                    self.channels["radio_timestamp"], Board.GS, 1
+                                    self.channels["radio_timestamp"],
+                                    Board.GS,
+                                    1,
                                 )
                                 self.telem_listener.attach_ui(
                                     gs_telemetry, Board.GS, client
                                 )
+                    with ui.tab_panel(4).classes("p-0"):
+                        map = Map_UI()
+                        self.telem_listener.attach_map(map)
         # FC CONNECTION DIV
         with (
             ui.element("div")

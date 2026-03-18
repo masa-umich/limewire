@@ -7,6 +7,7 @@ from enum import Enum
 from loguru import logger
 from nicegui import Client, ui
 
+from hydrant.map_ui import Map_UI
 from lmp.telemetry import TelemetryMessage
 from lmp.util import Board
 
@@ -191,6 +192,8 @@ class ValveOLD(Enum):
 class TelemetryListener:
     def __init__(self):
         self.telemetry_UIs: list[tuple[Board, BoardTelemetryUI, Client]] = []
+        self.map_UIs: list[Map_UI] = []
+        self.map_marker = None
         self.transport = None
 
     def attach_ui(self, ui: BoardTelemetryUI, board: Board, client: Client):
@@ -239,6 +242,18 @@ class TelemetryListener:
         for x in self.telemetry_UIs:
             if x[0] == msg.board:
                 x[1].process_message(msg)
+
+        for x in self.telemetry_UIs:
+            if msg.board == Board.FC and x[0] == msg.board:
+                self.update_location((x[1].fc_gps_lat, x[1].fc_gps_long))
+                break
+
+    def attach_map(self, m: ui.leaflet):
+        self.map_UIs.append(m)
+
+    def update_location(self, loc: tuple[float, float]):
+        for m in self.map_UIs:
+            m.update_marker(loc)
 
 
 class TelemetryProtocol(asyncio.DatagramProtocol):
