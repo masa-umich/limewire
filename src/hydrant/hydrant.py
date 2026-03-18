@@ -1,7 +1,6 @@
 import asyncio
 import json
 import pathlib
-import random
 from datetime import datetime
 
 from loguru import logger
