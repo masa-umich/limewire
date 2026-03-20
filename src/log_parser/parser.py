@@ -37,12 +37,12 @@ class Parser:
                     if bstr.isascii():
                         if l[0] == 0x1D:
                             try:
-                                telem_msg = TelemetryMessage.from_bytes(base64.b64decode(bstr))
+                                telem_msg = TelemetryMessage.from_bytes(base64.b64decode(bstr)[1:])
                                 board = telem_msg.board
                                 if channel_list is None:
-                                    channel_list = self.channels[board.index_channel + "_timestamp"]
-                                    channel_list = channel_list[:-2]
-                                    csv_telem.writerow([board.index_channel + "_timestamp"] + channel_list)
+                                    channel_list = self.channels[board.index_channel]
+                                    channel_list = channel_list[:-1]
+                                    csv_telem.writerow([board.index_channel] + channel_list)
                                 csv_telem.writerow([telem_msg.timestamp] + telem_msg.values)
                                 good_count += 1
                             except:

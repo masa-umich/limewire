@@ -63,6 +63,15 @@ class VLV:
         self.enabled = enabled
 
 
+class VLV_CH:
+    def __init__(self, channel):
+        self.channel = channel
+
+    @classmethod
+    def from_ui(cls, index):
+        return cls(index - 1)
+
+
 def generate_bb_eeprom(
     bb_num: int,
     fc_ip: ipaddress.IPv4Address,
@@ -125,7 +134,14 @@ def generate_fc_eeprom(
     bb2_ip: ipaddress.IPv4Address,
     bb3_ip: ipaddress.IPv4Address,
     fr_ip: ipaddress.IPv4Address,
+    ox_mpv: VLV_CH,
+    fuel_mpv: VLV_CH,
+    pilot: VLV_CH,
+    drogue: VLV_CH,
+    main: VLV_CH,
 ) -> bytes:
+    print(ox_mpv.channel)
+    print(main.channel)
     if len(pts) != 5:
         raise ValueError(
             "Flight Computer must be configured with exactly 5 PT channels"
@@ -159,6 +175,13 @@ def generate_fc_eeprom(
         + bb3_ip.packed
         + fr_ip.packed
     )
+    raw_out += (
+        struct.pack("<B", ox_mpv.channel)
+        + struct.pack("<B", fuel_mpv.channel)
+        + struct.pack("<B", pilot.channel)
+        + struct.pack("<B", drogue.channel)
+        + struct.pack("<B", main.channel)
+    )
 
     crc = zlib.crc32(raw_out)
 
@@ -173,10 +196,38 @@ def send_eeprom_tftp(board: ipaddress.IPv4Address, content: bytes):
 
 
 def configure_fc(
-    pts, tcs, vlvs, gseip, fcip, bb1ip, bb2ip, bb3ip, frip, tftpip, log=logger
+    pts,
+    tcs,
+    vlvs,
+    gseip,
+    fcip,
+    bb1ip,
+    bb2ip,
+    bb3ip,
+    frip,
+    oxmpv,
+    fuelmpv,
+    pilot,
+    drogue,
+    main,
+    tftpip,
+    log=logger,
 ):
     eeprom_content = generate_fc_eeprom(
-        pts, tcs, vlvs, gseip, fcip, bb1ip, bb2ip, bb3ip, frip
+        pts,
+        tcs,
+        vlvs,
+        gseip,
+        fcip,
+        bb1ip,
+        bb2ip,
+        bb3ip,
+        frip,
+        oxmpv,
+        fuelmpv,
+        pilot,
+        drogue,
+        main,
     )
     send_eeprom_tftp(tftpip, eeprom_content)
 

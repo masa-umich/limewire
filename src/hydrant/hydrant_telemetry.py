@@ -162,8 +162,10 @@ def get_channel_unit(name: str):
     elif "gps" in name:
         if "alt" in name:
             return "m"  # TODO
-        else:
+        elif "lat" in name or "long" in name:
             return "\u00b0"  # TODO
+        else:
+            return ""
     elif "voltage" in name:
         return "V"
     elif "temp" in name:

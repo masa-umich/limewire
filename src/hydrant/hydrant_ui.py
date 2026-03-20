@@ -13,6 +13,7 @@ from .eeprom_generate import (
     PT,
     TC,
     VLV,
+    VLV_CH,
     TCGain,
     ValveVoltage,
     configure_bb,
@@ -215,6 +216,17 @@ class ValveUI:
         else:
             raise Exception("Voltage must be either 12v or 24v")
 
+class VLV_Channel_UI:
+    def __init__(self, name: str, channel: int, max: int):
+        self.channel = channel
+        with ui.row().classes("w-full mx-auto no-wrap gap-1 items-center"):
+            ui.label(name).classes("min-w-10")
+            ui.select(
+                [i for i in range(1, max + 1)], value=channel, label="Channel"
+            ).props("filled dense").classes("min-w-25").bind_value(self, "channel")
+    
+    def to_VLV_CH(self):
+        return VLV_CH.from_ui(self.channel)
 
 class FCConfigUI:
     def __init__(self):
@@ -289,6 +301,19 @@ class FCConfigUI:
                         self.FRIP = IPAddressUI(
                             DEFAULT_FR_IP, "Flight Recorder IP"
                         )
+            with ui.row().classes(
+                "w-full mx-auto no-wrap flex items-stretch h-full border-1 p-2 border-gray-500"
+            ):
+                with ui.column().classes("w-full"):
+                    self.Ox_MPV = VLV_Channel_UI("Ox MPV", 1, 5)
+                with ui.column().classes("w-full"):
+                    self.Fuel_MPV = VLV_Channel_UI("Fuel MPV", 2, 5)
+                with ui.column().classes("w-full"):
+                    self.Pilot_Chute = VLV_Channel_UI("Pilot Chute", 1, 3)
+                with ui.column().classes("w-full"):
+                    self.Drogue_Chute = VLV_Channel_UI("Drogue Chute", 2, 3)
+                with ui.column().classes("w-full"):
+                    self.Main_Chute = VLV_Channel_UI("Main Chute", 3, 3)
 
     def restore_defaults(self):
         for x in self.PTs:
@@ -908,6 +933,11 @@ class SystemConfigUI:
         fc_BB2IP = fc_board_ui.BB2IP.ip
         fc_BB3IP = fc_board_ui.BB3IP.ip
         fc_FRIP = fc_board_ui.FRIP.ip
+        fc_OXMPV = fc_board_ui.Ox_MPV.to_VLV_CH()
+        fc_FUELMPV = fc_board_ui.Fuel_MPV.to_VLV_CH()
+        fc_PILOT = fc_board_ui.Pilot_Chute.to_VLV_CH()
+        fc_DROGUE = fc_board_ui.Drogue_Chute.to_VLV_CH()
+        fc_MAIN = fc_board_ui.Main_Chute.to_VLV_CH()
 
         bb1_PTs = [pt.to_PT() for pt in bb1_board_ui.PTs]
         bb1_TCs = [tc.to_TC() for tc in bb1_board_ui.TCs]
@@ -987,6 +1017,11 @@ class SystemConfigUI:
                     fc_BB2IP,
                     fc_BB3IP,
                     fc_FRIP,
+                    fc_OXMPV,
+                    fc_FUELMPV,
+                    fc_PILOT,
+                    fc_DROGUE,
+                    fc_MAIN,
                     fc_tftp,
                 )
                 self.set_board_config_in_progress(self.fc_prog_tooltip)
