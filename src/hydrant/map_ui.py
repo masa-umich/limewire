@@ -1,4 +1,5 @@
 from nicegui import ui
+import math
 
 
 class Map_UI:
@@ -29,6 +30,8 @@ class Map_UI:
         self.marker_icon = await ui.run_javascript(js, timeout=5)
 
     def update_marker(self, loc: tuple[float, float]):
+        if math.isnan(loc[0]) or math.isnan(loc[1]):
+            return
         if self.marker is None:
             self.marker = self.map.marker(latlng=loc)
         else:
