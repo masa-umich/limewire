@@ -7,6 +7,7 @@ from enum import Enum
 from loguru import logger
 from nicegui import Client, ui
 
+from hydrant.map_ui import Map_UI
 from lmp.telemetry import TelemetryMessage
 from lmp.util import Board
 
@@ -62,9 +63,9 @@ class BoardTelemetryUI:
                                     ).bind_text_from(
                                         self,
                                         self.channels[x],
-                                        backward=lambda v: v.name
-                                        if v is not None
-                                        else " - ",
+                                        backward=lambda v: (
+                                            v.name if v is not None else " - "
+                                        ),
                                     )
                                     ui.label("")
                                 elif "current" in self.channels[x]:
@@ -76,9 +77,11 @@ class BoardTelemetryUI:
                                     ).bind_text_from(
                                         self,
                                         self.channels[x],
-                                        backward=lambda v: f"{(v * 1000):.5g}"
-                                        if v is not None
-                                        else " - ",
+                                        backward=lambda v: (
+                                            f"{(v * 1000):.5g}"
+                                            if v is not None
+                                            else " - "
+                                        ),
                                     )
                                     ui.label(get_channel_unit(self.channels[x]))
                                 else:
@@ -90,9 +93,11 @@ class BoardTelemetryUI:
                                     ).bind_text_from(
                                         self,
                                         self.channels[x],
-                                        backward=lambda v: f"{v:.5g}"
-                                        if v is not None
-                                        else " - ",
+                                        backward=lambda v: (
+                                            f"{v:.5g}"
+                                            if v is not None
+                                            else " - "
+                                        ),
                                     )
                                     ui.label(get_channel_unit(self.channels[x]))
 
@@ -137,7 +142,7 @@ def process_channel_name(name: str):
     name = name.replace("vlv", "VLV")
     name = name.replace("gps", "GPS")
     name = name.replace("imu", "IMU")
-    return name[0].upper() + name[1:] if name != "" else ""
+    return name[0].upper() + name[1:] if name != "" else name
 
 
 def get_channel_unit(name: str):
@@ -157,8 +162,10 @@ def get_channel_unit(name: str):
     elif "gps" in name:
         if "alt" in name:
             return "m"  # TODO
-        else:
+        elif "lat" in name or "long" in name:
             return "\u00b0"  # TODO
+        else:
+            return ""
     elif "voltage" in name:
         return "V"
     elif "temp" in name:
@@ -168,9 +175,9 @@ def get_channel_unit(name: str):
 
 
 class ValveOLD(Enum):
-    En = (-1,)
-    NoLoad = (0,)
     Load = 1
+    NoLoad = 0
+    En = -1
 
     @classmethod
     def from_telem(cls, val: float):
@@ -187,6 +194,8 @@ class ValveOLD(Enum):
 class TelemetryListener:
     def __init__(self):
         self.telemetry_UIs: list[tuple[Board, BoardTelemetryUI, Client]] = []
+        self.map_UIs: list[Map_UI] = []
+        self.map_marker = None
         self.transport = None
 
     def attach_ui(self, ui: BoardTelemetryUI, board: Board, client: Client):
@@ -235,6 +244,18 @@ class TelemetryListener:
         for x in self.telemetry_UIs:
             if x[0] == msg.board:
                 x[1].process_message(msg)
+
+        for x in self.telemetry_UIs:
+            if msg.board == Board.FC and x[0] == msg.board:
+                self.update_location((x[1].fc_gps_lat, x[1].fc_gps_long))
+                break
+
+    def attach_map(self, m: ui.leaflet):
+        self.map_UIs.append(m)
+
+    def update_location(self, loc: tuple[float, float]):
+        for m in self.map_UIs:
+            m.update_marker(loc)
 
 
 class TelemetryProtocol(asyncio.DatagramProtocol):

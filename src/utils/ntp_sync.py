@@ -6,8 +6,6 @@ from scapy.all import IP, UDP, send
 from scapy.interfaces import get_working_ifaces
 from scapy.layers.ntp import NTPHeader
 
-# from hydrant.logging import set_up_logging
-
 
 def send_all():
     if sys.platform == "darwin":

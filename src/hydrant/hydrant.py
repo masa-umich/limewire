@@ -6,6 +6,7 @@ from datetime import datetime
 from loguru import logger
 from nicegui import app, client, ui
 
+from hydrant.map_ui import Map_UI
 from hydrant.ntp_broadcast import send_all
 from lmp import DeviceCommandAckMessage, DeviceCommandMessage
 from lmp.framer import FramingError, LMPFramer
@@ -150,7 +151,7 @@ class Hydrant:
                 await self.fc_writer.drain()
                 start = time.monotonic() """
 
-    def main_page(self, client: client.Client):
+    async def main_page(self, client: client.Client):
         """Generates page outline and GUI"""
 
         error_log = EventLogUI(self.log_lookup)
@@ -166,6 +167,10 @@ class Hydrant:
             }
             </style>
         """)
+
+        ui.add_head_html(
+            "<style>.leaflet-container { background: transparent !important; }</style>"
+        )
 
         # HEADER
         with ui.header().classes(
@@ -192,6 +197,7 @@ class Hydrant:
                                 1: "Device Commands",
                                 2: "System Configuration",
                                 3: "Telemetry",
+                                4: "Map",
                             },
                             value=1,
                         )
@@ -232,16 +238,18 @@ class Hydrant:
                                             options=list(
                                                 self.boards_available.keys()
                                             ),
-                                            on_change=lambda e: self.command_select.set_options(
-                                                [
-                                                    cmd.name
-                                                    for cmd in DeviceCommand
-                                                    if cmd.available_on_board(
-                                                        self.boards_available[
-                                                            self.board_select.value
-                                                        ]
-                                                    )
-                                                ]
+                                            on_change=lambda e: (
+                                                self.command_select.set_options(
+                                                    [
+                                                        cmd.name
+                                                        for cmd in DeviceCommand
+                                                        if cmd.available_on_board(
+                                                            self.boards_available[
+                                                                self.board_select.value
+                                                            ]
+                                                        )
+                                                    ]
+                                                )
                                             ),
                                         ).classes("w-full")
                                         # Command
@@ -257,13 +265,17 @@ class Hydrant:
                                             with ui.row():
                                                 ui.button(
                                                     "YES",
-                                                    on_click=lambda: self.send_after_confirm(
-                                                        dialog
+                                                    on_click=lambda: (
+                                                        self.send_after_confirm(
+                                                            dialog
+                                                        )
                                                     ),
                                                 )
                                                 ui.button(
                                                     "NO",
-                                                    on_click=lambda: dialog.close(),
+                                                    on_click=lambda: (
+                                                        dialog.close()
+                                                    ),
                                                 )
                                         ui.button(
                                             "SEND",
@@ -412,6 +424,17 @@ class Hydrant:
                                 self.telem_listener.attach_ui(
                                     fr_telemetry, Board.FR, client
                                 )
+                                gs_telemetry = BoardTelemetryUI(
+                                    self.channels["radio_timestamp"],
+                                    Board.GS,
+                                    1,
+                                )
+                                self.telem_listener.attach_ui(
+                                    gs_telemetry, Board.GS, client
+                                )
+                    with ui.tab_panel(4).classes("p-0"):
+                        map = Map_UI()
+                        self.telem_listener.attach_map(map)
         # FC CONNECTION DIV
         with (
             ui.element("div")
@@ -572,7 +595,7 @@ class Hydrant:
 
     async def send_ntp_after_warn(self, dialog):
         dialog.close()
-        await send_all()
+        await asyncio.to_thread(send_all)
 
     def warn_send_ntp(self):
         with (

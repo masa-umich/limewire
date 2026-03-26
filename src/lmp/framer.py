@@ -1,6 +1,7 @@
 import asyncio
 
 from .device_command import DeviceCommandAckMessage, DeviceCommandMessage
+from .handoff import HandoffMessage
 from .heartbeat import HeartbeatMessage
 from .telemetry import TelemetryMessage
 from .valve import ValveCommandMessage, ValveStateMessage
@@ -12,6 +13,7 @@ type LMPMessage = (
     | TelemetryMessage
     | ValveCommandMessage
     | ValveStateMessage
+    | HandoffMessage
 )
 
 
@@ -79,6 +81,17 @@ class TelemetryProtocol(asyncio.DatagramProtocol):
     def connection_lost(self, exc):
         self.open = False
 
+    def send_message(self, message: TelemetryMessage):
+        msg_bytes = bytes(message)
+        if self.transport and self.open:
+            # Send to default configured addr
+            self.transport.sendto(
+                len(msg_bytes).to_bytes(1) + msg_bytes,
+                ("255.255.255.255", 6767),
+            )
+        else:
+            print("Attempted to send on closed telemetry transport")
+
     async def wait_for_close(self):
         while self.open:
             await asyncio.sleep(0.5)
@@ -93,18 +106,22 @@ class TelemetryProtocol(asyncio.DatagramProtocol):
 class TelemetryFramer:
     """A class to handle framing/unframing telemetry data from a UDP socket."""
 
-    def __init__(self, sock: TelemetryProtocol):
+    sock: TelemetryProtocol
+    transport: asyncio.DatagramTransport
+
+    def __init__(
+        self, sock: TelemetryProtocol, transport: asyncio.DatagramTransport
+    ):
         """Initialize the TelemetryFramer.
 
         If sending messages with this framer, the remote address must be set
         before passing the socket into this function.
         """
         self.sock = sock
+        self.transport = transport
 
     def send_message(self, message: TelemetryMessage):
-        raise NotImplementedError("Can't send UDP over broadcast using this")
-        # msg_bytes = bytes(message)
-        # self.sock.sendto(len(msg_bytes).to_bytes(1) + msg_bytes)
+        self.sock.send_message(message)
 
     async def receive_message(self) -> TelemetryMessage:
         """Receive a message from the socket.
@@ -132,3 +149,6 @@ class TelemetryFramer:
             raise err
 
         return message
+
+    async def close(self):
+        self.transport.close()

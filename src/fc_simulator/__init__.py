@@ -2,7 +2,7 @@ import asyncio
 
 import click
 
-from limewire.util import SocketAddress
+from utils import SocketAddress
 
 from .fc_simulator import FCSimulator
 

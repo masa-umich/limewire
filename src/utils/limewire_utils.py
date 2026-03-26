@@ -61,8 +61,10 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
     SYNNAX_PORT = int(os.getenv("SYNNAX_PORT") or 9090)
     SYNNAX_USERNAME = os.getenv("SYNNAX_USERNAME") or "synnax"
     SYNNAX_PASSWORD = os.getenv("SYNNAX_PASSWORD") or "seldon"
-    SYNNAX_SECURE = bool(os.getenv("SYNNAX_SECURE") or False)
-    LIMEWIRE_DEV_SYNNAX = bool(os.getenv("LIMEWIRE_DEV_SYNNAX") or False)
+    SYNNAX_SECURE = False  # bool(os.getenv("SYNNAX_SECURE") or False)
+    LIMEWIRE_DEV_SYNNAX = (
+        False  # bool(os.getenv("LIMEWIRE_DEV_SYNNAX") or False)
+    )
 
     try:
         client = sy.Synnax(
@@ -87,7 +89,10 @@ def synnax_init() -> tuple[sy.Synnax, dict[str, list[str]]]:
         f"Connected to Synnax at {SYNNAX_HOST}:{SYNNAX_PORT} (LIMEWIRE_DEV_SYNNAX={LIMEWIRE_DEV_SYNNAX})"
     )
 
-    channels_file = Path(__file__).parent / "data" / "channels.json"
+    channels_file = (
+        Path(__file__).parent.parent / "limewire" / "data" / "channels.json"
+    )
+    # channels_file = Path(__file__) / "data" / "channels.json"
     with channels_file.open() as f:
         channels: dict[str, list[str]] = json.load(f)
 

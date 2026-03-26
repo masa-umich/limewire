@@ -3,10 +3,10 @@ import pathlib
 
 import click
 from loguru import logger
-from nicegui import app, ui
+from nicegui import app, binding, ui
 
 from hydrant.logging import set_up_logging
-from limewire.util import SocketAddress
+from utils import SocketAddress
 
 from .hydrant import Hydrant
 
@@ -48,6 +48,7 @@ def main(fc_address: tuple[str, int], log_table: pathlib.Path, debug: bool):
     )
 
     hydrant = Hydrant(fc_address, log_table)
+    binding.MAX_PROPAGATION_TIME = 1.0
 
     ui.run(hydrant.main_page, show=False, reload=False, favicon="favicon.ico")
 

@@ -31,6 +31,7 @@ readme = "README.md"
 limewire = "limewire:main"
 fc_simulator = "fc_simulator:main"
 hydrant = "hydrant:main"
+log_parser = "log_parser:main"
 
 [dependency-groups]
 dev = [
@@ -41,7 +42,8 @@ dev = [
 includes = [
     "src/limewire",
     "src/hydrant",
-    "src/lmp"
+    "src/lmp",
+    "src/utils",
 ]
 
 
