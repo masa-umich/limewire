@@ -37,6 +37,7 @@ GS_UDP_PORT = 6969
 FC_READ_TIMEOUT = 5.0
 FC_CONNECT_TIMEOUT = 5.0
 HEARTBEAT_INTERVAL = 1.0
+PERIODIC_NTP_SYNC_INTERVAL = 60.0
 
 
 class Limewire:
@@ -73,7 +74,6 @@ class Limewire:
     def __init__(
         self,
         fc_addr: tuple[str, int],
-        # gs_addr: tuple[str, int],
         overwrite_timestamps: bool = False,
         periodic_sync: bool = False,
     ) -> None:
@@ -82,7 +82,6 @@ class Limewire:
         )
 
         self.fc_addr = fc_addr
-        # self.gs_addr = gs_addr
 
         # Set up Synnax
         self.synnax_client, self.channels = synnax_init()
@@ -284,6 +283,7 @@ class Limewire:
             self.lmp_framer = None
 
     async def _send_heartbeat(self):
+        """Periodically send heartbeats to the flight computer"""
         while True:
             await asyncio.sleep(HEARTBEAT_INTERVAL)
             logger.debug(f"Queue size: {self.queue.qsize()}")
@@ -478,12 +478,13 @@ class Limewire:
                     await self.lmp_framer.send_message(msg)
 
     async def _periodic_ntp_sync(self):
-        """Send an NTP broadcast packet every 60 seconds."""
+        """Send an NTP broadcast packet on a set interval."""
         while True:
-            await asyncio.sleep(60)
+            await asyncio.sleep(PERIODIC_NTP_SYNC_INTERVAL)
             send_all()
 
     async def _dump_telem_messages(self):
+        """Dump radio telemetry message in case time drift prevents values from getting logged"""
         while True:
             msg = await self.dump_queue.get()
             data_channels = self.frame_channels[msg.index_channel]
