@@ -458,9 +458,5 @@ class Limewire:
     async def _send_ntp_sync(self):
         """Send an NTP broadcast packet every 60 seconds."""
         while True:
-            try:
-                send_ntp_sync(logger)
-            except Exception:
-                # send_ntp_sync already logs; we just want to avoid crashing the task
-                pass
             await asyncio.sleep(60)
+            send_ntp_sync(logger)
