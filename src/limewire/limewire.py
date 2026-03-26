@@ -484,7 +484,14 @@ class Limewire:
             send_all()
 
     async def _dump_telem_messages(self):
-        """Dump radio telemetry message in case time drift prevents values from getting logged"""
+        """Dump radio telemetry message in case time drift prevents values from getting logged
+        Format:
+        f"TelemetryMessage(board: {repr(self.board)}, timestamp: {self.timestamp})"
+        channel_1: val_1
+        ...
+        channel_n: val_n
+        {write_time_channel}: TimeSpan(time.now())
+        """
         while True:
             msg = await self.dump_queue.get()
             data_channels = self.frame_channels[msg.index_channel]
