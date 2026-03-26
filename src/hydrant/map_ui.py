@@ -1,5 +1,6 @@
-from nicegui import ui
 import math
+
+from nicegui import ui
 
 
 class Map_UI:
