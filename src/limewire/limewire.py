@@ -481,7 +481,7 @@ class Limewire:
         """Send an NTP broadcast packet every 60 seconds."""
         while True:
             await asyncio.sleep(60)
-            send_ntp_sync(logger)
+            send_all()
 
     async def _dump_telem_messages(self):
         while True:
