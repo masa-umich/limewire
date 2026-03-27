@@ -34,7 +34,7 @@ class Parser:
             self.channels: dict[str, list[str]] = json.load(f)
 
     def parse(self):
-        """Parse dump files and write to log/telem files for specific board"""
+        """Parse dump files and write to log/telem/valve state files for specific board"""
         # With guarantees closure
         with (
             open(self.dump_file, "rb") as dump,
@@ -54,9 +54,6 @@ class Parser:
 
             count = 0
             good_count = 0
-
-            # telem_csv.writerow([board.index_channel] + channel_list)
-            # valve_csv.writerow(["Valve", "State", "Timestamp"])
 
             telem_header_written = False
             valve_header_written = False
