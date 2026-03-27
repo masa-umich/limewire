@@ -2,8 +2,6 @@ import pathlib
 
 import click
 
-from lmp.util import Board
-
 from .parser import Parser
 
 
@@ -15,5 +13,4 @@ from .parser import Parser
 def main(log_file: pathlib.Path):
     """Parse a flash dump file"""
     parser = Parser(log_file)
-    for board in Board:
-        parser.parse(board)
+    parser.parse()
