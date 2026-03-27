@@ -98,7 +98,6 @@ class Parser:
                         continue
                     if not valve_header_written:
                         assert valve_msg.valve.board == board
-                        board = valve_msg.valve.board
                         valve_csv.writerow(["Valve", "Timestamp", "State"])
                         valve_header_written = True
                     valve_csv.writerow(
