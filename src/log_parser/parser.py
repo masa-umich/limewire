@@ -4,7 +4,6 @@ import json
 import pathlib
 
 from lmp.telemetry import TelemetryMessage
-from lmp.util import Board
 from lmp.valve import ValveStateMessage
 
 MSG_TELEMETRY = 0x1D
