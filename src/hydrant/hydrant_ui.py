@@ -216,6 +216,7 @@ class ValveUI:
         else:
             raise Exception("Voltage must be either 12v or 24v")
 
+
 class VLV_Channel_UI:
     def __init__(self, name: str, channel: int, max: int):
         self.channel = channel
@@ -223,10 +224,13 @@ class VLV_Channel_UI:
             ui.label(name).classes("min-w-10")
             ui.select(
                 [i for i in range(1, max + 1)], value=channel, label="Channel"
-            ).props("filled dense").classes("min-w-25").bind_value(self, "channel")
-    
+            ).props("filled dense").classes("min-w-25").bind_value(
+                self, "channel"
+            )
+
     def to_VLV_CH(self):
         return VLV_CH.from_ui(self.channel)
+
 
 class FCConfigUI:
     def __init__(self):

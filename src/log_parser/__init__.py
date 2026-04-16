@@ -1,9 +1,6 @@
-import asyncio
 import pathlib
 
 import click
-
-from utils import SocketAddress
 
 from .parser import Parser
 
@@ -15,5 +12,5 @@ from .parser import Parser
 )
 def main(log_file: pathlib.Path):
     """Parse a flash dump file"""
-    
-    Parser(log_file)
+    parser = Parser(log_file)
+    parser.parse()

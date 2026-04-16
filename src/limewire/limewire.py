@@ -86,7 +86,7 @@ class Limewire:
 
         # Set up Synnax
         self.synnax_client, self.channels = synnax_init()
-        
+
         self.frame_channels = {}
         self.writer_channels = []
         self.cmd_channels = []
@@ -94,7 +94,10 @@ class Limewire:
         # Cache all necessary channel lists to prevent recalculation
         for index_channel, data_channels in self.channels.items():
             self.frame_channels[index_channel] = data_channels.copy()
-            if get_write_time_channel_name(index_channel) in self.frame_channels[index_channel]:
+            if (
+                get_write_time_channel_name(index_channel)
+                in self.frame_channels[index_channel]
+            ):
                 self.frame_channels[index_channel].remove(
                     get_write_time_channel_name(index_channel)
                 )
