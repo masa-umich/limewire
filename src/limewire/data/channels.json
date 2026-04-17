@@ -417,7 +417,6 @@
         "radio_fc_temp",
         "radio_autosequence_fsm",
         "radio_flutus_state",
-        "radio_bar_1",
         "radio_chamber_pressure",
         "radio_fuel_pressure",
         "radio_ox_pressure",
