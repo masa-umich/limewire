@@ -54,7 +54,7 @@ class Board(Enum):
             Board.BB2: 53,
             Board.BB3: 53,
             Board.FR: 15,
-            Board.GS: 3,
+            Board.GS: 20,
         }
         return NUM_VALUES[self]
 

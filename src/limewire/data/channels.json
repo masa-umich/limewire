@@ -404,6 +404,24 @@
     "radio_timestamp": [
         "radio_gps_lat",
         "radio_gps_long",
-        "radio_gps_alt"
+        "radio_gps_alt",
+        "radio_imu_x",
+        "radio_imu_y",
+        "radio_imu_z",
+        "radio_imu_w_x",
+        "radio_imu_w_y",
+        "radio_imu_w_z",
+        "radio_bar_1",
+        "radio_bar_2",
+        "radio_24_voltage",
+        "radio_fc_temp",
+        "radio_autosequence_fsm",
+        "radio_flutus_state",
+        "radio_bar_1",
+        "radio_chamber_pressure",
+        "radio_fuel_pressure",
+        "radio_ox_pressure",
+        "radio_copv_pressure",
+        "radio_limewire_write_time"
     ]
 }
