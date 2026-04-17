@@ -421,6 +421,8 @@
         "radio_fuel_pressure",
         "radio_ox_pressure",
         "radio_copv_pressure",
+        "radio_rssi",
+        "radio_snr",
         "radio_limewire_write_time"
     ]
 }

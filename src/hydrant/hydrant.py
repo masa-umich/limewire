@@ -80,6 +80,7 @@ class Hydrant:
         app.on_startup(self.connect_to_fc())
         app.on_startup(self.log_listener.open_listener())
         app.on_startup(self.telem_listener.open_listener())
+        app.on_startup(self.telem_listener.open_gs_listener())
 
     async def connect_to_fc(self):
         """Maintain connection to flight computer."""
@@ -427,7 +428,7 @@ class Hydrant:
                                 gs_telemetry = BoardTelemetryUI(
                                     self.channels["radio_timestamp"],
                                     Board.GS,
-                                    1,
+                                    3,
                                 )
                                 self.telem_listener.attach_ui(
                                     gs_telemetry, Board.GS, client

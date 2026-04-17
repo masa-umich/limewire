@@ -12,6 +12,7 @@ from lmp.telemetry import TelemetryMessage
 from lmp.util import Board
 
 TELEM_PORT = 6767
+GROUND_STATION_PORT = 6969
 
 
 class BoardTelemetryUI:
@@ -142,11 +143,13 @@ def process_channel_name(name: str):
     name = name.replace("vlv", "VLV")
     name = name.replace("gps", "GPS")
     name = name.replace("imu", "IMU")
+    name = name.replace("rssi", "RSSI")
+    name = name.replace("snr", "SNR")
     return name[0].upper() + name[1:] if name != "" else name
 
 
 def get_channel_unit(name: str):
-    if "pt" in name:
+    if "pt" in name or "pressure" in name:
         return "psi"
     elif "tc" in name:
         return "C\u00b0"
@@ -170,6 +173,10 @@ def get_channel_unit(name: str):
         return "V"
     elif "temp" in name:
         return "C\u00b0"
+    elif "rssi" in name:
+        return "dBm"
+    elif "snr" in name:
+        return "dB"
     else:
         return ""
 
@@ -196,7 +203,7 @@ class TelemetryListener:
         self.telemetry_UIs: list[tuple[Board, BoardTelemetryUI, Client]] = []
         self.map_UIs: list[Map_UI] = []
         self.map_marker = None
-        self.transport = None
+        self.transport = []
 
     def attach_ui(self, ui: BoardTelemetryUI, board: Board, client: Client):
         self.telemetry_UIs.append((board, ui, client))
@@ -208,6 +215,7 @@ class TelemetryListener:
 
     async def open_listener(self):
         while True:
+            handler = None
             try:
                 loop = asyncio.get_event_loop()
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -217,26 +225,60 @@ class TelemetryListener:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
                 sock.bind(("0.0.0.0", TELEM_PORT))
                 (
-                    self.transport,
-                    self.handler,
+                    transport,
+                    handler,
                 ) = await loop.create_datagram_endpoint(
                     self.create_protocol, sock=sock
                 )
+                self.transport.append(transport)
             except Exception as err:
                 logger.error(f"Error opening telemetry listener: {str(err)}")
                 await asyncio.sleep(1)
                 continue
 
             try:
-                if self.handler is not None:
-                    await self.handler.wait_for_close()
+                if handler is not None:
+                    await handler.wait_for_close()
             except asyncio.CancelledError:
                 logger.warning("Telemetry listener cancelled.")
                 break
             except Exception as e:
                 logger.error(f"Got exception: {e}")
                 continue
+            
+    async def open_gs_listener(self):
+        while True:
+            handler = None
+            try:
+                loop = asyncio.get_event_loop()
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                if sys.platform != "win32":
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                sock.bind(("0.0.0.0", GROUND_STATION_PORT))
+                (
+                    transport,
+                    handler,
+                ) = await loop.create_datagram_endpoint(
+                    self.create_protocol, sock=sock
+                )
+                self.transport.append(transport)
+            except Exception as err:
+                logger.error(f"Error opening telemetry listener: {str(err)}")
+                await asyncio.sleep(1)
+                continue
 
+            try:
+                if handler is not None:
+                    await handler.wait_for_close()
+            except asyncio.CancelledError:
+                logger.warning("Ground Station Telemetry listener cancelled.")
+                break
+            except Exception as e:
+                logger.error(f"Got exception: {e}")
+                continue
+            
     def create_protocol(self):
         return TelemetryProtocol(self)
 
@@ -246,10 +288,10 @@ class TelemetryListener:
                 x[1].process_message(msg)
 
         for x in self.telemetry_UIs:
-            if msg.board == Board.FC and x[0] == msg.board:
-                self.update_location((x[1].fc_gps_lat, x[1].fc_gps_long))
+            if msg.board == Board.GS and x[0] == msg.board:
+                self.update_location((x[1].radio_gps_lat, x[1].radio_gps_long))
                 break
-
+                
     def attach_map(self, m: ui.leaflet):
         self.map_UIs.append(m)
 
