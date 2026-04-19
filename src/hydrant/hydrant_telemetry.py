@@ -289,7 +289,7 @@ class TelemetryListener:
 
         for x in self.telemetry_UIs:
             if msg.board == Board.GS and x[0] == msg.board:
-                self.update_location((x[1].radio_gps_lat, x[1].radio_gps_long))
+                self.update_location((x[1].gs_gps_lat, x[1].gs_gps_long))
                 break
                 
     def attach_map(self, m: ui.leaflet):

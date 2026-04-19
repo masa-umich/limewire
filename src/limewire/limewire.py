@@ -106,7 +106,7 @@ class Limewire:
             for channel_name in data_channels:
                 if is_valve_command_channel(channel_name):
                     self.cmd_channels.append(channel_name)
-
+                    
         self.synnax_writer = None
         self.synnax_framer = SynnaxFramer(self.channels, self.frame_channels)
         self.overwrite_timestamps = overwrite_timestamps
@@ -210,7 +210,7 @@ class Limewire:
         while True:
             # Send NTP sync before connecting to ensure correct telemetry message timestamps.
             self.connected = False
-            send_all()
+            await asyncio.to_thread(send_all)
 
             try:
                 logger.info(
@@ -242,7 +242,7 @@ class Limewire:
                         f"Connection attempt timed out (Windows OSError: {str(err)})."
                     )
                     continue
-                elif err.errno == 65:  # Errno 65 (No route to host)
+                elif err.errno == 65 or err.errno == 64:  # Errno 65 (No route to host)
                     logger.warning(
                         f"Connection attempt timed out (Posix OSError: {str(err)})."
                     )

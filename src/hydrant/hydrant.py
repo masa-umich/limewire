@@ -426,7 +426,7 @@ class Hydrant:
                                     fr_telemetry, Board.FR, client
                                 )
                                 gs_telemetry = BoardTelemetryUI(
-                                    self.channels["radio_timestamp"],
+                                    self.channels["gs_timestamp"],
                                     Board.GS,
                                     3,
                                 )
