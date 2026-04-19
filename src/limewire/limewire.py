@@ -24,8 +24,6 @@ from utils.limewire_utils import (
     is_valve_command_channel,
     synnax_init,
 )
-
-# from utils.ntp_sync import send_notp_sync
 from utils.ntp_sync import send_all
 from utils.synnax_framer import SynnaxFramer
 
@@ -242,6 +240,11 @@ class Limewire:
                 ):
                     logger.warning(
                         f"Connection attempt timed out (Windows OSError: {str(err)})."
+                    )
+                    continue
+                elif err.errno == 65:  # Errno 65 (No route to host)
+                    logger.warning(
+                        f"Connection attempt timed out (Posix OSError: {str(err)})."
                     )
                     continue
                 else:
