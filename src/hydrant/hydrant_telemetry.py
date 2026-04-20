@@ -245,7 +245,7 @@ class TelemetryListener:
             except Exception as e:
                 logger.error(f"Got exception: {e}")
                 continue
-            
+
     async def open_gs_listener(self):
         while True:
             handler = None
@@ -278,7 +278,7 @@ class TelemetryListener:
             except Exception as e:
                 logger.error(f"Got exception: {e}")
                 continue
-            
+
     def create_protocol(self):
         return TelemetryProtocol(self)
 
@@ -291,7 +291,7 @@ class TelemetryListener:
             if msg.board == Board.GS and x[0] == msg.board:
                 self.update_location((x[1].gs_gps_lat, x[1].gs_gps_long))
                 break
-                
+
     def attach_map(self, m: ui.leaflet):
         self.map_UIs.append(m)
 

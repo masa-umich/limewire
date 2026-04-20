@@ -78,22 +78,32 @@ class Parser:
                     try:
                         packet_data = base64.b64decode(bstr)[1:]
                         if packet_data[0] == TelemetryMessage.MSG_ID:
-                            telem_valve_msg = TelemetryMessage.from_bytes(packet_data)
+                            telem_valve_msg = TelemetryMessage.from_bytes(
+                                packet_data
+                            )
                         elif packet_data[0] == ValveStateMessage.MSG_ID:
-                            telem_valve_msg = ValveStateMessage.from_bytes(packet_data)
+                            telem_valve_msg = ValveStateMessage.from_bytes(
+                                packet_data
+                            )
                         else:
                             continue
                     except Exception:
                         continue
-                    
+
                     if isinstance(telem_valve_msg, TelemetryMessage):
                         if not telem_header_written:
                             board = telem_valve_msg.board
-                            channel_list = self.channels[board.index_channel][:-1]
-                            telem_csv.writerow([board.index_channel] + channel_list)
+                            channel_list = self.channels[board.index_channel][
+                                :-1
+                            ]
+                            telem_csv.writerow(
+                                [board.index_channel] + channel_list
+                            )
                             telem_header_written = True
-                            
-                        telem_csv.writerow([telem_valve_msg.timestamp] + telem_valve_msg.values)
+
+                        telem_csv.writerow(
+                            [telem_valve_msg.timestamp] + telem_valve_msg.values
+                        )
                         good_count += 1
                     else:
                         if not valve_header_written:

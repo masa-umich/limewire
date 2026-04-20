@@ -91,7 +91,12 @@ class Hydrant:
                     self.fc_writer.close()
                     await self.fc_writer.wait_closed()
                     self.fc_writer = None
-                except (ConnectionResetError, ConnectionAbortedError, ConnectionError, OSError):
+                except (
+                    ConnectionResetError,
+                    ConnectionAbortedError,
+                    ConnectionError,
+                    OSError,
+                ):
                     pass
             self.fc_connected = False
             try:
