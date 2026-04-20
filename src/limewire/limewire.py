@@ -172,6 +172,7 @@ class Limewire:
                     )
                 )
                 tg.create_task(self._connect_fc())
+                tg.create_task(self._dump_telem_messages())
 
     async def stop(self):
         """Run shutdown code."""
