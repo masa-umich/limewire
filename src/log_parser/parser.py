@@ -6,9 +6,8 @@ import pathlib
 from lmp.telemetry import TelemetryMessage
 from lmp.valve import ValveStateMessage
 
-MSG_TELEMETRY = 0x1D
+MSG_TELEMETRY_VALVE = 0x1D
 MSG_LOG = 0x1E
-MSG_VALVE = 0x1F
 
 
 class Parser:
@@ -62,7 +61,7 @@ class Parser:
                 if not line:
                     continue
                 msg_type = line[0]
-                if msg_type not in (MSG_TELEMETRY, MSG_LOG, MSG_VALVE):
+                if msg_type not in (MSG_TELEMETRY_VALVE, MSG_LOG):
                     continue
 
                 bstr = line[1:].strip()
@@ -75,43 +74,44 @@ class Parser:
                         good_count += 1
                     except Exception:
                         continue
-                elif msg_type == MSG_TELEMETRY:
+                elif msg_type == MSG_TELEMETRY_VALVE:
                     try:
                         packet_data = base64.b64decode(bstr)[1:]
-                        telem_msg = TelemetryMessage.from_bytes(packet_data)
+                        if packet_data[0] == TelemetryMessage.MSG_ID:
+                            telem_valve_msg = TelemetryMessage.from_bytes(packet_data)
+                        elif packet_data[0] == ValveStateMessage.MSG_ID:
+                            telem_valve_msg = ValveStateMessage.from_bytes(packet_data)
+                        else:
+                            continue
                     except Exception:
                         continue
-
-                    if not telem_header_written:
-                        board = telem_msg.board
-                        channel_list = self.channels[board.index_channel][:-1]
-                        telem_csv.writerow([board.index_channel] + channel_list)
-                        telem_header_written = True
-
-                    telem_csv.writerow([telem_msg.timestamp] + telem_msg.values)
-                    good_count += 1
-                elif msg_type == MSG_VALVE:
-                    try:
-                        packet_data = base64.b64decode(bstr)[1:]
-                        valve_msg = ValveStateMessage.from_bytes(packet_data)
-                    except Exception:
-                        continue
-                    if not valve_header_written:
-                        assert valve_msg.valve.board == board
-                        valve_csv.writerow(["Valve", "Timestamp", "State"])
-                        valve_header_written = True
-                    valve_csv.writerow(
-                        [
-                            valve_msg.valve,
-                            valve_msg.timestamp,
-                            valve_msg.state,
-                        ]
-                    )
-                    good_count += 1
+                    
+                    if isinstance(telem_valve_msg, TelemetryMessage):
+                        if not telem_header_written:
+                            board = telem_valve_msg.board
+                            channel_list = self.channels[board.index_channel][:-1]
+                            telem_csv.writerow([board.index_channel] + channel_list)
+                            telem_header_written = True
+                            
+                        telem_csv.writerow([telem_valve_msg.timestamp] + telem_valve_msg.values)
+                        good_count += 1
+                    else:
+                        if not valve_header_written:
+                            assert telem_valve_msg.valve.board == board
+                            valve_csv.writerow(["Valve", "Timestamp", "State"])
+                            valve_header_written = True
+                        valve_csv.writerow(
+                            [
+                                telem_valve_msg.valve,
+                                telem_valve_msg.timestamp,
+                                telem_valve_msg.state,
+                            ]
+                        )
+                        good_count += 1
 
             if count > 0:
                 print(
-                    f"Corrupted message percent: {(count - good_count) * 100 / count}"
+                    f"Corrupted message percent: {(count - good_count) * 100 / count} ({count - good_count} corrupted messages)"
                 )
             else:
                 print("Dump file empty")

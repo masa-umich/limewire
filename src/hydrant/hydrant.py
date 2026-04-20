@@ -87,9 +87,12 @@ class Hydrant:
         while True:
             self.fc_reader = None
             if self.fc_writer is not None:
-                self.fc_writer.close()
-                await self.fc_writer.wait_closed()
-                self.fc_writer = None
+                try:
+                    self.fc_writer.close()
+                    await self.fc_writer.wait_closed()
+                    self.fc_writer = None
+                except (ConnectionResetError, ConnectionAbortedError, ConnectionError, OSError):
+                    pass
             self.fc_connected = False
             try:
                 logger.info(
