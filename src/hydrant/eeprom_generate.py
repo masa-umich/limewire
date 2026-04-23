@@ -118,10 +118,12 @@ def generate_bb_eeprom(
 def generate_fr_eeprom(
     fc_ip: ipaddress.IPv4Address, fr_ip: ipaddress.IPv4Address
 ):
-    logger.warning("Flight Recorder doesn't exist yet :(")
-    raise NotImplementedError(
-        "Can't do this man, actually this shouldn't be possible"
-    )
+    raw_out = fc_ip.packed + fr_ip.packed
+
+    crc = zlib.crc32(raw_out)
+
+    raw_out += struct.pack("<I", crc)
+    return raw_out
 
 
 def generate_fc_eeprom(

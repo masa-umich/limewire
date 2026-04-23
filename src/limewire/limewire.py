@@ -265,7 +265,8 @@ class Limewire:
                     tg.create_task(self._listen_handoff_channel())
                     tg.create_task(self._relay_valve_cmds())
                     tg.create_task(self._send_heartbeat())
-                    tg.create_task(self._periodic_ntp_sync())
+                    if self.periodic_sync:
+                        tg.create_task(self._periodic_ntp_sync())
             except* ConnectionResetError:
                 logger.error("Connection to flight computer lost.")
             except* OSError as eg:

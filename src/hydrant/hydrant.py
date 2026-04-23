@@ -75,12 +75,19 @@ class Hydrant:
             DeviceCommandHistoryEntry,
         ] = {}
 
+        self.FC_stat = asyncio.Event()
+        self.BB1_stat = asyncio.Event()
+        self.BB2_stat = asyncio.Event()
+        self.BB3_stat = asyncio.Event()
+        self.wireframes: list[ui.interactive_image] = []
+
         self.log_listener = EventLogListener()
-        self.telem_listener = TelemetryListener()
+        self.telem_listener = TelemetryListener(self.update_wireframe)
         app.on_startup(self.connect_to_fc())
         app.on_startup(self.log_listener.open_listener())
         app.on_startup(self.telem_listener.open_listener())
         app.on_startup(self.telem_listener.open_gs_listener())
+        app.on_startup(self.wireframe_task())
 
     async def connect_to_fc(self):
         """Maintain connection to flight computer."""
@@ -185,10 +192,20 @@ class Hydrant:
         with ui.header().classes(
             "bg-black text-white px-6 py-4 border-b border-gray-700"
         ):
-            with ui.row().classes("items-center gap-3"):
+            with ui.row().classes("items-center gap-3 no-wrap w-full relative"):
                 ui.label("HYDRANT").classes(
                     "text-3xl font-extrabold tracking-wider"
                 )
+                with ui.element("div").classes(
+                    "absolute left-1/2 -translate-x-1/2"
+                ):
+                    wf = ui.interactive_image(
+                        "wireframe.png",
+                        content=generate_wireframe_svg(
+                            False, False, False, False
+                        ),
+                    ).classes("w-100")
+                    self.wireframes.append(wf)
                 ui.button("Send NTP sync", on_click=self.warn_send_ntp).classes(
                     "absolute right-5"
                 )
@@ -622,3 +639,46 @@ class Hydrant:
                 on_click=lambda e: self.send_ntp_after_warn(dialog),
             )
             dialog.open()
+
+    async def wireframe_task(self):
+        while True:
+            for wf in self.wireframes:
+                wf.set_content(
+                    generate_wireframe_svg(
+                        self.FC_stat.is_set(),
+                        self.BB1_stat.is_set(),
+                        self.BB2_stat.is_set(),
+                        self.BB3_stat.is_set(),
+                    )
+                )
+            self.FC_stat.clear()
+            self.BB1_stat.clear()
+            self.BB2_stat.clear()
+            self.BB3_stat.clear()
+            await asyncio.sleep(0.5)
+
+    def update_wireframe(self, board: Board):
+        if board == Board.FC:
+            self.FC_stat.set()
+        elif board == Board.BB1:
+            self.BB1_stat.set()
+        elif board == Board.BB2:
+            self.BB2_stat.set()
+        elif board == Board.BB3:
+            self.BB3_stat.set()
+
+
+def generate_wireframe_svg(fc: bool, bb1: bool, bb2: bool, bb3: bool):
+    svg_highlights = f'''
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">
+            <polygon points="0,50.5 7.5,40.5 15.8,35 15.8,66 7.5,60" 
+                fill="{"rgba(0, 255, 0, 0.55)" if fc else "rgba(255, 0, 0, 0.55)"}" stroke="black" stroke-width="0" />
+            <rect x="43.5" y="33" width="8" height="33" 
+                fill="{"rgba(0, 255, 0, 0.55)" if bb1 else "rgba(255, 0, 0, 0.55)"}" stroke="black" stroke-width="0" />
+            <rect x="61" y="33" width="8.5" height="33" 
+                fill="{"rgba(0, 255, 0, 0.55)" if bb2 else "rgba(255, 0, 0, 0.55)"}" stroke="black" stroke-width="0" />
+            <rect x="85.5" y="33" width="11" height="33" 
+                fill="{"rgba(0, 255, 0, 0.55)" if bb3 else "rgba(255, 0, 0, 0.55)"}" stroke="black" stroke-width="0" />
+        </svg>
+    '''
+    return svg_highlights

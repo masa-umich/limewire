@@ -199,11 +199,12 @@ class ValveOLD(Enum):
 
 
 class TelemetryListener:
-    def __init__(self):
+    def __init__(self, wf_update):
         self.telemetry_UIs: list[tuple[Board, BoardTelemetryUI, Client]] = []
         self.map_UIs: list[Map_UI] = []
         self.map_marker = None
         self.transport = []
+        self.wf_update = wf_update
 
     def attach_ui(self, ui: BoardTelemetryUI, board: Board, client: Client):
         self.telemetry_UIs.append((board, ui, client))
@@ -283,6 +284,7 @@ class TelemetryListener:
         return TelemetryProtocol(self)
 
     def send_to_UIs(self, msg: TelemetryMessage):
+        self.wf_update(msg.board)
         for x in self.telemetry_UIs:
             if x[0] == msg.board:
                 x[1].process_message(msg)

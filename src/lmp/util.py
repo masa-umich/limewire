@@ -12,6 +12,8 @@ class DeviceCommand(Enum):
     PDB_3V7_OFF = 0x05
     PDB_3V7_ON = 0x06
     FIRMWARE_BUILD_INFO = 0x07
+    RADIO_ON = 0x08
+    RADIO_OFF = 0x09
 
     def __str__(self) -> str:
         return repr(self).removeprefix(f"{self.__class__.__name__}.")
@@ -22,6 +24,8 @@ class DeviceCommand(Enum):
             DeviceCommand.PDB_3V7_ON: Board.FC,
             DeviceCommand.PDB_SET_SOURCE_BATTERY: Board.FC,
             DeviceCommand.PDB_SET_SOURCE_GSE: Board.FC,
+            DeviceCommand.RADIO_ON: Board.FC,
+            DeviceCommand.RADIO_OFF: Board.FC,
         }
         if self in specific_cmds:
             return specific_cmds[self] == board
