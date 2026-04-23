@@ -542,7 +542,6 @@ class SystemConfigUI:
                         .on("click", self.handle_device_select)
                         .bind_value(self, "configure_fr")
                     )
-                    self.fr_select.disable()
             ui.separator().classes("w-full h-1")
             ui.label("Progress").classes("self-center text-lg")
             with ui.row().classes(
