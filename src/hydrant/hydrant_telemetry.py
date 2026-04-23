@@ -301,6 +301,7 @@ class TelemetryListener:
         for m in self.map_UIs:
             m.update_marker(loc)
 
+
 class TelemetryProtocol(asyncio.DatagramProtocol):
     def __init__(self, listener):
         super().__init__()

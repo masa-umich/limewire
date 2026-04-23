@@ -119,7 +119,7 @@ def generate_fr_eeprom(
     fc_ip: ipaddress.IPv4Address, fr_ip: ipaddress.IPv4Address
 ):
     raw_out = fc_ip.packed + fr_ip.packed
-    
+
     crc = zlib.crc32(raw_out)
 
     raw_out += struct.pack("<I", crc)

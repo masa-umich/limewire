@@ -74,7 +74,7 @@ class Hydrant:
             tuple[Board, DeviceCommand],
             DeviceCommandHistoryEntry,
         ] = {}
-        
+
         self.FC_stat = asyncio.Event()
         self.BB1_stat = asyncio.Event()
         self.BB2_stat = asyncio.Event()
@@ -196,9 +196,15 @@ class Hydrant:
                 ui.label("HYDRANT").classes(
                     "text-3xl font-extrabold tracking-wider"
                 )
-                with ui.element('div').classes("absolute left-1/2 -translate-x-1/2"):
-
-                    wf = ui.interactive_image("wireframe.png", content=generate_wireframe_svg(False, False, False, False)).classes("w-100")
+                with ui.element("div").classes(
+                    "absolute left-1/2 -translate-x-1/2"
+                ):
+                    wf = ui.interactive_image(
+                        "wireframe.png",
+                        content=generate_wireframe_svg(
+                            False, False, False, False
+                        ),
+                    ).classes("w-100")
                     self.wireframes.append(wf)
                 ui.button("Send NTP sync", on_click=self.warn_send_ntp).classes(
                     "absolute right-5"
@@ -633,17 +639,24 @@ class Hydrant:
                 on_click=lambda e: self.send_ntp_after_warn(dialog),
             )
             dialog.open()
-    
+
     async def wireframe_task(self):
         while True:
             for wf in self.wireframes:
-                wf.set_content(generate_wireframe_svg(self.FC_stat.is_set(), self.BB1_stat.is_set(), self.BB2_stat.is_set(), self.BB3_stat.is_set()))
+                wf.set_content(
+                    generate_wireframe_svg(
+                        self.FC_stat.is_set(),
+                        self.BB1_stat.is_set(),
+                        self.BB2_stat.is_set(),
+                        self.BB3_stat.is_set(),
+                    )
+                )
             self.FC_stat.clear()
             self.BB1_stat.clear()
             self.BB2_stat.clear()
             self.BB3_stat.clear()
             await asyncio.sleep(0.5)
-            
+
     def update_wireframe(self, board: Board):
         if board == Board.FC:
             self.FC_stat.set()
@@ -653,6 +666,7 @@ class Hydrant:
             self.BB2_stat.set()
         elif board == Board.BB3:
             self.BB3_stat.set()
+
 
 def generate_wireframe_svg(fc: bool, bb1: bool, bb2: bool, bb3: bool):
     svg_highlights = f'''
