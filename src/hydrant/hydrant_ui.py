@@ -224,7 +224,7 @@ class VLV_Channel_UI:
             ui.label(name).classes("min-w-10")
             ui.select(
                 [i for i in range(1, max + 1)], value=channel, label="Channel"
-            ).props("filled dense").classes("min-w-25").bind_value(
+            ).props("filled dense").classes("min-w-20").bind_value(
                 self, "channel"
             )
 
@@ -318,6 +318,10 @@ class FCConfigUI:
                     self.Drogue_Chute = VLV_Channel_UI("Drogue Chute", 2, 3)
                 with ui.column().classes("w-full"):
                     self.Main_Chute = VLV_Channel_UI("Main Chute", 3, 3)
+                with ui.column().classes("w-full"):
+                    self.Fuel_ISO = VLV_Channel_UI("Fuel Iso", 2, 5)
+                with ui.column().classes("w-full"):
+                    self.Ox_ISO = VLV_Channel_UI("Ox Iso", 1, 5)
 
     def restore_defaults(self):
         for x in self.PTs:
@@ -941,6 +945,8 @@ class SystemConfigUI:
         fc_PILOT = fc_board_ui.Pilot_Chute.to_VLV_CH()
         fc_DROGUE = fc_board_ui.Drogue_Chute.to_VLV_CH()
         fc_MAIN = fc_board_ui.Main_Chute.to_VLV_CH()
+        fc_FUELISO = fc_board_ui.Fuel_ISO.to_VLV_CH()
+        fc_OXISO = fc_board_ui.Ox_ISO.to_VLV_CH()
 
         bb1_PTs = [pt.to_PT() for pt in bb1_board_ui.PTs]
         bb1_TCs = [tc.to_TC() for tc in bb1_board_ui.TCs]
@@ -1025,6 +1031,8 @@ class SystemConfigUI:
                     fc_PILOT,
                     fc_DROGUE,
                     fc_MAIN,
+                    fc_FUELISO,
+                    fc_OXISO,
                     fc_tftp,
                 )
                 self.set_board_config_in_progress(self.fc_prog_tooltip)

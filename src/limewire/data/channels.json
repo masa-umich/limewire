@@ -421,6 +421,7 @@
         "gs_fuel_pressure",
         "gs_ox_pressure",
         "gs_copv_pressure",
+        "gs_recovery_pressure",
         "gs_rssi",
         "gs_snr",
         "gs_limewire_write_time"
