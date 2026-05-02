@@ -85,6 +85,20 @@ class BoardTelemetryUI:
                                         ),
                                     )
                                     ui.label(get_channel_unit(self.channels[x]))
+                                elif "fc_auto_state" in self.channels[x] or "gs_autosequence_fsm" in self.channels[x]:
+                                    ui.label(
+                                        f"{process_channel_name(self.channels[x])}:"
+                                    ).classes("justify-end text-right")
+                                    ui.label().classes(
+                                        "border w-[9ch] p-1 pl-2 pr-2 rounded-md"
+                                    ).bind_text_from(
+                                        self,
+                                        self.channels[x],
+                                        backward=lambda v: (
+                                            v.state if v is not None else " - "
+                                        ),
+                                    )
+                                    ui.label("")
                                 else:
                                     ui.label(
                                         f"{process_channel_name(self.channels[x])}:"
@@ -109,6 +123,14 @@ class BoardTelemetryUI:
                     self,
                     self.channels[x],
                     ValveOLD.from_telem(msg.values[x])
+                    if msg.values[x] is not None
+                    else None,
+                )
+            elif "fc_auto_state" in self.channels[x] or "gs_autosequence_fsm" in self.channels[x]:
+                setattr(
+                    self,
+                    self.channels[x],
+                    AutoSequenceState(msg.values[x])
                     if msg.values[x] is not None
                     else None,
                 )
@@ -196,6 +218,15 @@ class ValveOLD(Enum):
             return ValveOLD.Load
         else:
             raise ValueError(f"OLD value is not 0, 1, or -1: {val}")
+        
+autosequence_states = ["DISARMED", "ARMED", "BURN", "LOCKOUT", "COAST", "PILOT", "DROGUE", "MAIN", "LANDED"]
+
+class AutoSequenceState():
+    def __init__(self, val: float):
+        if val >= 0 and val <= 8:
+            self.state = autosequence_states[int(val)]
+        else:
+            self.state = str(val)
 
 
 class TelemetryListener:
