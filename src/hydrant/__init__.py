@@ -46,6 +46,10 @@ def main(fc_address: tuple[str, int], log_table: pathlib.Path, debug: bool):
         url_path="/lebron_shoot.jpg",
         local_file=os.path.join(script_dir, "resources/lebron_shoot.jpg"),
     )
+    app.add_static_file(
+        url_path="/wireframe.png",
+        local_file=os.path.join(script_dir, "resources/wireframe.png"),
+    )
 
     hydrant = Hydrant(fc_address, log_table)
     binding.MAX_PROPAGATION_TIME = 1.0

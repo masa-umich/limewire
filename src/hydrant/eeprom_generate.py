@@ -118,10 +118,12 @@ def generate_bb_eeprom(
 def generate_fr_eeprom(
     fc_ip: ipaddress.IPv4Address, fr_ip: ipaddress.IPv4Address
 ):
-    logger.warning("Flight Recorder doesn't exist yet :(")
-    raise NotImplementedError(
-        "Can't do this man, actually this shouldn't be possible"
-    )
+    raw_out = fc_ip.packed + fr_ip.packed
+
+    crc = zlib.crc32(raw_out)
+
+    raw_out += struct.pack("<I", crc)
+    return raw_out
 
 
 def generate_fc_eeprom(
@@ -139,6 +141,8 @@ def generate_fc_eeprom(
     pilot: VLV_CH,
     drogue: VLV_CH,
     main: VLV_CH,
+    fuel_iso: VLV_CH,
+    ox_iso: VLV_CH,
 ) -> bytes:
     print(ox_mpv.channel)
     print(main.channel)
@@ -181,7 +185,10 @@ def generate_fc_eeprom(
         + struct.pack("<B", pilot.channel)
         + struct.pack("<B", drogue.channel)
         + struct.pack("<B", main.channel)
+        + struct.pack("<B", fuel_iso.channel)
+        + struct.pack("<B", ox_iso.channel)
     )
+    print(len(raw_out))
 
     crc = zlib.crc32(raw_out)
 
@@ -210,6 +217,8 @@ def configure_fc(
     pilot,
     drogue,
     main,
+    fuel_iso,
+    ox_iso,
     tftpip,
     log=logger,
 ):
@@ -228,6 +237,8 @@ def configure_fc(
         pilot,
         drogue,
         main,
+        fuel_iso,
+        ox_iso
     )
     send_eeprom_tftp(tftpip, eeprom_content)
 
