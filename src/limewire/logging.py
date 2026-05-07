@@ -19,8 +19,22 @@ def set_up_logging(debug: bool):
     log_level = "DEBUG" if debug else "INFO"
 
     logger.remove()  # Remove preconfigured handlers
-    logger.add(log_file_path, format=log_format, level=log_level)
-    logger.add(sys.stderr, colorize=True, format=log_format, level=log_level)
+
+    logger.add(
+        log_file_path,
+        format=log_format,
+        level=log_level,
+        # Avoid radio dumps to the normal log
+        filter=lambda record: not record.get("extra", {}).get("dump", False),
+    )
+    logger.add(
+        sys.stderr,
+        colorize=True,
+        format=log_format,
+        level=log_level,
+        # Avoid radio dumps to stderr
+        filter=lambda record: not record.get("extra", {}).get("dump", False),
+    )
 
     # Dumps to ensure that radio telemetry is not lost
     logger.add(
