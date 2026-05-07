@@ -12,7 +12,8 @@ def set_up_logging(debug: bool):
         log_dir, f"limewire_{datetime.now().strftime('%Y-%m-%d')}.log"
     )
     radio_log_file_path = os.path.join(
-        log_dir, f"limewire_radio_dump_{datetime.now().strftime('%Y-%m-%d')}"
+        log_dir,
+        f"limewire_radio_dump_{datetime.now().strftime('%Y-%m-%d')}.log",
     )
 
     log_format = "<green>{time}</> <level>{level}</> {message}"
